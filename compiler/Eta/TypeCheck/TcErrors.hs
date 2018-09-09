@@ -13,9 +13,7 @@ import Eta.TypeCheck.TcMType
 import Eta.TypeCheck.TcType
 import Eta.Types.TypeRep
 import Eta.Types.Type
-import Eta.Types.Kind ( isKind )
 import Eta.Types.Unify            ( tcMatchTys )
-import Eta.BasicTypes.Module
 import Eta.TypeCheck.FamInst
 import Eta.TypeCheck.Inst
 import Eta.Types.InstEnv
@@ -31,7 +29,8 @@ import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.NameEnv
 import Eta.Utils.Bag
-import Eta.Main.Error ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning )
+import Eta.Main.Error ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning, mkEqInfoMsg, misMatchMsg,
+                        MisMatchType(..), mkAmbigMsgTvs )
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Util
 import Eta.Utils.FastString
@@ -311,12 +310,6 @@ isRigid ty
 isRigidOrSkol ty
   | Just tv <- getTyVar_maybe ty = isSkolemTyVar tv
   | otherwise                    = isRigid ty
-
-isTyFun_maybe :: Type -> Maybe TyCon
-isTyFun_maybe ty = case tcSplitTyConApp_maybe ty of
-                      Just (tc,_) | isTypeFamilyTyCon tc -> Just tc
-                      _ -> Nothing
-
 
 --------------------------------------------
 --      Reporters
@@ -818,9 +811,8 @@ reportEqErr :: ReportErrCtxt -> SDoc
             -> Maybe SwapFlag   -- Nothing <=> not sure
             -> TcType -> TcType -> TcM ErrMsg
 reportEqErr ctxt extra1 ct oriented ty1 ty2
-  = do { let extra2 = mkEqInfoMsg ct ty1 ty2
-             doc    = misMatchOrCND ctxt ct oriented ty1 ty2
-       ; mkErrorMsg ctxt ct (TypeMismatchError doc extra2 extra1) }
+  = do { let mt = misMatchOrCND ctxt ct oriented ty1 ty2
+       ; mkErrorMsg ctxt ct (TypeMismatchError mt (tyVarsOfCt ct) ty1 ty2 extra1) }
 
 mkTyVarEqErr :: DynFlags -> ReportErrCtxt -> SDoc -> Ct
              -> Maybe SwapFlag -> TcTyVar -> TcType -> TcM ErrMsg
@@ -848,7 +840,7 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
          -- See Note [Occurs check error] in TcCanonical
   = do { let occCheckMsg = hang (text "Occurs check: cannot construct the infinite type:")
                               2 (sep [ppr ty1, char '~', ppr ty2])
-             extra2 = mkEqInfoMsg ct ty1 ty2
+             extra2 = mkEqInfoMsg (tyVarsOfCt ct) ty1 ty2
        ; mkErrorMsg ctxt ct (OccursCheckError occCheckMsg extra2 extra) }
 
   | OC_Forall <- occ_check_expand
@@ -912,29 +904,6 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
     ty1    = mkTyVarTy tv1
     eq_rel = ctEqRel ct
 
-mkEqInfoMsg :: Ct -> TcType -> TcType -> SDoc
--- Report (a) ambiguity if either side is a type function application
---            e.g. F a0 ~ Int
---        (b) warning about injectivity if both sides are the same
---            type function application   F a ~ F b
---            See Note [Non-injective type functions]
-mkEqInfoMsg ct ty1 ty2
-  = tyfun_msg $$ ambig_msg
-  where
-    mb_fun1 = isTyFun_maybe ty1
-    mb_fun2 = isTyFun_maybe ty2
-
-    ambig_msg | isJust mb_fun1 || isJust mb_fun2
-              = snd (mkAmbigMsg ct)
-              | otherwise = empty
-
-    tyfun_msg | Just tc1 <- mb_fun1
-              , Just tc2 <- mb_fun2
-              , tc1 == tc2
-              = ptext (sLit "NB:") <+> quotes (ppr tc1)
-                <+> ptext (sLit "is a type function, and may not be injective")
-              | otherwise = empty
-
 isUserSkolem :: ReportErrCtxt -> TcTyVar -> Bool
 -- See Note [Reporting occurs-check errors]
 isUserSkolem ctxt tv
@@ -946,7 +915,7 @@ isUserSkolem ctxt tv
     is_user_skol_info (InferSkol {}) = False
     is_user_skol_info _ = True
 
-misMatchOrCND :: ReportErrCtxt -> Ct -> Maybe SwapFlag -> TcType -> TcType -> SDoc
+misMatchOrCND :: ReportErrCtxt -> Ct -> Maybe SwapFlag -> TcType -> TcType -> MisMatchType
 -- If oriented then ty1 is actual, ty2 is expected
 misMatchOrCND ctxt ct oriented ty1 ty2
   | null givens ||
@@ -954,10 +923,11 @@ misMatchOrCND ctxt ct oriented ty1 ty2
     isGivenCt ct
        -- If the equality is unconditionally insoluble
        -- or there is no context, don't report the context
-  = misMatchMsg oriented eq_rel ty1 ty2
+  = MisMatch oriented eq_rel ty1 ty2
   | otherwise
-  = couldNotDeduce givens ([eq_pred], orig)
+  = CouldNotDeduce $ couldNotDeduce givens ([eq_pred], orig)
   where
+    _tvs = tyVarsOfCt ct
     eq_rel = ctEqRel ct
     givens = [ given | given@(_, _, no_eqs, _) <- getUserGivens ctxt, not no_eqs]
              -- Keep only UserGivens that have some equalities
@@ -1025,33 +995,6 @@ suggestAddSig ctxt ty1 ty2
                | otherwise
                = []
 
---------------------
-misMatchMsg :: Maybe SwapFlag -> EqRel -> TcType -> TcType -> SDoc
--- Types are already tidy
--- If oriented then ty1 is actual, ty2 is expected
-misMatchMsg oriented eq_rel ty1 ty2
-  | Just IsSwapped <- oriented
-  = misMatchMsg (Just NotSwapped) eq_rel ty2 ty1
-  | Just NotSwapped <- oriented
-  = sep [ text "Couldn't match" <+> repr1 <+> text "expected" <+>
-          what <+> quotes (ppr ty2)
-        , nest (12 + extra_space) $
-          text "with" <+> repr2 <+> text "actual" <+> what <+> quotes (ppr ty1)
-        , blankLine
-        , sameOccExtra ty2 ty1 ]
-  | otherwise
-  = sep [ text "Couldn't match" <+> repr1 <+> what <+> quotes (ppr ty1)
-        , nest (15 + extra_space) $
-          text "with" <+> repr2 <+> quotes (ppr ty2)
-        , sameOccExtra ty1 ty2 ]
-  where
-    what | isKind ty1 = ptext (sLit "kind")
-         | otherwise  = ptext (sLit "type")
-
-    (repr1, repr2, extra_space) = case eq_rel of
-      NomEq  -> (empty, empty, 0)
-      ReprEq -> (text "representation of", text "that of", 10)
-
 mkExpectedActualMsg :: Type -> Type -> CtOrigin -> (Maybe SwapFlag, SDoc)
 -- NotSwapped means (actual, expected), IsSwapped is the reverse
 mkExpectedActualMsg ty1 ty2 (TypeEqOrigin { uo_actual = act, uo_expected = exp })
@@ -1063,35 +1006,6 @@ mkExpectedActualMsg ty1 ty2 (TypeEqOrigin { uo_actual = act, uo_expected = exp }
                , text "  Actual type:" <+> ppr act ]
 
 mkExpectedActualMsg _ _ _ = panic "mkExprectedAcutalMsg"
-
-sameOccExtra :: TcType -> TcType -> SDoc
--- See Note [Disambiguating (X ~ X) errors]
-sameOccExtra ty1 ty2
-  | Just (tc1, _) <- tcSplitTyConApp_maybe ty1
-  , Just (tc2, _) <- tcSplitTyConApp_maybe ty2
-  , let n1 = tyConName tc1
-        n2 = tyConName tc2
-        same_occ = nameOccName n1                  == nameOccName n2
-        same_pkg = moduleUnitId (nameModule n1) == moduleUnitId (nameModule n2)
-  , n1 /= n2   -- Different Names
-  , same_occ   -- but same OccName
-  = ptext (sLit "NB:") <+> (ppr_from same_pkg n1 $$ ppr_from same_pkg n2)
-  | otherwise
-  = empty
-  where
-    ppr_from same_pkg nm
-      | isGoodSrcSpan loc
-      = hang (quotes (ppr nm) <+> ptext (sLit "is defined at"))
-           2 (ppr loc)
-      | otherwise  -- Imported things have an UnhelpfulSrcSpan
-      = hang (quotes (ppr nm))
-           2 (sep [ ptext (sLit "is defined in") <+> quotes (ppr (moduleName mod))
-                  , ppUnless (same_pkg || pkg == mainUnitId) $
-                    nest 4 $ ptext (sLit "in package") <+> quotes (ppr pkg) ])
-       where
-         pkg = moduleUnitId mod
-         mod = nameModule nm
-         loc = nameSrcSpan nm
 
 {-
 Note [Suggest adding a type signature]
@@ -1434,36 +1348,7 @@ variables are kind variables.
 -}
 
 mkAmbigMsg :: Ct -> (Bool, SDoc)
-mkAmbigMsg ct
-  | null ambig_tkvs = (False, empty)
-  | otherwise       = (True,  msg)
-  where
-    ambig_tkv_set = filterVarSet isAmbiguousTyVar (tyVarsOfCt ct)
-    ambig_tkvs    = varSetElems ambig_tkv_set
-    (ambig_kvs, ambig_tvs) = partition isKindVar ambig_tkvs
-
-    msg | any isRuntimeUnkSkol ambig_tkvs  -- See Note [Runtime skolems]
-        =  vcat [ ptext (sLit "Cannot resolve unknown runtime type") <> plural ambig_tvs
-                     <+> pprQuotedList ambig_tvs
-                , ptext (sLit "Use :print or :force to determine these types")]
-
-        | not (null ambig_tvs)
-        = pp_ambig (ptext (sLit "type")) ambig_tvs
-
-        | otherwise  -- All ambiguous kind variabes; suggest -fprint-explicit-kinds
-        = vcat [ pp_ambig (ptext (sLit "kind")) ambig_kvs
-               , sdocWithDynFlags suggest_explicit_kinds ]
-
-    pp_ambig what tkvs
-      = ptext (sLit "The") <+> what <+> ptext (sLit "variable") <> plural tkvs
-        <+> pprQuotedList tkvs <+> is_or_are tkvs <+> ptext (sLit "ambiguous")
-
-    is_or_are [_] = text "is"
-    is_or_are _   = text "are"
-
-    suggest_explicit_kinds dflags  -- See Note [Suggest -fprint-explicit-kinds]
-      | gopt Opt_PrintExplicitKinds dflags = empty
-      | otherwise = ptext (sLit "Use -fprint-explicit-kinds to see the kind arguments")
+mkAmbigMsg ct = mkAmbigMsgTvs (tyVarsOfCt ct)
 
 pprSkol :: SkolemInfo -> SrcLoc -> SDoc
 pprSkol UnkSkol   _

@@ -106,6 +106,7 @@ expected type, because it expects that to have been done already
 
 matchExpectedFunTys :: HeraldContext     -- See Note [Herald for matchExpectedFunTys]
                     -> Arity
+                    -> Maybe [LHsExpr Name]
                     -> TcRhoType
                     -> TcM (TcCoercion, [TcSigmaType], TcRhoType)
 
@@ -119,7 +120,7 @@ matchExpectedFunTys :: HeraldContext     -- See Note [Herald for matchExpectedFu
 -- If allocated (fresh-meta-var1 -> fresh-meta-var2) and unified, we'd
 -- hide the forall inside a meta-variable
 
-matchExpectedFunTys herald arity orig_ty
+matchExpectedFunTys herald arity args orig_ty
   = go arity orig_ty
   where
     -- If     go n ty = (co, [t1,..,tn], ty_r)
@@ -184,7 +185,7 @@ matchExpectedFunTys herald arity orig_ty
                      ; return (env'', mk_msg orig_ty' ty n_actual) }
 
     mk_msg orig_ty ty n_args
-      = FunctionCtxt herald arity n_args orig_ty ty
+      = FunctionCtxt herald arity n_args args orig_ty ty
 
 {-
 Note [Foralls to left of arrow]

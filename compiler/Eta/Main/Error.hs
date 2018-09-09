@@ -19,7 +19,8 @@ module Eta.Main.Error (
       PromotionErr(..), pprPECategory,
 
       ContextElement(..), HowMuch(..), TypeError(..),
-      HeraldContext(..),
+      HeraldContext(..), mkEqInfoMsg, misMatchMsg, pprFunctionHerald,
+      MisMatchType(..), mkAmbigMsgTvs
 
 ) where
 
@@ -27,10 +28,13 @@ import Eta.Main.Constants ( mAX_TUPLE_SIZE )
 import Eta.Main.ErrUtils
 import Data.Ord
 import Eta.BasicTypes.SrcLoc
+import Eta.BasicTypes.VarSet
 import Eta.Utils.Outputable
+import Eta.TypeCheck.TcType
 import Eta.Main.DynFlags
 import Data.List (sortBy)
 import Eta.Types.InstEnv
+import Eta.Types.Kind
 import Eta.Types.FamInstEnv
 import Eta.Utils.Util
 import Eta.BasicTypes.RdrName
@@ -53,11 +57,11 @@ import Eta.Types.Coercion (pprCoAxBranchHdr)
 import Eta.Types.Type
 import Eta.BasicTypes.DataCon  ( DataCon, dataConUserType, dataConTyCon )
 import Eta.Types.Class    ( Class, classTyVars )
-import Eta.TypeCheck.TcType
 import Eta.BasicTypes.ConLike  ( ConLike(..) )
 import qualified Language.Eta.Meta as TH
 import qualified Eta.LanguageExtensions as LangExt
-import Data.List     ( sort, intersperse )
+import Data.List     ( sort, intersperse, partition )
+import Data.Maybe    ( isJust )
 
 -- -----------------------------------------------------------------------------
 -- Basic error messages: just render a message with a source location.
@@ -201,10 +205,10 @@ isWarnMsgFatal dflags _
       else Nothing
 
 data ContextElement
-  = FunctionResultCtxt Bool Int Int (HsExpr Name) Type Type Type Type
-  | FunctionArgumentCtxt (LHsExpr Name) (LHsExpr Name) Int
+  = FunctionResultCtxt Bool Int Int (HsExpr Name) Type Int Type Type Type Type
+  | FunctionArgumentCtxt (LHsExpr Name) (Maybe TcTauType) (LHsExpr Name) Int
   | SyntaxNameCtxt (HsExpr Name) Type SDoc
-  | FunctionCtxt HeraldContext Arity Int Type Type
+  | FunctionCtxt HeraldContext Arity Int (Maybe [LHsExpr Name]) Type Type
   | PolymorphicCtxt Type Type
   | AnnotationTcCtxt (AnnDecl Name)
   | AmbiguityCheckCtxt UserTypeCtxt Type Bool
@@ -256,6 +260,62 @@ data ContextElement
   | SpliceCtxt (HsSplice RdrName)
   | WarningCtxt SDoc
 
+instance Show ContextElement where
+  show (FunctionResultCtxt {}) = "FunctionResultCtxt"
+  show (FunctionArgumentCtxt {}) = "FunctionArgumentCtxt"
+  show (SyntaxNameCtxt {}) = "SyntaxNameCtxt"
+  show (FunctionCtxt {}) = "FunctionCtxt"
+  show (PolymorphicCtxt {}) = "PolymorphicCtxt"
+  show (AnnotationTcCtxt {}) = "AnnotationTcCtxt"
+  show (AmbiguityCheckCtxt {}) = "AmbiguityCheckCtxt"
+  show (ThetaCtxt {}) = "ThetaCtxt"
+  show (SignatureCtxt {}) = "SignatureCtxt"
+  show (TypeCtxt {}) = "TypeCtxt"
+  show (PatternSigCtxt {}) = "PatternSigCtxt"
+  show (KindCtxt {}) = "KindCtxt"
+  show (PatternCtxt {}) = "PatternCtxt"
+  show (ExportCtxt {}) = "ExportCtxt"
+  show (SpecCtxt {}) = "SpecCtxt"
+  show (VectorCtxt {}) = "VectorCtxt"
+  show (TypeSignatureCtxt {}) = "TypeSignatureCtxt"
+  show (PatMonoBindsCtxt {}) = "PatMonoBindsCtxt"
+  show (MatchCtxt {}) = "MatchCtxt"
+  show (ListComprehensionCtxt {}) = "ListComprehensionCtxt"
+  show (StatementCtxt {}) = "StatementCtxt"
+  show (CommandCtxt {}) = "CommandCtxt"
+  show (ExpressionCtxt {}) = "ExpressionCtxt"
+  show (StaticCtxt {}) = "StaticCtxt"
+  show (FieldCtxt {}) = "FieldCtxt"
+  show (DeclarationCtxt {}) = "DeclarationCtxt"
+  show (ForeignDeclarationCtxt {}) = "ForeignDeclarationCtxt"
+  show (DefaultDeclarationCtxt {}) = "DefaultDeclarationCtxt"
+  show (RuleCtxt {}) = "RuleCtxt"
+  show (DataConstructorCtxt {}) = "DataConstructorCtxt"
+  show (DataConstructorsCtxt {}) = "DataConstructorsCtxt"
+  show (ClassCtxt {}) = "ClassCtxt"
+  show (FamilyInstCtxt {}) = "FamilyInstCtxt"
+  show (ClosedTypeFamilyCtxt {}) = "ClosedTypeFamilyCtxt"
+  show (AddTypeCtxt {}) = "AddTypeCtxt"
+  show (RoleCtxt {}) = "RoleCtxt"
+  show (StandaloneCtxt {}) = "StandaloneCtxt"
+  show (DeriveInstCtxt {}) = "DeriveInstCtxt"
+  show (InstDeclarationCtxt1 {}) = "InstDeclarationCtxt1"
+  show (InstDeclarationCtxt2 {}) = "InstDeclarationCtxt2"
+  show (MethSigCtxt {}) = "MethSigCtxt"
+  show (SpecInstSigCtxt {}) = "SpecInstSigCtxt"
+  show (DerivedInstCtxt {}) = "DerivedInstCtxt"
+  show (MainCtxt {}) = "MainCtxt"
+  show (QuotationCtxt {}) = "QuotationCtxt"
+  show (SpliceDocCtxt {}) = "SpliceDocCtxt"
+  show (SpliceResultCtxt {}) = "SpliceResultCtxt"
+  show (ReifyCtxt {}) = "ReifyCtxt"
+    --- Renamer error
+  show (DuplicatedAndShadowedCtxt {}) = "DuplicatedAndShadowedCtxt"
+  show (AnnotationRnCtxt {}) = "AnnotationRnCtxt"
+  show (QuasiQuoteCtxt {}) = "QuasiQuoteCtxt"
+  show (SpliceCtxt {}) = "SpliceCtxt"
+  show (WarningCtxt {}) = "WarningCtxt"
+
 data HowMuch = TooFew | TooMuch
   deriving Show
 
@@ -267,24 +327,33 @@ data HeraldContext
   | LambdaExprContext (MatchGroup Name (LHsExpr Name))
   | FunctionApplicationContext (LHsExpr Name)
 
+pprFunctionHerald :: HeraldContext -> SDoc
+pprFunctionHerald ArgumentOfDollarContext                = text "($)"
+pprFunctionHerald (OperatorContext expr)                 = ppr expr
+pprFunctionHerald (LambdaCaseContext expr_name)          = ppr expr_name
+pprFunctionHerald (EquationContext name)                 = ppr name
+pprFunctionHerald (LambdaExprContext expr_name)          =
+  (pprSetDepth (PartWay 1) $ pprMatches (LambdaExpr :: HsMatchContext Name) expr_name)
+pprFunctionHerald (FunctionApplicationContext expr_name) = ppr expr_name
+
 instance Outputable HeraldContext where
   ppr ArgumentOfDollarContext = text "The first argument of ($) takes"
-  ppr (OperatorContext op) = text "The operator" <+> quotes (ppr op) <+> ptext (sLit "takes")
+  ppr (OperatorContext op) = text "The operator" <+> quotes (ppr op) <+> text "takes"
   ppr (LambdaCaseContext e) = sep [ text "The function" <+> quotes (ppr e), text "requires"]
   ppr (EquationContext fun_name)
       = text "The equation(s) for"
                <+> quotes (ppr fun_name) <+> text "have"
   ppr (LambdaExprContext match)
-      = sep [ ptext (sLit "The lambda expression")
+      = sep [ text "The lambda expression"
                            <+> quotes (pprSetDepth (PartWay 1) $
                                pprMatches (LambdaExpr :: HsMatchContext Name) match),
                           -- The pprSetDepth makes the abstraction print briefly
-                  ptext (sLit "has")]
+                  text "has"]
   ppr (FunctionApplicationContext fun)
      = sep [ text "The function" <+> quotes (ppr fun), text "is applied to"]
 
 instance Outputable ContextElement where
-  ppr (FunctionResultCtxt has_args n_fun n_env fun res_fun res_env _ _)
+  ppr (FunctionResultCtxt has_args n_fun n_env fun _ _ res_fun res_env _ _)
      | n_fun == n_env = empty
      | n_fun > n_env
      , not_fun res_env = text "Probable cause:" <+> quotes (ppr fun)
@@ -299,7 +368,7 @@ instance Outputable ContextElement where
              = case tcSplitTyConApp_maybe ty of
                  Just (tc, _) -> isAlgTyCon tc
                  Nothing      -> False
-  ppr (FunctionArgumentCtxt fun arg arg_no)
+  ppr (FunctionArgumentCtxt fun _fun_tau arg arg_no)
      = hang (hsep [ text "In the", speakNth arg_no, text "argument of",
                        quotes (ppr fun) <> text ", namely"]) 2 (quotes (ppr arg))
   ppr (SyntaxNameCtxt name ty inst_loc)
@@ -307,7 +376,7 @@ instance Outputable ContextElement where
          <+> text "(needed by a syntactic construct)"
        , nest 2 (text "has the required type:" <+> ppr ty)
        , nest 2 inst_loc ]
-  ppr (FunctionCtxt herald arity n_args orig_ty ty)
+  ppr (FunctionCtxt herald arity n_args _ orig_ty ty)
     = ppr herald <+> speakNOf arity (text "argument") <> comma $$
         if n_args == arity
           then text "its type is" <+> quotes (pprType orig_ty) <>
@@ -384,12 +453,12 @@ instance Outputable ContextElement where
         name = getName thing
         flav = case thing of
                  ATyCon tc
-                    | isClassTyCon tc       -> ptext (sLit "class")
-                    | isTypeFamilyTyCon tc  -> ptext (sLit "type family")
-                    | isDataFamilyTyCon tc  -> ptext (sLit "data family")
-                    | isTypeSynonymTyCon tc -> ptext (sLit "type")
-                    | isNewTyCon tc         -> ptext (sLit "newtype")
-                    | isDataTyCon tc        -> ptext (sLit "data")
+                    | isClassTyCon tc       -> text "class"
+                    | isTypeFamilyTyCon tc  -> text "type family"
+                    | isDataFamilyTyCon tc  -> text "data family"
+                    | isTypeSynonymTyCon tc -> text "type"
+                    | isNewTyCon tc         -> text "newtype"
+                    | isDataTyCon tc        -> text "data"
 
                  _ -> pprTrace "addTyThingCtxt strange" (ppr thing)
                       empty
@@ -447,7 +516,7 @@ data SignatureContext = SignatureContext UserTypeCtxt SDoc SDoc
 
 instance Outputable SignatureContext where
   ppr (SignatureContext ctxt extra pp_ty)
-    = sep [ ptext (sLit "In") <+> extra <+> pprUserTypeCtxt ctxt <> colon
+    = sep [ text "In" <+> extra <+> pprUserTypeCtxt ctxt <> colon
           , nest 2 (pp_sig ctxt) ]
       where
         pp_sig (FunSigCtxt n)  = pp_n_colon n
@@ -739,8 +808,8 @@ data TypeError
    | CouldNotDedudeError SDoc SDoc
    | HoleError SDoc SDoc
    | IPError SDoc SDoc
-   | TypeMismatchError SDoc SDoc SDoc
-   | TypeVariableError SDoc SDoc SDoc
+   | TypeMismatchError MisMatchType TcTyVarSet TcType TcType SDoc
+   | TypeVariableError MisMatchType SDoc SDoc
    | OccursCheckError  SDoc SDoc SDoc
    | TypeVariableKindMismatchError TyVar Type SDoc
    | UnificationVariableError TyVar Type
@@ -818,10 +887,9 @@ instance Outputable TypeError where
        = hsep [text "Class", quotes (ppr clas),
                text "does not have an associated type", quotes (ppr op)]
    ppr (WrongATArgError ty instTy)
-       = sep [ ptext (sLit "Type indexes must match class instance head")
-           , ptext (sLit "Found") <+> quotes (ppr ty)
-             <+> ptext (sLit "but expected") <+> quotes (ppr instTy)
-           ]
+       = sep [ text "Type indexes must match class instance head"
+             , text "Found" <+> quotes (ppr ty)
+                 <+> text "but expected" <+> quotes (ppr instTy) ]
    ppr (NestedTypeFamilyError famInst)
        = famInstUndecErr famInst nestedMsg $$ parens undecidableMsg
    ppr (VariableMultipleOccurenceError famInst bad_tvs)
@@ -857,9 +925,9 @@ instance Outputable TypeError where
    ppr (BadKindSignatureError kind)
        = hang (text "Kind signature on data type declaration has non-* return kind") 2 (ppr kind)
    ppr (PatternBindSignatureError sig_tvs)
-       = hang (ptext (sLit "You cannot bind scoped type variable") <> plural sig_tvs
+       = hang (text "You cannot bind scoped type variable" <> plural sig_tvs
               <+> pprQuotedList (map fst sig_tvs))
-           2 (ptext (sLit "in a pattern binding signature"))
+           2 (text "in a pattern binding signature")
    ppr (BadPatterSignatureError sig_ty bad_tvs)
        = vcat [ fsep [text "The type variable" <> plural bad_tvs,
                       quotes (pprWithCommas ppr bad_tvs),
@@ -966,7 +1034,7 @@ instance Outputable TypeError where
        = vcat [text "The expression", nest 2 (ppr cmd),
                            text "was found where an arrow command was expected"]
    ppr (WrongNumberOfParmsError ty_arity)
-       = ptext (sLit "Number of pattern synonym arguments doesn't match type; expected")
+       = text "Number of pattern synonym arguments doesn't match type; expected"
          <+> ppr ty_arity
    ppr (BiDirectionalError lpat)
        = hang (text "Right-hand side of bidirectional pattern synonym cannot be used as an expression")
@@ -1244,7 +1312,7 @@ instance Outputable TypeError where
    ppr CheckTopDeclError
      = text "Only function, value, annotation, and foreign import declarations may be added with addTopDecl"
    ppr (BindNameTypeError name)
-     = hang (text "The binder" <+> quotes (ppr name) <+> ptext (sLit "is not a NameU."))
+     = hang (text "The binder" <+> quotes (ppr name) <+> text "is not a NameU.")
         2 (text "Probable cause: you used mkName instead of newName to generate a binding.")
    ppr (ReifyInstancesError ty)
        = hang (text "reifyInstances:" <+> quotes (ppr ty))
@@ -1308,7 +1376,7 @@ instance Outputable TypeError where
           tried_occ     = rdrNameOcc tried_rdr_name
           extra' | rdr_name == forall_tv_RDR = perhapsForallMsg
                  | otherwise                 = empty
-          perhaps = ptext (sLit "Perhaps you meant")
+          perhaps = text "Perhaps you meant"
           extra_err = case suggest of
                         []  -> empty
                         [p] -> perhaps <+> pp_item p
@@ -1341,14 +1409,14 @@ instance Outputable TypeError where
              locations]
         where locations = text "Bound at:" <+> vcat (map ppr (sort locs))
    ppr (TupleSizeError tup_size)
-       = (sep [ptext (sLit "A") <+> int tup_size <> text "-tuple is too large for GHC",
+       = (sep [text "A" <+> int tup_size <> text "-tuple is too large for GHC",
                       nest 2 (parens (text "max size is" <+> int mAX_TUPLE_SIZE)),
                       nest 2 (text "Workaround: use nested tuples or define a data type")])
 
    ppr (BadInstanceError ty)
-       = ptext (sLit "Malformed instance:") <+> ppr ty
+       = text "Malformed instance:" <+> ppr ty
    ppr (OperatorError op ty ty1)
-       = hang (ptext (sLit "Illegal operator") <+> quotes (ppr op) <+> ptext (sLit "in type") <+> quotes (ppr ty))
+       = hang (text "Illegal operator" <+> quotes (ppr op) <+> text "in type" <+> quotes (ppr ty))
               2 extra
        where
          extra | op == dot_tv_RDR && forall_head ty1
@@ -1671,7 +1739,7 @@ instance Outputable TypeError where
                text "tcl_env of environment:" <+> sdoc]
    ppr (WrongThingError expected thing name)
        = (thing <+> quotes (ppr name) <+>
-                     ptext (sLit "used as a") <+> text expected)
+                     text "used as a" <+> text expected)
    ppr (ModuleDependsOnItselfError mod)
        = text "Circular imports: module" <+> quotes (ppr mod)
            <+> text "depends on itself"
@@ -1686,7 +1754,7 @@ instance Outputable TypeError where
              nest 4 (vcat [text "Illegal expression:" <+> ppr bad_e,
                            text "in left-hand side:" <+> ppr lhs])]
         $$
-        ptext (sLit "LHS must be of form (f e1 .. en) where f is not forall'd")
+        text "LHS must be of form (f e1 .. en) where f is not forall'd"
    ppr BadGadtStupidThetaError
       = vcat [text "No context is allowed on a GADT-style data declaration",
            text "(You can put a context on each contructor, though.)"]
@@ -1741,7 +1809,7 @@ instance Outputable TypeError where
              , nest 2 $ quotes (text "import")
                  <+> ppr (is_mod decl_spec)
                  <> parens_sp (dataType <> parens_sp datacon)
-             , ptext (sLit "or")
+             , text "or"
              , nest 2 $ quotes (text "import")
                  <+> ppr (is_mod decl_spec)
                  <> parens_sp (dataType <> text "(..)")
@@ -1776,8 +1844,8 @@ instance Outputable TypeError where
    ppr (CouldNotDedudeError s e) = s $$ e
    ppr (HoleError s e) = s $$ e
    ppr (IPError s e) = s $$ e
-   ppr (TypeMismatchError s e d) = vcat [s, e, d]
-   ppr (TypeVariableError s e d) = vcat [s, e, d]
+   ppr (TypeMismatchError mt tvs ty1 ty2 extra) = vcat [pprMisMatchType mt, mkEqInfoMsg tvs ty1 ty2, extra]
+   ppr (TypeVariableError mt e d) = vcat [pprMisMatchType mt, e, d]
    ppr (OccursCheckError occCheckMsg extra2 extra) = occCheckMsg $$ extra2 $$ extra
    ppr (TypeVariableKindMismatchError tv1 ty2 extra) =
      kindErrorMsg (mkTyVarTy tv1) ty2 $$ extra
@@ -1837,13 +1905,13 @@ ppr_th x = text (TH.pprint x)
 
 perhapsForallMsg :: SDoc
 perhapsForallMsg
-  = vcat [ ptext (sLit "Perhaps you intended to use ExplicitForAll or similar flag")
-         , ptext (sLit "to enable explicit-forall syntax: forall <tvs>. <type>")]
+  = vcat [ text "Perhaps you intended to use ExplicitForAll or similar flag"
+         , text "to enable explicit-forall syntax: forall <tvs>. <type>"]
 
 ppr_opfix :: (Name, Fixity) -> SDoc
 ppr_opfix (op, fixity) = pp_op <+> brackets (ppr fixity)
   where
-    pp_op | op == negateName = ptext (sLit "prefix `-'")
+    pp_op | op == negateName = text "prefix `-'"
           | otherwise        = quotes (ppr op)
 
 -- the SrcSpan that pprNameProvenance prints out depends on whether
@@ -1859,8 +1927,8 @@ greSrcSpan gre
     name_span = nameSrcSpan (gre_name gre)
 
 undecidableMsg, constraintKindsMsg :: SDoc
-undecidableMsg     = ptext (sLit "Use UndecidableInstances to permit this")
-constraintKindsMsg = ptext (sLit "Use ConstraintKinds to permit this")
+undecidableMsg     = text "Use UndecidableInstances to permit this"
+constraintKindsMsg = text "Use ConstraintKinds to permit this"
 
 pprUserTypeErrorTy :: Type -> TypeError
 pprUserTypeErrorTy ty = UserTypeError $ pprUserTypeErrorTy' ty
@@ -1912,9 +1980,9 @@ data Rank = ArbitraryRank         -- Any rank ok
           | MustBeMonoType  -- Monotype regardless of flags
 
 rankZeroMonoType, tyConArgMonoType, synArgMonoType :: Rank
-rankZeroMonoType = MonoType (ptext (sLit "Perhaps you intended to use RankNTypes or Rank2Types"))
-tyConArgMonoType = MonoType (ptext (sLit "Perhaps you intended to use ImpredicativeTypes"))
-synArgMonoType   = MonoType (ptext (sLit "Perhaps you intended to use LiberalTypeSynonyms"))
+rankZeroMonoType = MonoType (text "Perhaps you intended to use RankNTypes or Rank2Types")
+tyConArgMonoType = MonoType (text "Perhaps you intended to use ImpredicativeTypes")
+synArgMonoType   = MonoType (text "Perhaps you intended to use LiberalTypeSynonyms")
 
 funArgResRank :: Rank -> (Rank, Rank)             -- Function argument and result
 funArgResRank (LimitedRank _ arg_rank) = (arg_rank, LimitedRank (forAllAllowed arg_rank) arg_rank)
@@ -1928,7 +1996,7 @@ forAllAllowed _                         = False
 famInstUndecErr :: Type -> SDoc -> SDoc
 famInstUndecErr ty msg
   = sep [msg,
-         nest 2 (ptext (sLit "in the type family application:") <+>
+         nest 2 (text "in the type family application:" <+>
                  pprType ty)]
 
 nestedMsg, smallerAppMsg :: SDoc
@@ -1982,7 +2050,7 @@ instance OutputableBndr a => Outputable (InstInfo a) where
 
 pprInstInfoDetails :: OutputableBndr a => InstInfo a -> SDoc
 pprInstInfoDetails info
-   = hang (pprInstanceHdr (iSpec info) <+> ptext (sLit "where"))
+   = hang (pprInstanceHdr (iSpec info) <+> text "where")
         2 (details (iBinds info))
   where
     details (InstBindings { ib_binds = b }) = pprLHsBinds b
@@ -2007,8 +2075,134 @@ instance Outputable PromotionErr where
   ppr NoDataKinds  = text "NoDataKinds"
 
 pprPECategory :: PromotionErr -> SDoc
-pprPECategory ClassPE      = ptext (sLit "Class")
-pprPECategory TyConPE      = ptext (sLit "Type constructor")
-pprPECategory FamDataConPE = ptext (sLit "Data constructor")
-pprPECategory RecDataConPE = ptext (sLit "Data constructor")
-pprPECategory NoDataKinds  = ptext (sLit "Data constructor")
+pprPECategory ClassPE      = text "Class"
+pprPECategory TyConPE      = text "Type constructor"
+pprPECategory FamDataConPE = text "Data constructor"
+pprPECategory RecDataConPE = text "Data constructor"
+pprPECategory NoDataKinds  = text "Data constructor"
+
+--------------------
+misMatchMsg :: Maybe SwapFlag -> EqRel -> TcType -> TcType -> SDoc
+-- Types are already tidy
+-- If oriented then ty1 is actual, ty2 is expected
+misMatchMsg oriented eq_rel ty1 ty2
+  | Just IsSwapped <- oriented
+  = misMatchMsg (Just NotSwapped) eq_rel ty2 ty1
+  | Just NotSwapped <- oriented
+  = sep [ text "Couldn't match" <+> repr1 <+> text "expected" <+>
+          what <+> quotes (ppr ty2)
+        , nest (12 + extra_space) $
+          text "with" <+> repr2 <+> text "actual" <+> what <+> quotes (ppr ty1)
+        , blankLine
+        , sameOccExtra ty2 ty1 ]
+  | otherwise
+  = sep [ text "Couldn't match" <+> repr1 <+> what <+> quotes (ppr ty1)
+        , nest (15 + extra_space) $
+          text "with" <+> repr2 <+> quotes (ppr ty2)
+        , sameOccExtra ty1 ty2 ]
+  where
+    what | isKind ty1 = text "kind"
+         | otherwise  = text "type"
+
+    (repr1, repr2, extra_space) = case eq_rel of
+      NomEq  -> (empty, empty, 0)
+      ReprEq -> (text "representation of", text "that of", 10)
+
+sameOccExtra :: TcType -> TcType -> SDoc
+-- See Note [Disambiguating (X ~ X) errors]
+sameOccExtra ty1 ty2
+  | Just (tc1, _) <- tcSplitTyConApp_maybe ty1
+  , Just (tc2, _) <- tcSplitTyConApp_maybe ty2
+  , let n1 = tyConName tc1
+        n2 = tyConName tc2
+        same_occ = nameOccName n1                  == nameOccName n2
+        same_pkg = moduleUnitId (nameModule n1) == moduleUnitId (nameModule n2)
+  , n1 /= n2   -- Different Names
+  , same_occ   -- but same OccName
+  = text "NB:" <+> (ppr_from same_pkg n1 $$ ppr_from same_pkg n2)
+  | otherwise
+  = empty
+  where
+    ppr_from same_pkg nm
+      | isGoodSrcSpan loc
+      = hang (quotes (ppr nm) <+> text "is defined at")
+           2 (ppr loc)
+      | otherwise  -- Imported things have an UnhelpfulSrcSpan
+      = hang (quotes (ppr nm))
+           2 (sep [ text "is defined in" <+> quotes (ppr (moduleName mod))
+                  , ppUnless (same_pkg || pkg == mainUnitId) $
+                    nest 4 $ text "in package" <+> quotes (ppr pkg) ])
+       where
+         pkg = moduleUnitId mod
+         mod = nameModule nm
+         loc = nameSrcSpan nm
+
+mkEqInfoMsg :: TcTyVarSet -> TcType -> TcType -> SDoc
+-- Report (a) ambiguity if either side is a type function application
+--            e.g. F a0 ~ Int
+--        (b) warning about injectivity if both sides are the same
+--            type function application   F a ~ F b
+--            See Note [Non-injective type functions]
+mkEqInfoMsg tvs ty1 ty2
+ = tyfun_msg $$ ambig_msg
+ where
+     mb_fun1 = isTyFun_maybe ty1
+     mb_fun2 = isTyFun_maybe ty2
+
+     ambig_msg | isJust mb_fun1 || isJust mb_fun2
+               = snd (mkAmbigMsgTvs tvs)
+               | otherwise = empty
+
+     tyfun_msg | Just tc1 <- mb_fun1
+               , Just tc2 <- mb_fun2
+               , tc1 == tc2
+               = text "NB:" <+> quotes (ppr tc1)
+                 <+> text "is a type function, and may not be injective"
+               | otherwise = empty
+
+mkAmbigMsgTvs :: TcTyVarSet -> (Bool, SDoc)
+mkAmbigMsgTvs tvs
+ | null ambig_tkvs = (False, empty)
+ | otherwise       = (True,  msg)
+ where
+   ambig_tkv_set = filterVarSet isAmbiguousTyVar tvs
+   ambig_tkvs    = varSetElems ambig_tkv_set
+   (ambig_kvs, ambig_tvs) = partition isKindVar ambig_tkvs
+
+   msg | any isRuntimeUnkSkol ambig_tkvs  -- See Note [Runtime skolems]
+       =  vcat [ ptext (sLit "Cannot resolve unknown runtime type") <> plural ambig_tvs
+                    <+> pprQuotedList ambig_tvs
+               , ptext (sLit "Use :print or :force to determine these types")]
+
+       | not (null ambig_tvs)
+       = pp_ambig (ptext (sLit "type")) ambig_tvs
+
+       | otherwise  -- All ambiguous kind variabes; suggest -fprint-explicit-kinds
+       = vcat [ pp_ambig (ptext (sLit "kind")) ambig_kvs
+              , sdocWithDynFlags suggest_explicit_kinds ]
+
+   pp_ambig what tkvs
+     = ptext (sLit "The") <+> what <+> ptext (sLit "variable") <> plural tkvs
+       <+> pprQuotedList tkvs <+> is_or_are tkvs <+> ptext (sLit "ambiguous")
+
+   is_or_are [_] = text "is"
+   is_or_are _   = text "are"
+
+   suggest_explicit_kinds dflags  -- See Note [Suggest -fprint-explicit-kinds]
+     | gopt Opt_PrintExplicitKinds dflags = empty
+     | otherwise = ptext (sLit "Use -fprint-explicit-kinds to see the kind arguments")
+
+
+data MisMatchType
+  = MisMatch (Maybe SwapFlag) EqRel Type Type
+  | CouldNotDeduce SDoc
+
+pprMisMatchType :: MisMatchType -> SDoc
+pprMisMatchType (MisMatch oriented eq_rel ty1 ty2) =
+  misMatchMsg oriented eq_rel ty1 ty2
+pprMisMatchType (CouldNotDeduce s) = s
+
+isTyFun_maybe :: Type -> Maybe TyCon
+isTyFun_maybe ty = case tcSplitTyConApp_maybe ty of
+                      Just (tc,_) | isTypeFamilyTyCon tc -> Just tc
+                      _ -> Nothing

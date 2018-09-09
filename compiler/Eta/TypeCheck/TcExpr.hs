@@ -221,7 +221,7 @@ tcExpr (HsLam match) res_ty
         ; return (mkHsWrap co_fn (HsLam match')) }
 
 tcExpr e@(HsLamCase _ matches) res_ty
-  = do  { (co_fn, [arg_ty], body_ty) <- matchExpectedFunTys (LambdaCaseContext e) 1 res_ty
+  = do  { (co_fn, [arg_ty], body_ty) <- matchExpectedFunTys (LambdaCaseContext e) 1 Nothing res_ty
         ; matches' <- tcMatchesCase match_ctxt arg_ty matches body_ty
         ; return $ mkHsWrapCo co_fn $ HsLamCase arg_ty matches' }
 
@@ -333,8 +333,8 @@ tcExpr (OpApp arg1 op fix arg2) res_ty
   , op_name `hasKey` seqIdKey           -- Note [Typing rule for seq]
   = do { arg1_ty <- newFlexiTyVarTy liftedTypeKind
        ; let arg2_ty = res_ty
-       ; arg1' <- tcArg op (arg1, arg1_ty, 1)
-       ; arg2' <- tcArg op (arg2, arg2_ty, 2)
+       ; arg1' <- tcArg op Nothing (arg1, arg1_ty, 1)
+       ; arg2' <- tcArg op Nothing (arg2, arg2_ty, 2)
        ; op_id <- tcLookupId op_name
        ; let op' = L loc (HsWrap (mkWpTyApps [arg1_ty, arg2_ty]) (HsVar op_id))
        ; return $ OpApp arg1' op' fix arg2' }
@@ -344,13 +344,13 @@ tcExpr (OpApp arg1 op fix arg2) res_ty
   = do { traceTc "Application rule" (ppr op)
        ; (arg1', arg1_ty) <- tcInferRho arg1
 
-       ; (co_arg1, [arg2_ty], op_res_ty) <- matchExpectedFunTys ArgumentOfDollarContext 1 arg1_ty
+       ; (co_arg1, [arg2_ty], op_res_ty) <- matchExpectedFunTys ArgumentOfDollarContext 1 Nothing arg1_ty
 
          -- We have (arg1 $ arg2)
          -- So: arg1_ty = arg2_ty -> op_res_ty
          -- where arg2_ty maybe polymorphic; that's the point
 
-       ; arg2' <- tcArg op (arg2, arg2_ty, 2)
+       ; arg2' <- tcArg op Nothing (arg2, arg2_ty, 2)
        ; co_b  <- unifyType op_res_ty res_ty    -- op_res ~ res
 
        -- Make sure that the argument type has kind '*'
@@ -379,7 +379,7 @@ tcExpr (OpApp arg1 op fix arg2) res_ty
        ; (op', op_ty) <- tcInferFun op
        ; (co_fn, arg_tys, op_res_ty) <- unifyOpFunTysWrap op 2 op_ty
        ; co_res <- unifyType op_res_ty res_ty
-       ; [arg1', arg2'] <- tcArgs op [arg1, arg2] arg_tys
+       ; [arg1', arg2'] <- tcArgs op (Just op_ty) [arg1, arg2] arg_tys
        ; return $ mkHsWrapCo co_res $
          OpApp arg1' (mkLHsWrapCo co_fn op') fix arg2' }
 
@@ -390,7 +390,7 @@ tcExpr (SectionR op arg2) res_ty
   = do { (op', op_ty) <- tcInferFun op
        ; (co_fn, [arg1_ty, arg2_ty], op_res_ty) <- unifyOpFunTysWrap op 2 op_ty
        ; co_res <- unifyType (mkFunTy arg1_ty op_res_ty) res_ty
-       ; arg2' <- tcArg op (arg2, arg2_ty, 2)
+       ; arg2' <- tcArg op (Just op_ty) (arg2, arg2_ty, 2)
        ; return $ mkHsWrapCo co_res $
          SectionR (mkLHsWrapCo co_fn op') arg2' }
 
@@ -402,7 +402,7 @@ tcExpr (SectionL arg1 op) res_ty
 
        ; (co_fn, (arg1_ty:arg_tys), op_res_ty) <- unifyOpFunTysWrap op n_reqd_args op_ty
        ; co_res <- unifyType (mkFunTys arg_tys op_res_ty) res_ty
-       ; arg1' <- tcArg op (arg1, arg1_ty, 1)
+       ; arg1' <- tcArg op (Just op_ty) (arg1, arg1_ty, 1)
        ; return $ mkHsWrapCo co_res $
          SectionL arg1' (mkLHsWrapCo co_fn op') }
 
@@ -962,18 +962,18 @@ tcApp fun args res_ty
 
             -- Extract its argument types
         ; (co_fun, expected_arg_tys, actual_res_ty)
-              <- matchExpectedFunTys (mk_app_msg fun) (length args) fun_tau
+              <- matchExpectedFunTys (mk_app_msg fun) (length args) (Just args) fun_tau
 
         -- Typecheck the result, thereby propagating
         -- info (if any) from result into the argument types
         -- Both actual_res_ty and res_ty are deeply skolemised
         -- Rather like tcWrapResult, but (perhaps for historical reasons)
         -- we do this before typechecking the arguments
-        ; wrap_res <- addErrCtxtM (funResCtxt True (unLoc fun) actual_res_ty res_ty) $
+        ; wrap_res <- addErrCtxtM (funResCtxt True (unLoc fun) fun_tau (length args) actual_res_ty res_ty) $
                       tcSubTypeDS_NC GenSigCtxt actual_res_ty res_ty
 
         -- Typecheck the arguments
-        ; args1 <- tcArgs fun args expected_arg_tys
+        ; args1 <- tcArgs fun (Just fun_tau) args expected_arg_tys
 
         -- Assemble the result
         ; let fun2 = mkLHsWrapCo co_fun fun1
@@ -1006,18 +1006,21 @@ tcInferFun fun
 
 ----------------
 tcArgs :: LHsExpr Name                          -- The function (for error messages)
+       -> Maybe TcTauType
        -> [LHsExpr Name] -> [TcSigmaType]       -- Actual arguments and expected arg types
        -> TcM [LHsExpr TcId]                    -- Resulting args
 
-tcArgs fun args expected_arg_tys
-  = mapM (tcArg fun) (zip3 args expected_arg_tys [1..])
+tcArgs fun fun_tau args expected_arg_tys
+  = mapM (tcArg fun fun_tau) (zip3 args expected_arg_tys [1..])
 
 ----------------
 tcArg :: LHsExpr Name                           -- The function (for error messages)
-       -> (LHsExpr Name, TcSigmaType, Int)      -- Actual argument and expected arg type
-       -> TcM (LHsExpr TcId)                    -- Resulting argument
-tcArg fun (arg, ty, arg_no) = addErrCtxt (funAppCtxt fun arg arg_no)
-                                         (tcPolyExprNC arg ty)
+      -> Maybe TcTauType
+      -> (LHsExpr Name, TcSigmaType, Int)      -- Actual argument and expected arg type
+      -> TcM (LHsExpr TcId)                    -- Resulting argument
+tcArg fun fun_tau (arg, ty, arg_no)
+  = addErrCtxtM (funAppCtxt fun fun_tau arg arg_no)
+                (tcPolyExprNC arg ty)
 
 ----------------
 tcTupArgs :: [LHsTupArg Name] -> [TcSigmaType] -> TcM [LHsTupArg TcId]
@@ -1032,7 +1035,7 @@ tcTupArgs args tys
 unifyOpFunTysWrap :: LHsExpr Name -> Arity -> TcRhoType
                   -> TcM (TcCoercion, [TcSigmaType], TcRhoType)
 -- A wrapper for matchExpectedFunTys
-unifyOpFunTysWrap op arity ty = matchExpectedFunTys (OperatorContext op) arity ty
+unifyOpFunTysWrap op arity ty = matchExpectedFunTys (OperatorContext op) arity Nothing ty
 
 
 ---------------------------
@@ -1081,7 +1084,7 @@ tcCheckId :: Name -> TcRhoType -> TcM (HsExpr TcId)
 tcCheckId name res_ty
   = do { (expr, actual_res_ty) <- tcInferId name
        ; traceTc "tcCheckId" (vcat [ppr name, ppr actual_res_ty, ppr res_ty])
-       ; addErrCtxtM (funResCtxt False (HsVar name) actual_res_ty res_ty) $
+       ; addErrCtxtM (funResCtxt False (HsVar name) actual_res_ty 0 actual_res_ty res_ty) $
          tcWrapResult expr actual_res_ty res_ty }
 
 ------------------------
@@ -1452,24 +1455,29 @@ exprCtxt expr = ExpressionCtxt expr
 fieldCtxt :: Name -> ContextElement
 fieldCtxt field_name = FieldCtxt field_name
 
-funAppCtxt :: LHsExpr Name -> LHsExpr Name -> Int -> ContextElement
-funAppCtxt fun arg arg_no = FunctionArgumentCtxt fun arg arg_no
+funAppCtxt :: LHsExpr Name -> Maybe TcTauType -> LHsExpr Name -> Int
+           -> TidyEnv -> TcM (TidyEnv, ContextElement)
+funAppCtxt fun fun_tau arg arg_no tidy_env = do
+  fun_tau' <- traverse zonkTcType fun_tau
+  return (tidy_env, FunctionArgumentCtxt fun fun_tau' arg arg_no)
 
 funResCtxt :: Bool  -- There is at least one argument
-           -> HsExpr Name -> TcType -> TcType
+           -> HsExpr Name -> TcType -> Int -> TcType -> TcType
            -> TidyEnv -> TcM (TidyEnv, ContextElement)
 -- When we have a mis-match in the return type of a function
 -- try to give a helpful message about too many/few arguments
 --
 -- Used for naked variables too; but with has_args = False
-funResCtxt has_args fun fun_res_ty env_ty tidy_env
-  = do { fun_res' <- zonkTcType fun_res_ty
+funResCtxt has_args fun fun_tau no_args fun_res_ty env_ty tidy_env
+  = do { fun_tau' <- zonkTcType fun_tau
+       ; fun_res' <- zonkTcType fun_res_ty
        ; env'     <- zonkTcType env_ty
        ; let (args_fun, res_fun) = tcSplitFunTys fun_res'
              (args_env, res_env) = tcSplitFunTys env'
              n_fun = length args_fun
              n_env = length args_env
-             info = FunctionResultCtxt has_args n_fun n_env fun res_fun res_env fun_res' env'
+             info
+              = FunctionResultCtxt has_args n_fun n_env fun fun_tau' no_args res_fun res_env fun_res' env'
        ; return (tidy_env, info) }
 
 badFieldTypes :: [(Name,TcType)] -> TypeError

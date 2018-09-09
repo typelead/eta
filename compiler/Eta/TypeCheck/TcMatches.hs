@@ -139,7 +139,7 @@ matchFunTys
 -- could probably be un-CPSd, like matchExpectedTyConApp
 
 matchFunTys herald arity res_ty thing_inside
-  = do  { (co, pat_tys, res_ty) <- matchExpectedFunTys herald arity res_ty
+  = do  { (co, pat_tys, res_ty) <- matchExpectedFunTys herald arity Nothing res_ty
         ; res <- thing_inside pat_tys res_ty
         ; return (coToHsWrapper (mkTcSymCo co), res) }
 

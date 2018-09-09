@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 module Eta.Main.ErrorReporting (
   renderWarnings, renderErrors
 ) where
@@ -5,12 +6,14 @@ module Eta.Main.ErrorReporting (
 import Eta.Main.Error
 import Eta.Main.ErrUtils hiding (getCaretDiagnostic)
 import Eta.Utils.Outputable
+import Eta.Utils.FastString (unpackFS)
 import Eta.Utils.Bag (isEmptyBag)
+import Eta.Utils.Util (sortWith)
 import Data.Time.Clock.POSIX
 import Data.Int
 import System.IO.Unsafe
-import Eta.BasicTypes.SrcLoc
-import Eta.Utils.FastString
+import Eta.TypeCheck.TcType
+import Eta.Types.TypeRep
 import System.IO.Error (catchIOError)
 import Eta.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
 import Eta.Main.DynFlags
@@ -18,7 +21,9 @@ import Eta.Utils.PprColor (PprColor)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.OccName
 import Eta.BasicTypes.RdrName
+import Eta.BasicTypes.SrcLoc
 import Data.List (partition)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Either (isLeft)
 import Eta.Prelude.PrelNames (forall_tv_RDR)
 
@@ -103,7 +108,7 @@ pprErrMsg prHeading ErrMsg { errMsgShortDoc  = coreError,
                              blankLine $+$
                              helpUrlMsg)
   where (heading, mUrlFragment, finalOutput)
-          | Just (heading, url, sdoc) <- pprNiceErrMsg caret coreError stackTrace
+          | Just (heading, url, sdoc) <- pprNiceErrMsg caret coreError stackTrace span
           = (heading, Just url, sdoc)
           | otherwise = ("Error",
                          Nothing,
@@ -120,10 +125,92 @@ pprErrMsg prHeading ErrMsg { errMsgShortDoc  = coreError,
                        blankLine $+$
                        nest 4 (colored Col.colLightPurpleFg (text $ "https://eta-lang.org/"))
 
-pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> Maybe (String, String, SDoc)
-pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
+pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> SrcSpan -> Maybe (String, String, SDoc)
+pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt _
   = pprOutOfScopeError rdr_name is_dk suggest caret
-pprNiceErrMsg _ _ _ = Nothing
+pprNiceErrMsg caret (TypeMismatchError mt tvs ty1 ty2 extra) ctxt span
+  = Just (pprTypeMisMatchError caret mt tvs ty1 ty2 extra ctxt span)
+pprNiceErrMsg _ _ _ _ = Nothing
+
+pprTypeMisMatchError :: SDoc -> MisMatchType -> TcTyVarSet -> TcType
+                     -> TcType -> SDoc -> [ContextElement] -> SrcSpan -> (String, String, SDoc)
+pprTypeMisMatchError caret mt tvs ty1 ty2 extra ctxts _span =
+  ("TYPE MISMATCH",
+   "TypeMismatch",
+   fullMismatchError)
+  where fullMismatchError
+          | (ctxt:_) <- ctxts
+          , FunctionCtxt herald arity n_args args orig_ty _ty <- ctxt
+          = vcat [
+          --          in text "The function expects" <+>
+          --             colored Col.colOrangeFg (int n_args <+> arguments n_args)
+          --               <> text ", but was given" <+>
+          --             colored Col.colLightRedFg (int arity <+> arguments arity)
+          --               <> text "."
+                   let arguments n
+                         | n == 1    = text "argument"
+                         | otherwise = text "arguments"
+                       extra = arity - n_args
+                   in text "The function below has been given" <+>
+                      colored Col.colLightRedFg (int extra <+> text "extra" <+> arguments extra) <> text "."
+                 , maybe caret (highlightSource Col.colCyanFg .
+                                map (\arg -> (getLoc arg, colored Col.colLightRedFg)) . drop n_args)
+                   args
+                 , text "I think you might have forgotten to add a" <+> hintColor (text "parentheses")
+                        <+> text "or a" <+> hintColor (text "comma") <> text "."
+                 , blankLine
+                 , text "The type of the function is shown below."
+                 , blankLine
+                 , blankLine
+                 , nest 2 (pprFunctionHerald herald <+> dcolon <+> ppr orig_ty)
+                 ]
+          | (ctxt:_) <- ctxts
+          , FunctionResultCtxt _has_args n_fun _n_env fun fun_ty no_args _res_fun _res_env _fun_res_ty _env_ty <- ctxt
+          = vcat [ text "I found a type mismatch in the function below."
+                 , caret
+                 , text "The type of" <+> colored Col.colLightRedFg (ppr fun) <+> text "is shown the below."
+                 , blankLine
+                 , blankLine
+                 , nest 2 (ppr fun <+> dcolon <+>
+                           pprHighlightFunTy (\n -> n > no_args && n <= (no_args + n_fun))
+                            (colored Col.colRedFg) fun_ty)
+                 , blankLine
+                 , let n_args
+                         | n_fun == 1 = text "argument is"
+                         | otherwise = text "arguments are"
+                   in text "I think the highlighted" <+> n_args
+                            <+> text "missing from the expression."
+                 ]
+          | (_:ctxt:_) <- ctxts
+          , FunctionArgumentCtxt fun fun_tau arg arg_no <- ctxt
+          = vcat [ text "I found a type mismatch in the function and argument below."
+                 , highlightSource Col.colCyanFg
+                     [(getLoc fun, colored Col.colOrangeFg),
+                      (getLoc arg, colored Col.colLightRedFg)]
+                 , text "The types of the expressions are shown below."
+                 , blankLine
+                 , blankLine
+                 , nest 2 (ppr fun <+> dcolon <+>
+                           maybe empty
+                           (pprHighlightFunTy (== arg_no) (colored Col.colOrangeFg))
+                           fun_tau)
+                 , blankLine
+                 , blankLine
+                 , nest 2 (ppr arg <+> dcolon <+> colored Col.colLightRedFg (ppr ty1))
+                 , blankLine
+                 , text "You can fix the problem by"
+                 , blankLine, blankLine
+                   , nest 4 $ char unicodeArrowHead <+> text "checking that you're using the"
+                          <+> (hintColor $ text  "right function") <> text "."
+                 , blankLine, blankLine
+                   , nest 4 $ char unicodeArrowHead <+> text "checking that you're using the"
+                          <+> (hintColor $ text "right argument") <> text "." ]
+          | otherwise =
+                vcat [ text "I found a type mismatch in the code below.",
+                       caret,
+                       ppr (TypeMismatchError mt tvs ty1 ty2 extra),
+                       vcat $ map ppr ctxts,
+                       text $ show ctxts ]
 
 pprOutOfScopeError :: RdrName -> Bool
                    -> [(RdrName, HowInScope)]
@@ -142,7 +229,6 @@ pprOutOfScopeError rdr_name is_dk suggest caret =
      locInfoCol = coloredQuotes Col.colEtaFg
      suggestCol = coloredQuotes Col.colLightRedFg
      nameCol = coloredQuotes Col.colLightRedFg
-     hintColor = colored Col.colYellowFg
 
      rdr_ns = pprNonVarNameSpace (occNameSpace (rdrNameOcc rdr_name))
      extra
@@ -265,6 +351,88 @@ getCaretDiagnostic marginColor sevColor _ (RealSrcSpan span) = do
         (srcLinePre,  srcLineRest) = splitAt start srcLine
         (srcLineSpan, srcLinePost) = splitAt width srcLineRest
 
+highlightSource :: PprColor -> [(SrcSpan, SDoc -> SDoc)] -> MsgDoc
+highlightSource marginColor locs
+  | null realLocs = empty
+  | otherwise = vcat [ blankLine
+                     , highlightedLines
+                     , blankLine ]
+
+  where realLocs = mapMaybe (\case (UnhelpfulSpan _,  _) -> Nothing
+                                   (RealSrcSpan span, f) -> Just (span, f)) locs
+        fullSpan   = foldl1 combineRealSrcSpans $ map fst realLocs
+        startLine  = srcSpanStartLine fullSpan
+        endLine    = srcSpanEndLine   fullSpan
+        fileName   = unpackFS (srcSpanFile fullSpan)
+        sortedLocs = sortWith fst realLocs
+        highlightedLines = go sortedLocs startLine
+        margin n   = colored marginColor (text (show n ++ " |"))
+        go [] _ = empty
+        go locs0 !n
+          | n > endLine = empty
+          | otherwise =
+            margin n <> text " " <> goLocs lineLocs srcLine 0 $+$
+            go (trailingLoc lineLocs locs') (n + 1)
+          where (lineLocs, locs') =
+                  span (\(s, _) -> srcSpanStartLine s <= n) locs0
+                trailingLoc xs ys
+                  | length lineLocs > 0
+                  , let trail@(s, _) = last xs
+                  , srcSpanEndLine s /= n
+                  = trail:ys
+                  | otherwise = ys
+                mSrcLine = unsafePerformIO (getSrcLine fileName n)
+                srcLine = fromMaybe (error "highlightSource: srcLine fromMaybe") $
+                            fmap expandLine mSrcLine
+                goLocs [] line _offset = text line
+                goLocs ((span, f):locs) line offset =
+                   text srcLinePre <>
+                   f (text srcLineSpan) <>
+                   goLocs locs srcLinePost (offset + end)
+                  where start | n == srcSpanStartLine span =
+                                srcSpanStartCol span - 1 - offset
+                              | otherwise = 0
+                        end | n == srcSpanEndLine span =
+                                srcSpanEndCol span - 1 - offset
+                            | otherwise = length line
+                        width = max 1 (end - start)
+                        (srcLinePre,  srcLineRest) = splitAt start line
+                        (srcLineSpan, srcLinePost) = splitAt width srcLineRest
+
+
+getSrcLine :: FilePath -> Int -> IO (Maybe String)
+getSrcLine fn i = getLine i fn `catchIOError` \_ -> pure Nothing
+  where getLine :: Int -> FilePath -> IO (Maybe String)
+        getLine i fn = do
+          -- StringBuffer has advantages over readFile:
+          -- (a) no lazy IO, otherwise IO exceptions may occur in pure code
+          -- (b) always UTF-8, rather than some system-dependent encoding
+          --     (Haskell source code must be UTF-8 anyway)
+          content <- hGetStringBuffer fn
+          case atLine i content of
+            Just at_line -> pure $
+              case lines (fix <$> lexemeToString at_line (len at_line)) of
+                  srcLine : _ -> Just srcLine
+                  _           -> Nothing
+            _ -> pure Nothing
+
+        -- allow user to visibly see that their code is incorrectly encoded
+        -- (StringBuffer.nextChar uses \0 to represent undecodable characters)
+        fix '\0' = '\xfffd'
+        fix c    = c
+
+expandLine :: String -> String
+expandLine srcLineWithNewline =
+  filter (/= '\n') (expandTabs 8 0 srcLineWithNewline)
+  where -- expand tabs in a device-independent manner #13664
+        expandTabs tabWidth i s =
+          case s of
+            ""        -> ""
+            '\t' : cs -> replicate effectiveWidth ' ' ++
+                           expandTabs tabWidth (i + effectiveWidth) cs
+            c    : cs -> c : expandTabs tabWidth (i + 1) cs
+          where effectiveWidth = tabWidth - i `mod` tabWidth
+
 coloredQuotes :: PprColor -> SDoc -> SDoc
 coloredQuotes col identifier =
   sdocWithDynFlags $ \dflags ->
@@ -284,3 +452,6 @@ unicodeArrowHead :: Char
 unicodeArrowHead
   | unicode   = '\x27A4'
   | otherwise = '>'
+
+hintColor :: SDoc -> SDoc
+hintColor = colored Col.colYellowFg

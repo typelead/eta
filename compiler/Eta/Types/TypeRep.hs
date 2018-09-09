@@ -51,7 +51,7 @@ module Eta.Types.TypeRep (
         tidyOpenTyVar, tidyOpenTyVars,
         tidyTyVarOcc,
         tidyTopType,
-        tidyKind, noFreeVarsOfType,
+        tidyKind, noFreeVarsOfType, pprHighlightFunTy,
 
         -- Substitutions
         TvSubst(..), TvSubstEnv
@@ -983,3 +983,22 @@ noFreeVarsOfType (FunTy t1 t2)    = noFreeVarsOfType t1 && noFreeVarsOfType t2
 noFreeVarsOfType (LitTy _)        = True
 -- noFreeVarsOfType (CastTy ty co)   = noFreeVarsOfType ty && noFreeVarsOfCo co
 -- noFreeVarsOfType (CoercionTy co)  = noFreeVarsOfCo co
+
+pprHighlightFunTy :: (Int -> Bool) -> (SDoc -> SDoc) -> Type -> SDoc
+pprHighlightFunTy arg_f f fun_ty@(FunTy ty1 ty2)
+  | isPredTy ty1
+  = ppr_forall_type TopPrec fun_ty
+  | otherwise
+  = pprArrowChain TopPrec (withHighlight 1 (ppr_type FunPrec ty1) :
+                           ppr_fun_tail ty2 2)
+  where
+    withHighlight n sdoc
+      | arg_f n = f sdoc
+      | otherwise = sdoc
+
+    -- We don't want to lose synonyms, so we mustn't use splitFunTys here.
+    ppr_fun_tail (FunTy ty1 ty2) n
+      | not (isPredTy ty1) =
+        withHighlight n (ppr_type FunPrec ty1) : ppr_fun_tail ty2 (n + 1)
+    ppr_fun_tail other_ty n = [withHighlight n (ppr_type TopPrec other_ty)]
+pprHighlightFunTy _ _ ty = pprType ty

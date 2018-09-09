@@ -35,6 +35,7 @@ module Eta.BasicTypes.SrcLoc (
 
         -- * SrcSpan
         RealSrcSpan,            -- Abstract
+        combineRealSrcSpans,
         SrcSpan(..),
 
         -- ** Constructing SrcSpan
