@@ -35,7 +35,7 @@ module Eta.TypeCheck.TcSMonad (
     instDFunConstraints,
 
     getInstEnvs, getFamInstEnvs,                -- Getting the environments
-    getTopEnv, getGblEnv, getTcEvBinds, getTcLevel,
+    getTopEnv, getGblEnv, getLclEnv, getTcEvBinds, getTcLevel,
     getTcEvBindsMap,
 
         -- Inerts
@@ -1465,6 +1465,9 @@ getTopEnv = wrapTcS $ TcM.getTopEnv
 getGblEnv :: TcS TcGblEnv
 getGblEnv = wrapTcS $ TcM.getGblEnv
 
+getLclEnv :: TcS TcLclEnv
+getLclEnv = wrapTcS $ TcM.getLclEnv
+
 -- Setting names as used (used in the deriving of Coercible evidence)
 -- Too hackish to expose it to TcS? In that case somehow extract the used
 -- constructors from the result of solveInteract
@@ -1835,7 +1838,7 @@ deferTcSForAllEq role loc (tvs1,body1) (tvs2,body2)
         ; coe_inside <- case freshness of
             Cached -> return (ctEvCoercion ctev)
             Fresh  -> do { ev_binds_var <- newTcEvBinds
-                         ; env <- wrapTcS $ TcM.getLclEnv
+                         ; env <- getLclEnv
                          ; let ev_binds = TcEvBinds ev_binds_var
                                new_ct = mkNonCanonical ctev
                                new_co = ctEvCoercion ctev

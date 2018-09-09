@@ -20,6 +20,7 @@ module Eta.Main.Error (
 
       ContextElement(..), HowMuch(..), TypeError(..),
       HeraldContext(..),
+      pprHoleError, pp_with_type, greSrcSpan,
 
 ) where
 
@@ -57,7 +58,8 @@ import Eta.TypeCheck.TcType
 import Eta.BasicTypes.ConLike  ( ConLike(..) )
 import qualified Language.Eta.Meta as TH
 import qualified Eta.LanguageExtensions as LangExt
-import Data.List     ( sort, intersperse )
+import Data.List     ( sort, intersperse, partition )
+import Data.Set      ( Set )
 
 -- -----------------------------------------------------------------------------
 -- Basic error messages: just render a message with a source location.
@@ -737,7 +739,9 @@ data TypeError
    | GeneralWarningSDoc SDoc
    | DeSugarError SDoc
    | CouldNotDedudeError SDoc SDoc
-   | HoleError SDoc SDoc
+   | UnfilledHoleError OccName Type Bool Bool SDoc ([TyVar] -> SDoc)
+   | OutOfScopeHoleError RdrName Type RealSrcSpan GlobalRdrEnv (Set RealSrcSpan)
+                         [(RdrName, HowInScope)]
    | IPError SDoc SDoc
    | TypeMismatchError SDoc SDoc SDoc
    | TypeVariableError SDoc SDoc SDoc
@@ -1774,7 +1778,9 @@ instance Outputable TypeError where
    ppr (GeneralWarningSDoc s) = s
    ppr (DeSugarError s) = s
    ppr (CouldNotDedudeError s e) = s $$ e
-   ppr (HoleError s e) = s $$ e
+   ppr (UnfilledHoleError occ hole_ty is_expr is_type_hole_err binds_doc pprSkols) =
+     getDoc $ pprHoleError occ hole_ty is_expr is_type_hole_err binds_doc pprSkols empty
+   ppr (OutOfScopeHoleError {}) = text "OutOfScopeHoleError"
    ppr (IPError s e) = s $$ e
    ppr (TypeMismatchError s e d) = vcat [s, e, d]
    ppr (TypeVariableError s e d) = vcat [s, e, d]
@@ -2012,3 +2018,59 @@ pprPECategory TyConPE      = ptext (sLit "Type constructor")
 pprPECategory FamDataConPE = ptext (sLit "Data constructor")
 pprPECategory RecDataConPE = ptext (sLit "Data constructor")
 pprPECategory NoDataKinds  = ptext (sLit "Data constructor")
+
+pprHoleError :: OccName -> Type -> Bool -> Bool -> SDoc -> ([TyVar] -> SDoc) -> SDoc
+             -> (String, String, SDoc)
+pprHoleError occ hole_ty is_expr is_type_hole_err binds_doc pprSkols caret =
+  ( "TYPED HOLE"
+  , "HoleError"
+  , caret $+$ hole_msg $+$ binds_doc)
+  where hole_kind = typeKind hole_ty
+        tyvars    = tyVarsOfTypeList hole_ty
+
+        hole_msg
+          | is_expr = vcat [ hang (text "Found hole:")
+                                2 (pp_with_type occ hole_ty)
+                           , tyvars_msg, expr_hole_hint ]
+          | otherwise = vcat [ hang (text "Found type wildcard" <+>
+                                     quotes (ppr occ))
+                                  2 (text "standing for" <+>
+                                     quotes pp_hole_type_with_kind)
+                             , tyvars_msg, type_hole_hint ]
+
+        pp_hole_type_with_kind
+           | isLiftedTypeKind hole_kind
+           = pprType hole_ty
+           | otherwise
+           = pprType hole_ty <+> dcolon <+> pprKind hole_kind
+
+        tyvars_msg = ppUnless (null tyvars) $
+                     text "Where:" <+> (vcat (map loc_msg other_tvs) $$ pprSkols skol_tvs)
+           where
+             (skol_tvs, other_tvs) = partition is_skol tyvars
+             is_skol tv = isSkolemTyVar tv
+
+        type_hole_hint
+            | is_type_hole_err
+            = text "To use the inferred type, enable PartialTypeSignatures"
+            | otherwise
+            = empty
+
+        expr_hole_hint                       -- Give hint for, say,   f x = _x
+            | lengthFS (occNameFS occ) > 1  -- Don't give this hint for plain "_"
+            = text "Or perhaps" <+> quotes (ppr occ)
+              <+> text "is mis-spelled, or not in scope"
+            | otherwise
+            = empty
+
+        loc_msg tv
+          | MetaTv {} <- tcTyVarDetails tv =
+            quotes (ppr tv) <+> text "is an ambiguous type variable"
+          | otherwise = empty -- Skolems dealt with already
+
+
+getDoc :: (String, String, SDoc) -> SDoc
+getDoc (_,_,s) = s
+
+pp_with_type :: OccName -> Type -> SDoc
+pp_with_type occ ty = hang (pprPrefixOcc occ) 2 (dcolon <+> pprType ty)

@@ -18,7 +18,10 @@ import Eta.Utils.PprColor (PprColor)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.OccName
 import Eta.BasicTypes.RdrName
+import Eta.Types.Type
 import Data.List (partition)
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Either (isLeft)
 import Eta.Prelude.PrelNames (forall_tv_RDR)
 
@@ -123,6 +126,10 @@ pprErrMsg prHeading ErrMsg { errMsgShortDoc  = coreError,
 pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> Maybe (String, String, SDoc)
 pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
   = pprOutOfScopeError rdr_name is_dk suggest caret
+pprNiceErrMsg caret (OutOfScopeHoleError rdr hole_ty err_loc rdr_env splice_locs suggest) _ctxt
+  = Just $ pprOutOfScopeHoleError rdr hole_ty err_loc rdr_env splice_locs suggest caret
+pprNiceErrMsg caret (UnfilledHoleError occ hole_ty is_expr is_type_hole_err binds_doc pprSkols) _ctxt
+  = Just $ pprHoleError occ hole_ty is_expr is_type_hole_err binds_doc pprSkols caret
 pprNiceErrMsg _ _ _ = Nothing
 
 pprOutOfScopeError :: RdrName -> Bool
@@ -200,6 +207,56 @@ pprOutOfScopeError rdr_name is_dk suggest caret =
                | otherwise      = empty
        where ns = rdrNameSpace rdr
 
+pprOutOfScopeHoleError :: RdrName -> Type -> RealSrcSpan -> GlobalRdrEnv -> Set RealSrcSpan
+                       -> [(RdrName, HowInScope)] -> SDoc -> (String, String, SDoc)
+pprOutOfScopeHoleError rdr hole_ty err_loc rdr_env splice_locs _suggestions caret
+  = ("OUT OF SCOPE"
+    ,"OutOfScope"
+    ,out_of_scope_msg $+$
+     caret $+$
+     vcat match_msgs) -- ++ [ppr suggestions]))
+  where match_msgs = mk_match_msgs rdr_env splice_locs
+        occ = rdrNameOcc rdr
+        boring_type = isTyVarTy hole_ty
+        out_of_scope_msg -- Print v :: ty only if the type has structure
+          | boring_type = hang herald 2 (ppr occ)
+          | otherwise   = hang herald 2 (pp_with_type occ hole_ty)
+        herald | isDataOcc occ = text "Data constructor not in scope:"
+               | otherwise     = text "Variable not in scope:"
+
+        -- Indicate if the out-of-scope variable exactly (and unambiguously) matches
+        -- a top-level binding in a later inter-splice group; see Note [OutOfScope
+        -- exact matches]
+        mk_match_msgs rdr_env splice_locs
+          = let gres = filter isLocalGRE (lookupGlobalRdrEnv rdr_env occ)
+            in case gres of
+                [gre]
+                  |  RealSrcSpan bind_loc <- greSrcSpan gre
+                      -- Find splice between the unbound variable and the match; use
+                      -- lookupLE, not lookupLT, since match could be in the splice
+                  ,  Just th_loc <- Set.lookupLE bind_loc splice_locs
+                  ,  err_loc < th_loc
+                  -> [mk_bind_scope_msg bind_loc th_loc]
+                _ -> []
+
+        mk_bind_scope_msg bind_loc th_loc
+          | is_th_bind
+          = hang (quotes (ppr occ) <+> parens (text "splice on" <+> th_rng))
+              2 (text "is not in scope before line" <+> int th_start_ln)
+          | otherwise
+          = hang (quotes (ppr occ) <+> bind_rng <+> text "is not in scope")
+              2 (text "before the splice on" <+> th_rng)
+          where
+            bind_rng = parens (text "line" <+> int bind_ln)
+            th_rng
+              | th_start_ln == th_end_ln = single
+              | otherwise                = multi
+            single = text "line"  <+> int th_start_ln
+            multi  = text "lines" <+> int th_start_ln <> text "-" <> int th_end_ln
+            bind_ln     = srcSpanStartLine bind_loc
+            th_start_ln = srcSpanStartLine th_loc
+            th_end_ln   = srcSpanEndLine   th_loc
+            is_th_bind = th_loc `containsSpan` bind_loc
 
 getCaretDiagnostic :: PprColor -> PprColor -> Severity -> SrcSpan -> IO MsgDoc
 getCaretDiagnostic _ _ _ (UnhelpfulSpan _) = pure empty

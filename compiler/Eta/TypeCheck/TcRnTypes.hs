@@ -55,7 +55,7 @@ module Eta.TypeCheck.TcRnTypes(
         isEmptyCts, isCTyEqCan, isCFunEqCan,
         isCDictCan_Maybe, isCFunEqCan_maybe,
         isCIrredEvCan, isCNonCanonical, isWantedCt, isDerivedCt,
-        isGivenCt, isHoleCt, isTypedHoleCt, isPartialTypeSigCt,
+        isGivenCt, isHoleCt, isOutOfScopeCt, isExprHoleCt, isTypeHoleCt,
         isUserTypeErrorCt, getUserTypeErrorMsg,
         ctEvidence, ctLoc, ctPred, ctFlavour, ctEqRel,
         mkNonCanonical, mkNonCanonicalCt,
@@ -95,12 +95,14 @@ module Eta.TypeCheck.TcRnTypes(
         pprArising, pprArisingAt,
 
         -- Misc other types
-        TcId, TcIdSet, HoleSort(..),
+        TcId, TcIdSet,
+        Hole(..), holeOcc,
         NameShape(..), ContextElement(..), HowMuch(..), TypeError(..),
         HeraldContext(..), pprSigCtxt, pprMatchInCtxt, pprStmtInCtxt, perhapsForallMsg,
         pprUserTypeErrorTy, pprUserTypeErrorTy', Rank(..),
         rankZeroMonoType, tyConArgMonoType, synArgMonoType,
-        funArgResRank, forAllAllowed, InstInfo(..), iDFunId, pprInstInfoDetails, InstBindings(..)
+        funArgResRank, forAllAllowed, InstInfo(..), iDFunId, pprInstInfoDetails,
+        InstBindings(..), pprSkolInfo
   ) where
 
 import Eta.HsSyn.HsSyn
@@ -465,6 +467,10 @@ data TcGblEnv
           -- ^ @True@ <=> A Template Haskell splice was used.
           --
           -- Splices disable recompilation avoidance (see #481)
+
+        tcg_th_top_level_locs :: TcRef (Set RealSrcSpan),
+          -- ^ Locations of the top-level splices; used for providing details on
+          -- scope in error messages for out-of-scope variables
 
         tcg_dfun_n  :: TcRef OccSet,
           -- ^ Allows us to choose unique DFun names.
@@ -1189,18 +1195,41 @@ data Ct
       cc_ev  :: CtEvidence
     }
 
-  | CHoleCan {             -- Treated as an "insoluble" constraint
-                           -- See Note [Insoluble constraints]
+  | CHoleCan {             -- See Note [Hole constraints]
+      -- Treated as an "insoluble" constraint
+      -- See Note [Insoluble constraints]
       cc_ev   :: CtEvidence,
-      cc_occ  :: OccName,   -- The name of this hole
-      cc_hole :: HoleSort   -- The sort of this hole (expr, type, ...)
+      cc_hole :: Hole      -- The sort of this hole (expr, type, ...)
     }
 
--- | Used to indicate which sort of hole we have.
-data HoleSort = ExprHole  -- ^ A hole in an expression (TypedHoles)
-              | TypeHole  -- ^ A hole in a type (PartialTypeSignatures)
+------------
+-- | An expression or type hole
+data Hole = ExprHole UnboundVar
+            -- ^ Either an out-of-scope variable or a "true" hole in an
+            -- expression (TypedHoles)
+          | TypeHole OccName
+            -- ^ A hole in a type (PartialTypeSignatures)
 
-{-
+instance Outputable Hole where
+  ppr (ExprHole ub)  = ppr ub
+  ppr (TypeHole occ) = text "TypeHole" <> parens (ppr occ)
+
+holeOcc :: Hole -> OccName
+holeOcc (ExprHole uv)  = unboundVarOcc uv
+holeOcc (TypeHole occ) = occ
+
+{- Note [Hole constraints]
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+CHoleCan constraints are used for two kinds of holes,
+distinguished by cc_hole:
+
+  * For holes in expressions (including variables not in scope)
+    e.g.   f x = g _ x
+
+  * For holes in type signatures
+    e.g.   f :: _ -> _
+           f x = [x,True]
+
 Note [Kind orientation for CTyEqCan]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Given an equality (t:* ~ s:Open), we can't solve it by updating t:=s,
@@ -1378,16 +1407,19 @@ isHoleCt:: Ct -> Bool
 isHoleCt (CHoleCan {}) = True
 isHoleCt _ = False
 
--- TODO: Finish backport
--- isOutOfScopeCt :: Ct -> Bool
--- -- We treat expression holes representing out-of-scope variables a bit
--- -- differently when it comes to error reporting
--- isOutOfScopeCt (CHoleCan { cc_hole = ExprHole (OutOfScope {}) }) = True
--- isOutOfScopeCt _ = False
+isOutOfScopeCt :: Ct -> Bool
+-- We treat expression holes representing out-of-scope variables a bit
+-- differently when it comes to error reporting
+isOutOfScopeCt (CHoleCan { cc_hole = ExprHole (OutOfScope {}) }) = True
+isOutOfScopeCt _ = False
 
-isTypedHoleCt :: Ct -> Bool
-isTypedHoleCt (CHoleCan { cc_hole = ExprHole }) = True
-isTypedHoleCt _ = False
+isExprHoleCt :: Ct -> Bool
+isExprHoleCt (CHoleCan { cc_hole = ExprHole {} }) = True
+isExprHoleCt _ = False
+
+isTypeHoleCt :: Ct -> Bool
+isTypeHoleCt (CHoleCan { cc_hole = TypeHole {} }) = True
+isTypeHoleCt _ = False
 
 -- | The following constraints are considered to be a custom type error:
 --    1. TypeError msg
@@ -1407,19 +1439,16 @@ isUserTypeErrorCt ct = case getUserTypeErrorMsg ct of
                          Just _ -> True
                          _      -> False
 
-isPartialTypeSigCt :: Ct -> Bool
-isPartialTypeSigCt (CHoleCan { cc_hole = TypeHole }) = True
-isPartialTypeSigCt _ = False
-
 instance Outputable Ct where
-  ppr ct = ppr (cc_ev ct) <+> parens (text ct_sort)
-         where ct_sort = case ct of
-                           CTyEqCan {}      -> "CTyEqCan"
-                           CFunEqCan {}     -> "CFunEqCan"
-                           CNonCanonical {} -> "CNonCanonical"
-                           CDictCan {}      -> "CDictCan"
-                           CIrredEvCan {}   -> "CIrredEvCan"
-                           CHoleCan {}      -> "CHoleCan"
+  ppr ct = ppr (cc_ev ct) <+> parens pp_sort
+    where pp_sort =
+            case ct of
+              CTyEqCan {}      -> text "CTyEqCan"
+              CFunEqCan {}     -> text "CFunEqCan"
+              CNonCanonical {} -> text "CNonCanonical"
+              CDictCan {}      -> text "CDictCan"
+              CIrredEvCan {}   -> text "CIrredEvCan"
+              CHoleCan { cc_hole = hole } -> text "CHoleCan:" <+> ppr (holeOcc hole)
 
 singleCt :: Ct -> Cts
 singleCt = unitBag
@@ -1495,7 +1524,7 @@ insolubleWC :: WantedConstraints -> Bool
 -- True if there are any insoluble constraints in the wanted bag. Ignore
 -- constraints arising from PartialTypeSignatures to solve as much of the
 -- constraints as possible before reporting the holes.
-insolubleWC wc = not (isEmptyBag (filterBag (not . isPartialTypeSigCt)
+insolubleWC wc = not (isEmptyBag (filterBag (not . isTypeHoleCt)
                                   (wc_insol wc)))
                || anyBag ic_insol (wc_impl wc)
 

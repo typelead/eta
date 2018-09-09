@@ -452,6 +452,7 @@ addBinTickLHsExpr boxLabel (L pos e0)
 
 addTickHsExpr :: HsExpr Id -> TM (HsExpr Id)
 addTickHsExpr e@(HsVar id) = do freeVar id; return e
+addTickHsExpr (HsUnboundVar {}) = panic "addTickHsExpr.HsUnboundVar"
 addTickHsExpr e@(HsIPVar _) = return e
 addTickHsExpr e@(HsOverLit _) = return e
 addTickHsExpr e@(HsOverLabel _) = return e
@@ -590,7 +591,6 @@ addTickHsExpr (HsWrap w e) =
                 (addTickHsExpr e)       -- explicitly no tick on inside
 
 addTickHsExpr e@(HsType _) = return e
-addTickHsExpr (HsUnboundVar {}) = panic "addTickHsExpr.HsUnboundVar"
 
 -- Others dhould never happen in expression content.
 addTickHsExpr e  = pprPanic "addTickHsExpr" (ppr e)
