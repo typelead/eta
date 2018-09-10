@@ -3400,6 +3400,7 @@ xFlags = [
   flagSpec "TraditionalRecordSyntax"          LangExt.TraditionalRecordSyntax,
   flagSpec "TransformListComp"                LangExt.TransformListComp,
   flagSpec "TupleSections"                    LangExt.TupleSections,
+  flagSpec "TypeApplications"                 LangExt.TypeApplications,
   flagSpec "TypeFamilies"                     LangExt.TypeFamilies,
   flagSpec "TypeOperators"                    LangExt.TypeOperators,
   flagSpec "TypeSynonymInstances"             LangExt.TypeSynonymInstances,
@@ -3488,6 +3489,7 @@ impliedXFlags
     , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFunctor)
     , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFoldable)
     , (LangExt.Strict,                    turnOn, LangExt.StrictData)
+    , (LangExt.TypeApplications,          turnOn, LangExt.AllowAmbiguousTypes)
   ]
 
 -- Note [Documenting optimisation flags]

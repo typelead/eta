@@ -404,7 +404,10 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 }
 
 <0> {
-    [^ $idchar \) ] ^ "@" @javaannot { javaAnnotationToken }
+    [^ $idchar \) ] ^ "@"
+      / { ifExtension typeApplicationEnabled `alexAndPred` notFollowedBySymbol }
+        { token ITtypeApp }
+    -- [^ $idchar \) ] ^ "@" @javaannot { javaAnnotationToken }
 }
 
 <0> {
@@ -523,6 +526,33 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   \'                            { lex_char_tok }
   \"                            { lex_string_tok }
 }
+
+-- Note [Lexing type applications]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- The desired syntax for type applications is to prefix the type application
+-- with '@', like this:
+--
+--   foo @Int @Bool baz bum
+--
+-- This, of course, conflicts with as-patterns. The conflict arises because
+-- expressions and patterns use the same parser, and also because we want
+-- to allow type patterns within expression patterns.
+--
+-- Disambiguation is accomplished by requiring *something* to appear between
+-- type application and the preceding token. This something must end with
+-- a character that cannot be the end of the variable bound in an as-pattern.
+-- Currently (June 2015), this means that the something cannot end with a
+-- $idchar or a close-paren. (The close-paren is necessary if the as-bound
+-- identifier is symbolic.)
+--
+-- Note that looking for whitespace before the '@' is insufficient, because
+-- of this pathological case:
+--
+--   foo {- hi -}@Int
+--
+-- This design is predicated on the fact that as-patterns are generally
+-- whitespace-free, and also that this whole thing is opt-in, with the
+-- TypeApplications extension.
 
 -- -----------------------------------------------------------------------------
 -- Alex "Haskell code fragment bottom"
@@ -710,6 +740,10 @@ data Token
   | ITrarrowtail                --  >-
   | ITLarrowtail                --  -<<
   | ITRarrowtail                --  >>-
+
+  -- type application '@' (lexed differently than as-pattern '@',
+  -- due to checking for preceding whitespace)
+  | ITtypeApp
 
   | ITunknown String            -- Used when the lexer can't make sense of it
   | ITeof                       -- end of file token
@@ -2091,6 +2125,7 @@ data ExtBits
   | LambdaCaseBit
   | BinaryLiteralsBit
   | NegativeLiteralsBit
+  | TypeApplicationsBit
   deriving Enum
 
 
@@ -2151,6 +2186,8 @@ negativeLiteralsEnabled :: ExtsBitmap -> Bool
 negativeLiteralsEnabled = xtest NegativeLiteralsBit
 patternSynonymsEnabled :: ExtsBitmap -> Bool
 patternSynonymsEnabled = xtest PatternSynonymsBit
+typeApplicationEnabled :: ExtsBitmap -> Bool
+typeApplicationEnabled = xtest TypeApplicationsBit
 
 -- PState for parsing options pragmas
 --
@@ -2207,19 +2244,20 @@ mkPState flags buf loc =
                .|. DatatypeContextsBit         `setBitIf` xopt LangExt.DatatypeContexts         flags
                .|. TransformComprehensionsBit  `setBitIf` xopt LangExt.TransformListComp        flags
                .|. TransformComprehensionsBit  `setBitIf` xopt LangExt.MonadComprehensions      flags
-               .|. RawTokenStreamBit           `setBitIf` gopt Opt_KeepRawTokenStream       flags
-               .|. HpcBit                      `setBitIf` gopt Opt_Hpc                      flags
+               .|. RawTokenStreamBit           `setBitIf` gopt Opt_KeepRawTokenStream           flags
+               .|. HpcBit                      `setBitIf` gopt Opt_Hpc                          flags
                .|. AlternativeLayoutRuleBit    `setBitIf` xopt LangExt.AlternativeLayoutRule    flags
                .|. RelaxedLayoutBit            `setBitIf` xopt LangExt.RelaxedLayout            flags
-               .|. SccProfilingOnBit           `setBitIf` gopt Opt_SccProfilingOn           flags
+               .|. SccProfilingOnBit           `setBitIf` gopt Opt_SccProfilingOn               flags
                .|. NondecreasingIndentationBit `setBitIf` xopt LangExt.NondecreasingIndentation flags
-               .|. SafeHaskellBit              `setBitIf` safeImportsOn                     flags
+               .|. SafeHaskellBit              `setBitIf` safeImportsOn                         flags
                .|. TraditionalRecordSyntaxBit  `setBitIf` xopt LangExt.TraditionalRecordSyntax  flags
-               .|. ExplicitNamespacesBit       `setBitIf` xopt LangExt.ExplicitNamespaces flags
+               .|. ExplicitNamespacesBit       `setBitIf` xopt LangExt.ExplicitNamespaces       flags
                .|. LambdaCaseBit               `setBitIf` xopt LangExt.LambdaCase               flags
                .|. BinaryLiteralsBit           `setBitIf` xopt LangExt.BinaryLiterals           flags
                .|. NegativeLiteralsBit         `setBitIf` xopt LangExt.NegativeLiterals         flags
                .|. PatternSynonymsBit          `setBitIf` xopt LangExt.PatternSynonyms          flags
+               .|. TypeApplicationsBit         `setBitIf` xopt LangExt.TypeApplications         flags
       --
       setBitIf :: ExtBits -> Bool -> ExtsBitmap
       b `setBitIf` cond | cond      = xbit b

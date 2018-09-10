@@ -228,7 +228,11 @@ dsExpr (HsLamCase arg matches)
        ; return $ Lam arg_var $ bindNonRec discrim_var (Var arg_var) matching_code }
 
 dsExpr (HsApp fun arg)
-  = mkCoreAppDs <$> dsLExpr fun <*>  dsLExpr arg
+  = mkCoreAppDs <$> dsLExpr fun <*> dsLExpr arg
+
+dsExpr (HsAppType e _ _)
+    -- ignore type arguments here; they're in the wrappers instead at this point
+  = dsLExpr e
 
 {-
 Note [Desugaring vars]

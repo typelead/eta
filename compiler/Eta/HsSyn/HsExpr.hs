@@ -250,6 +250,17 @@ data HsExpr id
 
   | HsApp     (LHsExpr id) (LHsExpr id) -- ^ Application
 
+  | HsAppType (LHsExpr id) (LHsType id) -- ^ Visible type application
+              (PostRn id [Name]) -- After renaming, the list of Names
+                                 -- contains the named and unnamed
+                                 -- wildcards brought in scope by the
+                                 -- signature
+       --
+       -- Explicit type argument; e.g  f @Int x y
+       -- NB: Has wildcards, but no implicit quantification
+       --
+       -- - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnAt',
+
   -- | Operator applications:
   -- NB Bracketed ops such as (+) come out as Vars.
 
@@ -669,6 +680,7 @@ isQuietHsExpr :: HsExpr id -> Bool
 isQuietHsExpr (HsPar _) = True
 -- applications don't display anything themselves
 isQuietHsExpr (HsApp _ _) = True
+isQuietHsExpr (HsAppType {})    = True
 isQuietHsExpr (OpApp _ _ _ _) = True
 isQuietHsExpr _ = False
 
@@ -692,12 +704,8 @@ ppr_expr (HsPar e)       = parens (ppr_lexpr e)
 ppr_expr (HsCoreAnn _ s e)
   = vcat [ptext (sLit "HsCoreAnn") <+> ftext s, ppr_lexpr e]
 
-ppr_expr (HsApp e1 e2)
-  = let (fun, args) = collect_args e1 [e2] in
-    hang (ppr_lexpr fun) 2 (sep (map pprParendExpr args))
-  where
-    collect_args (L _ (HsApp fun arg)) args = collect_args fun (arg:args)
-    collect_args fun args = (fun, args)
+ppr_expr e@(HsApp {})        = ppr_apps e []
+ppr_expr e@(HsAppType {})    = ppr_apps e []
 
 ppr_expr (OpApp e1 op _ e2)
   = case unLoc op of
@@ -865,6 +873,19 @@ ppr_expr (HsArrForm op _ args)
   = hang (ptext (sLit "(|") <+> ppr_lexpr op)
          4 (sep (map (pprCmdArg.unLoc) args) <+> ptext (sLit "|)"))
 
+ppr_apps :: OutputableBndr id
+         => HsExpr id
+         -> [Either (LHsExpr id) (LHsType id)]
+         -> SDoc
+ppr_apps (HsApp (L _ fun) arg)        args
+  = ppr_apps fun (Left arg : args)
+ppr_apps (HsAppType (L _ fun) arg _)  args
+  = ppr_apps fun (Right arg : args)
+ppr_apps fun args = hang (ppr_expr fun) 2 (sep (map pp args))
+  where
+    pp (Left arg)  = pprParendExpr arg
+    pp (Right arg) = char '@' <> pprParendHsType (unLoc arg)
+
 {-
 HsSyn records exactly where the user put parens, with HsPar.
 So generally speaking we print without adding any parens.
@@ -910,6 +931,7 @@ hsExprNeedsParens (HsRnBracketOut {}) = False
 hsExprNeedsParens (HsTcBracketOut {}) = False
 hsExprNeedsParens (HsDo sc _ _)
        | isListCompExpr sc            = False
+hsExprNeedsParens (HsAppType _ _ _)   = False
 hsExprNeedsParens _ = True
 
 

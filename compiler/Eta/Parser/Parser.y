@@ -375,6 +375,7 @@ for some background.
  '-<<'          { L _ ITLarrowtail }            -- for arrow notation
  '>>-'          { L _ ITRarrowtail }            -- for arrow notation
  '.'            { L _ ITdot }
+ TYPEAPP        { L _ ITtypeApp }
 
  '{'            { L _ ITocurly }                        -- special symbols
  '}'            { L _ ITccurly }
@@ -2304,10 +2305,12 @@ hpc_annot :: { Located (([AddAnn],SourceText),(FastString,(Int,Int),(Int,Int))) 
                                          }
 
 fexp    :: { LHsExpr RdrName }
-        : fexp aexp                             { sLL $1 $> $ HsApp $1 $2 }
-        | 'static' aexp                         {% ams (sLL $1 $> $ HsStatic $2)
-                                                       [mj AnnStatic $1] }
-        | aexp                                  { $1 }
+        : fexp aexp                  { sLL $1 $> $ HsApp $1 $2 }
+        | fexp TYPEAPP atype         {% ams (sLL $1 $> $ HsAppType $1 $3 placeHolderNames)
+                                            [mj AnnAt $2] }
+        | 'static' aexp              {% ams (sLL $1 $> $ HsStatic $2)
+                                            [mj AnnStatic $1] }
+        | aexp                       { $1 }
 
 aexp    :: { LHsExpr RdrName }
         : qvar '@' aexp         {% ams (sLL $1 $> $ EAsPat $1 $3) [mj AnnAt $2] }
@@ -2993,6 +2996,10 @@ var     :: { Located RdrName }
         | '(' varsym ')'        {% ams (sLL $1 $> (unLoc $2))
                                        [mop $1,mj AnnVal $2,mcp $3] }
 
+  -- Lexing type applications depends subtly on what characters can possibly
+  -- end a qvar. Currently (June 2015), only $idchars and ")" can end a qvar.
+  -- If you're changing this, please see Note [Lexing type applications] in
+  -- Lexer.x.
 qvar    :: { Located RdrName }
         : qvarid                { $1 }
         | '(' varsym ')'        {% ams (sLL $1 $> (unLoc $2))
