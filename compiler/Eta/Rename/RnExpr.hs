@@ -141,6 +141,13 @@ rnExpr (HsApp fun arg)
        ; (arg',fvArg) <- rnLExpr arg
        ; return (HsApp fun' arg', fvFun `plusFV` fvArg) }
 
+rnExpr (HsAppType fun arg _)
+  = do (fun',fvFun) <- rnLExpr fun
+       (wcs, arg') <- extractWildcards arg
+       bindLocatedLocalsFV wcs $ \wcs_new -> do
+         (arg'', fvArg) <- rnLHsType HsTypeCtx arg'
+         return (HsAppType fun' arg'' wcs_new, fvFun `plusFV` fvArg)
+
 rnExpr (OpApp e1 op _ e2)
   = do  { (e1', fv_e1) <- rnLExpr e1
         ; (e2', fv_e2) <- rnLExpr e2
