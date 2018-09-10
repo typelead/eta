@@ -308,7 +308,7 @@ data JavaCounter = JavaCounter @eta.example.Counter
 data EtaCounter = EtaCounter @eta.example.EtaCounter
    deriving Class
 
- Required to make EtaCounter a subclass of JavaCounter
+-- Required to make EtaCounter a subclass of JavaCounter
 type instance Inherits EtaCounter = '[JavaCounter]
 
 -- Importing methods from JavaCounter with ( c <: JavaCounter ) constraint
