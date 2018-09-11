@@ -135,19 +135,13 @@ pprNiceErrMsg _ _ _ _ = Nothing
 pprTypeMisMatchError :: SDoc -> MisMatchType -> TcTyVarSet -> TcType
                      -> TcType -> SDoc -> [ContextElement] -> SrcSpan -> (String, String, SDoc)
 pprTypeMisMatchError caret mt tvs ty1 ty2 extra ctxts _span =
-  ("TYPE MISMATCH",
-   "TypeMismatch",
+  ("FUNCTION TYPE MISMATCH",
+   "FunctionTypeMismatch",
    fullMismatchError)
   where fullMismatchError
           | (ctxt:_) <- ctxts
           , FunctionCtxt herald arity n_args args orig_ty _ty <- ctxt
-          = vcat [
-          --          in text "The function expects" <+>
-          --             colored Col.colOrangeFg (int n_args <+> arguments n_args)
-          --               <> text ", but was given" <+>
-          --             colored Col.colLightRedFg (int arity <+> arguments arity)
-          --               <> text "."
-                   let arguments n
+          = vcat [ let arguments n
                          | n == 1    = text "argument"
                          | otherwise = text "arguments"
                        extra = arity - n_args
@@ -156,7 +150,7 @@ pprTypeMisMatchError caret mt tvs ty1 ty2 extra ctxts _span =
                  , maybe caret (highlightSource Col.colCyanFg .
                                 map (\arg -> (getLoc arg, colored Col.colLightRedFg)) . drop n_args)
                    args
-                 , text "I think you might have forgotten to add a" <+> hintColor (text "parentheses")
+                 , text "I think you might have forgotten to add a" <+> hintColor (text "parenthesis")
                         <+> text "or a" <+> hintColor (text "comma") <> text "."
                  , blankLine
                  , text "The type of the function is shown below."
@@ -168,19 +162,44 @@ pprTypeMisMatchError caret mt tvs ty1 ty2 extra ctxts _span =
           , FunctionResultCtxt _has_args n_fun _n_env fun fun_ty no_args _res_fun _res_env _fun_res_ty _env_ty <- ctxt
           = vcat [ text "I found a type mismatch in the function below."
                  , caret
-                 , text "The type of" <+> colored Col.colLightRedFg (ppr fun) <+> text "is shown the below."
+                 , text "The type of" <+> colored Col.colLightRedFg (ppr fun) <+> text "is shown below."
                  , blankLine
                  , blankLine
-                 , nest 2 (ppr fun <+> dcolon <+>
+                 , nest 2 (colored Col.colLightRedFg (ppr fun) <+> dcolon <+>
                            pprHighlightFunTy (\n -> n > no_args && n <= (no_args + n_fun))
                             (colored Col.colRedFg) fun_ty)
                  , blankLine
                  , let n_args
                          | n_fun == 1 = text "argument is"
                          | otherwise = text "arguments are"
-                   in text "I think the highlighted" <+> n_args
-                            <+> text "missing from the expression."
+                   in text "I think that" <+>
+                       colored Col.colYellowFg (int n_fun <+> n_args <+> text "missing")
+                        <> text "."
                  ]
+          | (ctxt:_) <- ctxts
+          , FunctionArgumentCtxt fun fun_tau arg arg_no <- ctxt
+          = vcat [ text "I found a type mismatch in the function and argument below."
+                  , highlightSource Col.colCyanFg
+                      [(getLoc fun, colored Col.colOrangeFg),
+                       (getLoc arg, colored Col.colLightRedFg)]
+                  , text "The types of the expressions are shown below."
+                  , blankLine
+                  , blankLine
+                  , nest 2 (ppr fun <+> dcolon <+>
+                            maybe empty
+                            (pprHighlightFunTy (== arg_no) (colored Col.colOrangeFg))
+                            fun_tau)
+                  , blankLine
+                  , blankLine
+                  , nest 2 (ppr arg <+> dcolon <+> colored Col.colLightRedFg (ppr ty1))
+                  , blankLine
+                  , text "You can fix the problem by"
+                  , blankLine, blankLine
+                    , nest 4 $ char unicodeArrowHead <+> text "checking that you're using the"
+                           <+> (hintColor $ text  "right function") <> text "."
+                  , blankLine, blankLine
+                    , nest 4 $ char unicodeArrowHead <+> text "checking that you're using the"
+                           <+> (hintColor $ text "right argument") <> text "." ]
           | (_:ctxt:_) <- ctxts
           , FunctionArgumentCtxt fun fun_tau arg arg_no <- ctxt
           = vcat [ text "I found a type mismatch in the function and argument below."
