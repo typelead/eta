@@ -3,7 +3,7 @@ set INSTALL_DIR=%~1
 if not defined INSTALL_DIR (
   (for /f "delims=" %%a in ('stack path --local-bin') do @set INSTALL_DIR=%%a) 2> nul
   if not defined INSTALL_DIR (
-    for /f "delims=" %%a in ('stack path --local-bin-path') do @set INSTALL_DIR=%%a
+    for /f "delims=" %%a in ('stack path --local-bin') do @set INSTALL_DIR=%%a
   )
 )
 shift
