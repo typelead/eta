@@ -225,7 +225,7 @@ public class Utils {
     }
 
     public static boolean isPowerOfTwo(BigInteger x) {
-        return x.signum() > 0 && x.getLowestSetBit() == x.bitLength() - 1;
+        return !x.and(x.subtract(BigInteger.ONE)).equals(BigInteger.ZERO);
     }
 
     /**
@@ -235,7 +235,7 @@ public class Utils {
      * {@code Integer.bitCount(Integer.MIN_VALUE) == 1}, but {@link Integer#MIN_VALUE} is not a power
      * of two.
      */
-    public static boolean isPowerOfTwo(int x) {
-        return x > 0 & (x & (x - 1)) == 0;
-    }
+     public static boolean isPowerOfTwo(int x) {
+         return ((x & (x - 1)) != 0);
+     }
 }
