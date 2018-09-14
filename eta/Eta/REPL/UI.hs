@@ -128,15 +128,19 @@ import Text.Read ( readMaybe )
 import qualified Eta.LanguageExtensions as LangExt
 import Unsafe.Coerce
 
+#if !defined(ETA_VERSION)
 #if !defined(mingw32_HOST_OS)
 import System.Posix hiding ( getEnv )
 #else
 import qualified System.Win32
 #endif
+#endif
 
 import GHC.IO.Exception ( IOErrorType(InvalidArgument) )
 import GHC.IO.Handle ( hFlushAll )
+#if !defined(ETA_VERSION)
 import GHC.TopHandler ( topHandler )
+#endif
 
 -----------------------------------------------------------------------------
 
@@ -685,7 +689,11 @@ runGHCi paths maybe_exprs = do
                             -- current progname in the exception text:
                             -- <progname>: <exception>
                             liftIO $ withProgName (progname st)
+#if !defined(ETA_VERSION)
                                    $ topHandler e
+#else
+                                   $ Id e
+#endif
                                    -- this used to be topHandlerFastExit, see #2228
             runInputTWithPrefs defaultPrefs defaultSettings $ do
                 -- make `ghc -e` exit nonzero on invalid input, see Trac #7962
@@ -750,6 +758,10 @@ checkFileAndDirPerms file = do
   getDirectory f = case takeDirectory f of
     "" -> "."
     d -> d
+
+#if defined(ETA_VERSION)
+foreign import java unsafe "@static eta.java.Utils.getFileStatus"
+    getFileStatus :: FilePath -> IO (Maybe BasicFileAttributes)
 
 checkPerms :: FilePath -> IO Bool
 #if defined(mingw32_HOST_OS)

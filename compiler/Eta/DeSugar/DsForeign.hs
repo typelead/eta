@@ -7,7 +7,7 @@
 Desugaring foreign declarations.
 -}
 
-{-# LANGUAGE OverloadedStrings, MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings, MultiWayIf, CPP #-}
 module Eta.DeSugar.DsForeign where
 
 import Eta.Core.CoreSyn
@@ -59,7 +59,9 @@ import Eta.CodeGen.Name
 
 import Data.Maybe
 import Data.Char(toUpper)
+#if !defined(ETA_VERSION)
 import Data.Monoid((<>))
+#endif
 import Data.List
 import Data.Text (Text)
 import qualified Data.Text as T

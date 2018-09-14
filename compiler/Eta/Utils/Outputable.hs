@@ -9,6 +9,8 @@
 -- The interface to this module is very similar to the standard Hughes-PJ pretty printing
 -- module, except that it exports a number of additional functions that are rarely used,
 -- and works over the 'SDoc' type.
+
+{-# LANGUAGE CPP #-}
 module Eta.Utils.Outputable (
         -- * Type classes
         Outputable(..), OutputableBndr(..),
@@ -603,7 +605,9 @@ unicodeSyntax unicode plain = sdocWithDynFlags $ \dflags ->
 
 nest :: Int -> SDoc -> SDoc
 -- ^ Indent 'SDoc' some specified amount
+#if !defined(ETA_VERSION)
 (<>) :: SDoc -> SDoc -> SDoc
+#endif
 -- ^ Join two 'SDoc' together horizontally without a gap
 (<+>) :: SDoc -> SDoc -> SDoc
 -- ^ Join two 'SDoc' together horizontally with a gap between them
@@ -614,7 +618,12 @@ nest :: Int -> SDoc -> SDoc
 -- ^ Join two 'SDoc' together vertically
 
 nest n d    = SDoc $ Pretty.nest n . runSDoc d
+#if defined(ETA_VERSION)
+instance Semigroup SDoc where
+  (<>) d1 d2  = SDoc $ \sty -> (Pretty.<>)  (runSDoc d1 sty) (runSDoc d2 sty)
+#else
 (<>) d1 d2  = SDoc $ \sty -> (Pretty.<>)  (runSDoc d1 sty) (runSDoc d2 sty)
+#endif
 (<+>) d1 d2 = SDoc $ \sty -> (Pretty.<+>) (runSDoc d1 sty) (runSDoc d2 sty)
 ($$) d1 d2  = SDoc $ \sty -> (Pretty.$$)  (runSDoc d1 sty) (runSDoc d2 sty)
 ($+$) d1 d2 = SDoc $ \sty -> (Pretty.$+$) (runSDoc d1 sty) (runSDoc d2 sty)

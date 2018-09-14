@@ -210,7 +210,7 @@ fromReexportedModules False pkg = ModOrigin Nothing [] [pkg] False
 fromFlag :: ModuleOrigin
 fromFlag = ModOrigin Nothing [] [] True
 
-#if __GLASGOW_HASKELL__ > 710
+#if __GLASGOW_HASKELL__ > 710 || defined(ETA_VERSION)
 instance Semigroup ModuleOrigin where
     ModOrigin e res rhs f <> ModOrigin e' res' rhs' f' =
         ModOrigin (g e e') (res ++ res') (rhs ++ rhs') (f || f')
@@ -306,7 +306,17 @@ instance Monoid UnitVisibility where
           , uv_requirements = Map.unionWith Set.union (uv_requirements uv1) (uv_requirements uv2)
           , uv_explicit = uv_explicit uv1 || uv_explicit uv2
           }
-
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup UnitVisibility where
+    (<>) uv1 uv2
+        = UnitVisibility
+          { uv_expose_all = uv_expose_all uv1 || uv_expose_all uv2
+          , uv_renamings = uv_renamings uv1 ++ uv_renamings uv2
+          , uv_package_name = (<>) (uv_package_name uv1) (uv_package_name uv2)
+          , uv_requirements = Map.unionWith Set.union (uv_requirements uv1) (uv_requirements uv2)
+          , uv_explicit = uv_explicit uv1 || uv_explicit uv2
+          }
+#endif
 type WiredUnitId = DefUnitId
 type PreloadUnitId = InstalledUnitId
 

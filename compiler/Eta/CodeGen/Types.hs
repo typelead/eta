@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Types
   (TopLevelFlag(..),
    RepArity,
@@ -64,7 +64,9 @@ import Eta.Utils.Util
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+#if !defined(ETA_VERSION)
 import Data.Monoid ((<>))
+#endif
 
 type SelfLoopInfo = (Id, Label, [CgLoc])
 

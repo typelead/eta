@@ -183,6 +183,9 @@ import Eta.Utils.Panic
 import Numeric (fromRat)
 import System.IO
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 --for a RULES
 import GHC.Base ( unpackCString# )
 import GHC.Exts ( Int# )

@@ -73,10 +73,10 @@ module Eta.Main.DynFlags (
         ghcUsagePath, ghciUsagePath, topDir, tmpDir, rawSettings,
         versionedAppDir,
         extraGccViaCFlags, systemPackageConfig,
-        pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_l, pgm_dll,
+        pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_dll,
         pgm_sysman, pgm_windres, pgm_libtool, pgm_readelf, pgm_lo, pgm_lc,
         pgm_javac, pgm_java, pgm_i,
-        opt_L, opt_P, opt_F, opt_c, opt_a, opt_l, opt_i,
+        opt_L, opt_P, opt_F, opt_c, opt_a, opt_i,
         opt_windres, opt_lo, opt_lc, opt_javac, opt_java,
 
 
@@ -217,6 +217,10 @@ import qualified Data.IntSet as IntSet
 
 import GHC.Foreign (withCString, peekCString)
 import Eta.SysTools.Terminal
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 -- Note [Updating flag description in the User's Guide]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -902,7 +906,6 @@ data Settings = Settings {
   sPgm_c                 :: (String,[Option]),
   sPgm_s                 :: (String,[Option]),
   sPgm_a                 :: (String,[Option]),
-  sPgm_l                 :: (String,[Option]),
   sPgm_dll               :: (String,[Option]),
   sPgm_sysman            :: String,
   sPgm_windres           :: String,
@@ -919,7 +922,6 @@ data Settings = Settings {
   sOpt_F                 :: [String],
   sOpt_c                 :: [String],
   sOpt_a                 :: [String],
-  sOpt_l                 :: [String],
   sOpt_windres           :: [String],
   sOpt_lo                :: [String], -- LLVM: llvm optimiser
   sOpt_lc                :: [String], -- LLVM: llc static compiler
@@ -960,8 +962,6 @@ pgm_s                 :: DynFlags -> (String,[Option])
 pgm_s dflags = sPgm_s (settings dflags)
 pgm_a                 :: DynFlags -> (String,[Option])
 pgm_a dflags = sPgm_a (settings dflags)
-pgm_l                 :: DynFlags -> (String,[Option])
-pgm_l dflags = sPgm_l (settings dflags)
 pgm_dll               :: DynFlags -> (String,[Option])
 pgm_dll dflags = sPgm_dll (settings dflags)
 pgm_sysman            :: DynFlags -> String
@@ -994,9 +994,6 @@ opt_c dflags = concatMap (wayOptc (targetPlatform dflags)) (ways dflags)
             ++ sOpt_c (settings dflags)
 opt_a                 :: DynFlags -> [String]
 opt_a dflags = sOpt_a (settings dflags)
-opt_l                 :: DynFlags -> [String]
-opt_l dflags = concatMap (wayOptl (targetPlatform dflags)) (ways dflags)
-            ++ sOpt_l (settings dflags)
 opt_windres           :: DynFlags -> [String]
 opt_windres dflags = sOpt_windres (settings dflags)
 opt_lo                :: DynFlags -> [String]
@@ -1328,6 +1325,7 @@ wayOptc _ WayPar        = ["-DPAR", "-w"]
 wayOptc _ WayGran       = ["-DGRAN"]
 wayOptc _ WayNDP        = []
 
+#if !defined(ETA_VERSION)
 wayOptl :: Platform -> Way -> [String]
 wayOptl _ (WayCustom {}) = []
 wayOptl _ WayThreaded   = []
@@ -1340,6 +1338,7 @@ wayOptl _ WayPar        = ["-L${PVM_ROOT}/lib/${PVM_ARCH}",
                            "-lgpvm3"]
 wayOptl _ WayGran       = []
 wayOptl _ WayNDP        = []
+#endif
 
 wayOptP :: Platform -> Way -> [String]
 wayOptP _ (WayCustom {}) = []
@@ -2083,7 +2082,7 @@ setDumpPrefixForce f d = d { dumpPrefixForce = f}
 -- XXX HACK: Prelude> words "'does not' work" ===> ["'does","not'","work"]
 -- Config.hs should really use Option.
 setPgmP   f = let (pgm:args) = words f in alterSettings (\s -> s { sPgm_P   = (pgm, map Option args)})
-addOptl   f = alterSettings (\s -> s { sOpt_l   = f : sOpt_l s})
+addOptl   _f = alterSettings id
 addOptc   f = alterSettings (\s -> s { sOpt_c   = f : sOpt_c s})
 addOptP   f = alterSettings (\s -> s { sOpt_P   = f : sOpt_P s})
 
@@ -2433,8 +2432,6 @@ dynamic_flags = [
       (hasArg (\f -> alterSettings (\s -> s { sPgm_s   = (f,[])})))
   , defFlag "pgma"
       (hasArg (\f -> alterSettings (\s -> s { sPgm_a   = (f,[])})))
-  , defFlag "pgml"
-      (hasArg (\f -> alterSettings (\s -> s { sPgm_l   = (f,[])})))
   , defFlag "pgmdll"
       (hasArg (\f -> alterSettings (\s -> s { sPgm_dll = (f,[])})))
   , defFlag "pgmwindres"
@@ -4509,8 +4506,15 @@ decodeSize str
         n      = readRational m
         pred c = isDigit c || c == '.'
 
+#if defined(ETA_VERSION)
+setHeapSize   :: Int -> IO ()
+setHeapSize _ = return ()
+enableTimingStats :: IO ()
+enableTimingStats = return ()
+#else
 foreign import ccall unsafe "setHeapSize"       setHeapSize       :: Int -> IO ()
 foreign import ccall unsafe "enableTimingStats" enableTimingStats :: IO ()
+#endif
 
 compressionMethod :: DynFlags -> CompressionMethod
 compressionMethod dflags

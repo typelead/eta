@@ -164,6 +164,11 @@ instance Monoid (LHsTyVarBndrs name) where
   mempty = emptyHsQTvs
   mappend (HsQTvs kvs1 tvs1) (HsQTvs kvs2 tvs2)
     = HsQTvs (kvs1 ++ kvs2) (tvs1 ++ tvs2)
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup (LHsTyVarBndrs name) where
+  (<>) (HsQTvs kvs1 tvs1) (HsQTvs kvs2 tvs2)
+    = HsQTvs (kvs1 ++ kvs2) (tvs1 ++ tvs2)
+#endif
 
 ------------------------------------------------
 --            HsWithBndrs

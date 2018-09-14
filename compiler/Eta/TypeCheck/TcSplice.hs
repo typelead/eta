@@ -104,7 +104,7 @@ import Eta.Utils.Maybes( MaybeErr(..) )
 import Eta.Main.DynFlags
 import Eta.Utils.Panic as Panic
 import Eta.BasicTypes.Lexeme
-import Language.Eta.Meta.Server
+import Language.Eta.Meta.Server hiding (runTH)
 import qualified Eta.Utils.EnumSet as EnumSet
 import qualified Language.Eta.Meta as TH
 -- THSyntax gives access to internal functions and data types

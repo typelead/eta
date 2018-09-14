@@ -42,7 +42,7 @@ import System.IO.Unsafe
 import System.Exit
 import System.Environment
 
-#ifndef mingw32_HOST_OS
+#if !defined(mingw32_HOST_OS) && !defined(ETA_VERSION)
 import System.Posix.Signals as S
 #endif
 
@@ -51,7 +51,9 @@ import GHC.ConsoleHandler as S
 #endif
 
 import GHC.Stack
+#if !defined(ETA_VERSION)
 import System.Mem.Weak  ( deRefWeak )
+#endif
 
 -- | GHC's own exception type
 --   error messages all take the form:
@@ -241,7 +243,9 @@ tryMost action = do r <- try action
 
 -- | We use reference counting for signal handlers
 {-# NOINLINE signalHandlersRefCount #-}
-#if !defined(mingw32_HOST_OS)
+#if defined(ETA_VERSION)
+signalHandlersRefCount :: MVar (Word, Maybe ())
+#elif !defined(mingw32_HOST_OS)
 signalHandlersRefCount :: MVar (Word, Maybe (S.Handler,S.Handler
                                             ,S.Handler,S.Handler))
 #else
@@ -254,17 +258,23 @@ signalHandlersRefCount = unsafePerformIO $ newMVar (0,Nothing)
 -- throw an exception in the current thread.
 withSignalHandlers :: (ExceptionMonad m, MonadIO m) => m a -> m a
 withSignalHandlers act = do
+#if !defined(ETA_VERSION)
   main_thread <- liftIO myThreadId
   wtid <- liftIO (mkWeakThreadId main_thread)
+#endif
 
+#if !defined(ETA_VERSION)
   let
       interrupt = do
         r <- deRefWeak wtid
         case r of
           Nothing -> return ()
           Just t  -> throwTo t UserInterrupt
-
-#if !defined(mingw32_HOST_OS)
+#endif
+#if defined(ETA_VERSION)
+  let installHandlers = return ()
+  let uninstallHandlers _ = return ()
+#elif !defined(mingw32_HOST_OS)
   let installHandlers = do
         let installHandler' a b = installHandler a b Nothing
         hdlQUIT <- installHandler' sigQUIT  (Catch interrupt)

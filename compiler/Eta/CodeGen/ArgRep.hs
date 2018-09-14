@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.ArgRep
   (ArgRep(..),
    toArgRep,
@@ -31,7 +31,9 @@ import Data.Maybe
 import Eta.CodeGen.Rts
 import Eta.Utils.Util
 import Codec.JVM
+#if !defined(ETA_VERSION)
 import Data.Monoid ((<>))
+#endif
 
 data ArgRep = P   -- Closure
              | N   -- int-sized non-ptr

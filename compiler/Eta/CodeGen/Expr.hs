@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Eta.CodeGen.Expr where
 
 import Eta.Core.CoreSyn
@@ -28,7 +29,9 @@ import {-# SOURCE #-} Eta.CodeGen.Bind (cgBind)
 import Codec.JVM
 
 import System.FilePath (equalFilePath)
+#if !defined(ETA_VERSION)
 import Data.Monoid((<>))
+#endif
 import qualified Data.Set as Set
 import Data.Foldable(fold)
 import Data.List(zip4)

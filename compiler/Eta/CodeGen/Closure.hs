@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Closure where
 
 import Eta.Main.DynFlags
@@ -14,7 +14,9 @@ import Eta.CodeGen.Rts
 import Eta.CodeGen.Types
 import Eta.CodeGen.ArgRep
 import Codec.JVM
-import Data.Monoid((<>))
+#if !defined(ETA_VERSION)
+import Data.Monoid ((<>))
+#endif
 import Data.Text (Text)
 import qualified Data.Text as T
 

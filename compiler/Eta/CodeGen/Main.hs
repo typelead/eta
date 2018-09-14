@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, LambdaCase #-}
+{-# LANGUAGE OverloadedStrings, LambdaCase, CPP #-}
 module Eta.CodeGen.Main where
 
 import Eta.BasicTypes.Module
@@ -32,7 +32,9 @@ import Eta.CodeGen.Utils
 import Codec.JVM
 
 import Data.Foldable
-import Data.Monoid
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Maybe
 import Control.Monad hiding (void)
 
@@ -421,4 +423,3 @@ genRecInitCode recIdInfos = do
   defineMethod $
     mkMethodDef moduleClass [Public, Static] recMethodName [] void initCodeBody
   where (recIds, _recInfos) = unzip recIdInfos
-

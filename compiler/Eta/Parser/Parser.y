@@ -372,8 +372,8 @@ for some background.
  '*'            { L _ ITstar }
  '-<'           { L _ ITlarrowtail }            -- for arrow notation
  '>-'           { L _ ITrarrowtail }            -- for arrow notation
- '-<<'          { L _ ITLarrowtail }            -- for arrow notation
- '>>-'          { L _ ITRarrowtail }            -- for arrow notation
+ '-<<'          { L _ ITLarrowtail1 }            -- for arrow notation
+ '>>-'          { L _ ITRarrowtail1 }            -- for arrow notation
  '.'            { L _ ITdot }
 
  '{'            { L _ ITocurly }                        -- special symbols
@@ -2200,10 +2200,10 @@ exp   :: { LHsExpr RdrName }
                                        [mj Annrarrowtail $2] }
         | infixexp '-<<' exp    {% ams (sLL $1 $> $ HsArrApp $1 $3 placeHolderType
                                                       HsHigherOrderApp True)
-                                       [mj AnnLarrowtail $2] }
+                                       [mj AnnLarrowtail1 $2] }
         | infixexp '>>-' exp    {% ams (sLL $1 $> $ HsArrApp $3 $1 placeHolderType
                                                       HsHigherOrderApp False)
-                                       [mj AnnRarrowtail $2] }
+                                       [mj AnnRarrowtail1 $2] }
         | infixexp              { $1 }
 
 infixexp :: { LHsExpr RdrName }

@@ -45,7 +45,7 @@ import System.IO        ( fixIO )
 import Control.Monad
 import Eta.Utils.MonadUtils
 import Control.Applicative (Alternative(..))
-#if __GLASGOW_HASKELL__ > 800
+#if __GLASGOW_HASKELL__ > 800 || defined(ETA_VERSION)
 import qualified Control.Monad.Fail as MonadFail
 #endif
 
@@ -63,7 +63,7 @@ instance Monad (IOEnv m) where
     (>>=)  = thenM
     (>>)   = thenM_
     return = returnM
-#if __GLASGOW_HASKELL__ < 800
+#if __GLASGOW_HASKELL__ < 800 && !defined(ETA_VERSION)
     fail _ = failM -- Ignore the string
 #else
     fail   = MonadFail.fail

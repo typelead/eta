@@ -202,7 +202,6 @@ initSysTools mbMinusB
                          , sOpt_F               = []
                          , sOpt_c               = []
                          , sOpt_a               = []
-                         , sOpt_l               = []
                          , sOpt_windres         = []
                          , sOpt_lo              = []
                          , sOpt_lc              = []
@@ -222,7 +221,6 @@ initSysTools mbMinusB
                          , sPgm_c               = undefined
                          , sPgm_s               = undefined
                          , sPgm_a               = undefined
-                         , sPgm_l               = undefined
                          , sPgm_dll             = undefined
                          , sPgm_sysman          = undefined
                          , sPgm_windres         = undefined
@@ -750,7 +748,7 @@ runLink _ _ = undefined
 runLibtool :: DynFlags -> [Option] -> IO ()
 runLibtool dflags args = do
   linkargs <- neededLinkArgs `fmap` getLinkerInfo dflags
-  let args1      = map Option (getOpts dflags opt_l)
+  let args1      = map Option (getOpts dflags undefined)
       args2      = [Option "-static"] ++ args1 ++ args ++ linkargs
       libtool    = pgm_libtool dflags
   mb_env <- getGccEnv args2

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, CPP #-}
 module Eta.CodeGen.Utils where
 
 import Eta.Main.DynFlags
@@ -19,7 +19,9 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8, decodeLatin1)
 import Data.Int
-import Data.Monoid
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Maybe (fromMaybe)
 import Data.Foldable
 import Control.Exception

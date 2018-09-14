@@ -77,7 +77,7 @@ import qualified Data.ByteString.Unsafe   as BS
 import Data.IORef
 import Data.Char                ( ord, chr )
 import Data.Time
-#if MIN_VERSION_base(4,10,0)
+#if MIN_VERSION_base(4,10,0) && !defined(ETA_VERSION)
 import Type.Reflection
 import Type.Reflection.Unsafe
 import Data.Kind (Type)
@@ -95,6 +95,10 @@ import Eta.Utils.ExtsCompat46
 import GHC.Word                 ( Word8(..) )
 
 import GHC.IO ( IO(..) )
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 type BinArray = ForeignPtr Word8
 
@@ -558,7 +562,7 @@ instance Binary (Bin a) where
 -- -----------------------------------------------------------------------------
 -- Instances for Data.Typeable stuff
 
-#if MIN_VERSION_base(4,10,0)
+#if MIN_VERSION_base(4,10,0) && !defined(ETA_VERSION)
 instance Binary TyCon where
     put_ bh tc = do
         put_ bh (tyConPackage tc)

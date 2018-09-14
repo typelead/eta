@@ -29,6 +29,10 @@ import Eta.Utils.MonadUtils
 import Eta.Utils.Outputable
 import Eta.Utils.Binary
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
+
 ----------------------------------------------------------------------
 -- Boolean formula type and smart constructors
 ----------------------------------------------------------------------

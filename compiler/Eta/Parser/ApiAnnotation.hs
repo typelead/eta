@@ -262,8 +262,8 @@ data AnnKeywordId
     | AnnWhere
     | Annlarrowtail -- ^ '-<'
     | Annrarrowtail -- ^ '->'
-    | AnnLarrowtail -- ^ '-<<'
-    | AnnRarrowtail -- ^ '>>-'
+    | AnnLarrowtail1 -- ^ '-<<'
+    | AnnRarrowtail1 -- ^ '>>-'
     | AnnEofPos
     deriving (Eq,Ord,Data,Typeable,Show)
 

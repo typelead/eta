@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, NegativeLiterals #-}
+{-# LANGUAGE OverloadedStrings, NegativeLiterals, CPP #-}
 module Eta.CodeGen.Prim where
 
 import Eta.Main.DynFlags
@@ -22,7 +22,9 @@ import Eta.CodeGen.Name
 
 import Eta.Debug
 
-import Data.Monoid ((<>))
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Foldable (fold)
 
 import Data.Text (Text)

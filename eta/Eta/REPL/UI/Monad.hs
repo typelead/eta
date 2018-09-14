@@ -411,8 +411,12 @@ revertCAFs = do
   when (not (ghc_e s)) turnOffBuffering
      -- Have to turn off buffering again, because we just
      -- reverted stdout, stderr & stdin to their defaults.
-
+#if defined(ETA_VERSION)
+rts_revertCAFs  :: IO ()
+rts_revertCAFs = error "rts_revertCAFs not implemented in UI.Monad"
+#else
 foreign import ccall "revertCAFs" rts_revertCAFs  :: IO ()
+#endif
         -- Make it "safe", just in case
 
 -----------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 --      This is a generic graph coloring library, abstracted over the type of
 --      the node keys, nodes and colors.
 --
+{-# LANGUAGE CPP #-}
 
 module Eta.Utils.GraphColor (
         module Eta.Utils.GraphBase,
@@ -23,6 +24,10 @@ import Eta.Utils.Outputable
 
 import Data.Maybe
 import Data.List
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 
 -- | Try to color a graph with this set of colors.
@@ -191,7 +196,7 @@ colorScan_spin iterative triv spill graph
 
                 -- we were able to coalesce something
                 --      go back to Simplify and see if this frees up more nodes to be trivially colorable.
-                (graph2, kksCoalesceFound @(_:_))
+                (graph2, kksCoalesceFound@(_:_))
                  -> colorScan_spin iterative triv spill graph2
                         ksTriv ksSpill (reverse kksCoalesceFound ++ kksCoalesce)
 
@@ -366,5 +371,3 @@ selectColor colors graph u
                 = Nothing
 
    in   chooseColor
-
-

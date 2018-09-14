@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Constr where
 
 
@@ -22,7 +22,9 @@ import Control.Monad hiding (void)
 import Codec.JVM
 import Data.Maybe
 
-import Data.Monoid ((<>))
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Foldable (fold)
 
 cgTopRhsCon :: DynFlags

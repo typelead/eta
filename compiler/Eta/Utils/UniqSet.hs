@@ -57,7 +57,7 @@ import Data.Coerce
 import Eta.Utils.Outputable
 import Data.Foldable (foldl')
 import Data.Data
-#if __GLASGOW_HASKELL__ >= 801
+#if __GLASGOW_HASKELL__ >= 801 || defined(ETA_VERSION)
 import qualified Data.Semigroup
 #endif
 
@@ -146,7 +146,7 @@ unsafeUFMToUniqSet = UniqSet
 
 instance Outputable a => Outputable (UniqSet a) where
     ppr = pprUniqSet ppr
-#if __GLASGOW_HASKELL__ >= 801
+#if __GLASGOW_HASKELL__ >= 801 || defined(ETA_VERSION)
 instance Data.Semigroup.Semigroup (UniqSet a) where
   (<>) = mappend
 #endif

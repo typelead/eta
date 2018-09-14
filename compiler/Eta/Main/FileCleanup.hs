@@ -28,6 +28,10 @@ import System.IO.Error
 import qualified System.Posix.Internals
 #endif
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
+
 -- | Used when a temp file is created. This determines which component Set of
 -- FilesToClean will get the temp file
 data TempFileLifetime

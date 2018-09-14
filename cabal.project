@@ -1,0 +1,20 @@
+packages: .
+  codec-jvm
+  libraries/eta-boot
+  libraries/eta-boot-meta
+  libraries/eta-meta
+  libraries/eta-repl
+constraints: resourcet < 1.2 
+
+allow-boot-library-installs: True
+independent-goals: True
+
+source-repository-package
+  type: git
+  location: https://github.com/rahulmutt/hpp.git
+  commit: 75d74f53a34c875285a665d8878e5b363edfbea5
+
+source-repository-package
+  type: git
+  location: https://github.com/rahulmutt/zip.git
+  commit: a4fbcc9e1efc3e8623022d9fcc83b50d4cdd95a5

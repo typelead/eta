@@ -32,8 +32,8 @@ library
     ghc-options:         -Wall -fno-warn-name-shadowing -Werror
     if flag(repl)
       cpp-options:       -DETA_REPL
-      build-depends:     eta-repl
-                       , eta-meta
+      build-depends:     eta-repl1
+                       , eta-meta1
     default-language:    Haskell2010
     default-extensions:  RecordWildCards
                        , NamedFieldPuns
@@ -329,15 +329,14 @@ library
                        , binary
                        , bytestring
                        , text
-                       , eta-boot
-                       , eta-boot-meta
+                       , eta-boot1
+                       , eta-boot-meta1
                        , deepseq    >= 1.4 && < 1.5
                        , time       >= 1.4 && < 1.9
                        , process    >= 1   && < 1.7
                        , directory >= 1.2
                        , filepath
                        , codec-jvm >= 0
-                       , hpc
                        , mtl
                        , zip >= 0.1.8
                        , path
@@ -348,14 +347,19 @@ library
                        , containers
                        , hpp >= 0.5.2
                        , cpphs
-                       , unix-compat >= 0.4.3.1
+
                        , gitrev
                        , semigroups
 
-    if os(windows)
-        build-depends:   Win32
+    if impl(eta)
+      java-sources:        java/Utils.java
     else
-        build-depends:   unix
+      build-depends: unix-compat >= 0.4.3.1
+                   , hpc
+      if os(windows)
+          build-depends:   Win32
+      else
+          build-depends:   unix
     hs-source-dirs:      compiler
     include-dirs:        include
     install-includes:    HsVersions.h Bytecodes.h
@@ -381,17 +385,18 @@ executable eta
                       , transformers < 0.6
                       , time < 1.9
                       , eta
-   if flag(repl)
+   if flag(repl) && !impl(eta)
        -- NB: this is never built by the bootstrapping Eta+libraries
        Build-depends:
            containers     == 0.5.*,
-           eta-boot,
-           eta-repl,
+           eta-boot1,
+           eta-repl1,
            haskeline      == 0.7.*
-       if os(windows)
-           build-depends:   Win32
-       else
-           build-depends:   unix
+       if !impl(eta)
+         if os(windows)
+             build-depends:   Win32
+         else
+             build-depends:   unix
        CPP-Options: -DETA_REPL
        GHC-Options: -fno-warn-name-shadowing
        Other-Modules:
@@ -413,6 +418,8 @@ executable eta
            ViewPatterns
 
 executable eta-package-test
+    if impl(eta)
+      buildable: False
     hs-source-dirs:      tests/packages
     main-is:             Test.hs
     default-language:    Haskell2010
@@ -426,6 +433,8 @@ executable eta-package-test
     ghc-options:       -Wall -Werror
 
 executable eta-test-suite
+    if impl(eta)
+      buildable: False
     hs-source-dirs:      tests/suite
     main-is:             Driver.hs
     default-language:    Haskell2010

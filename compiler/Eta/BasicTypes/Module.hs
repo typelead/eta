@@ -11,6 +11,7 @@ the keys.
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP #-}
 
 module Eta.BasicTypes.Module
     (
@@ -183,6 +184,10 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 import {-# SOURCE #-} Eta.Main.DynFlags (DynFlags)
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 -- Note [The identifier lexicon]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

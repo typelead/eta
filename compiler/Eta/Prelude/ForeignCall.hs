@@ -4,7 +4,7 @@
 \section[Foreign]{Foreign calls}
 -}
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 
 module Eta.Prelude.ForeignCall (
         ForeignCall(..), isSafeForeignCall,
@@ -26,6 +26,10 @@ import Eta.BasicTypes.BasicTypes ( SourceText )
 
 import Data.Char
 import Data.Data
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 {-
 ************************************************************************

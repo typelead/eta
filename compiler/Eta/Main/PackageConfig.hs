@@ -38,6 +38,10 @@ import Eta.Utils.Outputable
 import Eta.BasicTypes.Module as Module
 import Eta.BasicTypes.Unique
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
+
 -- -----------------------------------------------------------------------------
 -- Our PackageConfig type is the InstalledPackageInfo from ghc-boot,
 -- which is similar to a subset of the InstalledPackageInfo type from Cabal.

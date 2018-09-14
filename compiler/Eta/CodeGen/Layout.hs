@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Layout where
 
 import Eta.Types.Type
@@ -17,7 +17,9 @@ import Eta.Utils.Digraph
 import Eta.Utils.Panic
 
 import Data.Maybe
-import Data.Monoid
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Foldable
 import Data.Text (Text)
 

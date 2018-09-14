@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns, MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings, NamedFieldPuns, MultiWayIf, CPP #-}
 module Eta.CodeGen.Bind where
 
 import Eta.StgSyn.StgSyn
@@ -27,7 +27,9 @@ import Codec.JVM
 import Control.Monad (forM, foldM, when)
 import Data.Text (unpack)
 import Data.Foldable (fold)
-import Data.Monoid ((<>))
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.List(delete, find, foldl', sortOn)
 
 closureCodeBody

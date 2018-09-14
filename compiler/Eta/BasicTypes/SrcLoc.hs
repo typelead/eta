@@ -92,6 +92,10 @@ import Data.Data
 import Data.List
 import Data.Ord
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
+
 {-
 ************************************************************************
 *                                                                      *

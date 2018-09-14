@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Eta.TypeCheck.TcForeign
   ( tcForeignImports
   , tcForeignExports
@@ -41,7 +42,9 @@ import Eta.Types.TyCon
 import Eta.Debug
 import Eta.HsSyn.HsSyn
 import Eta.Utils.Bag
+#if !defined(ETA_VERSION)
 import Eta.Utils.Outputable
+#endif
 import Eta.Utils.FastString
 -- import Eta.Utils.Maybes
 

@@ -43,6 +43,10 @@ instance Monoid (OrdList a) where
   mappend = appOL
   mconcat = concatOL
 
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup (OrdList a) where
+  (<>) = appOL
+#endif
 nilOL    :: OrdList a
 isNilOL  :: OrdList a -> Bool
 

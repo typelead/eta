@@ -741,14 +741,14 @@ showUsage etaRepl _dflags = putStrLn usage
 
 -- TODO: Make this better
 etaUsage, etaReplUsage :: String
-etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n\
-See the Eta User Guide:\n\
-https://eta-lang.org/docs/\n"
+etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n" ++
+        "See the Eta User Guide:\n" ++
+        "https://eta-lang.org/docs/\n"
 
 -- TODO: Make this better
-etaReplUsage = "Eta REPL v" ++ cProjectVersion ++ "\n\n\
-See the Eta User Guide:\n\
-https://eta-lang.org/docs/\n"
+etaReplUsage = "Eta REPL v" ++ cProjectVersion ++ "\n\n" ++
+      "See the Eta User Guide:\n" ++
+      "https://eta-lang.org/docs/\n"
 
 dumpFinalStats :: DynFlags -> IO ()
 dumpFinalStats dflags =

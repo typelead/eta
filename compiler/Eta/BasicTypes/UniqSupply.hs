@@ -3,7 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
 
-{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE UnboxedTuples, CPP #-}
 
 module Eta.BasicTypes.UniqSupply (
         -- * Main data type
@@ -88,8 +88,14 @@ mkSplitUniqSupply c
        in
        mk_supply
 
+#if defined(ETA_VERSION)
+foreign import java unsafe "@static eta.java.Utils.genSym" genSym :: IO Int
+foreign import java unsafe "@static eta.java.Utils.initGenSym"
+      initUniqSupply :: Int -> Int -> IO ()
+#else
 foreign import ccall unsafe "genSym" genSym :: IO Int
 foreign import ccall unsafe "initGenSym" initUniqSupply :: Int -> Int -> IO ()
+#endif
 
 splitUniqSupply (MkSplitUniqSupply _ s1 s2) = (s1, s2)
 listSplitUniqSupply  (MkSplitUniqSupply _ s1 s2) = s1 : listSplitUniqSupply s2

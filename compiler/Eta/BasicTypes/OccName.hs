@@ -3,7 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
 
-{-# LANGUAGE DeriveDataTypeable, BangPatterns #-}
+{-# LANGUAGE DeriveDataTypeable, BangPatterns, CPP #-}
 
 -- |
 -- #name_types#
@@ -111,6 +111,10 @@ import Eta.BasicTypes.Lexeme
 import Eta.Utils.Binary
 import Data.Char
 import Data.Data
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 {-
 ************************************************************************

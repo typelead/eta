@@ -67,6 +67,9 @@ import Control.Monad.IO.Class
 import System.IO
 import System.IO.Error (catchIOError)
 
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 -------------------------
 type MsgDoc  = SDoc
 

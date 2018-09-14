@@ -14,7 +14,7 @@ types that
 \end{itemize}
 -}
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 
 module Eta.BasicTypes.BasicTypes(
         Version, bumpVersion, initialVersion,
@@ -98,6 +98,10 @@ import Eta.BasicTypes.SrcLoc ( Located,unLoc )
 
 import Data.Data hiding (Fixity)
 import Data.Function (on)
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 {-
 ************************************************************************

@@ -1,5 +1,6 @@
 -- | Basic operations on graphs.
 --
+{-# LANGUAGE CPP #-}
 
 module Eta.Utils.GraphOps (
         addNode,        delNode,        getNode,       lookupNode,     modNode,
@@ -27,6 +28,10 @@ import Eta.Utils.UniqFM
 
 import Data.List        hiding (union)
 import Data.Maybe
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 -- | Lookup a node from the graph.
 lookupNode

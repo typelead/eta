@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
@@ -80,7 +80,9 @@ import Eta.BasicTypes.Unique
 import Eta.Utils.Outputable hiding ((<>))
 import Eta.Types.TyCon
 
+#if !defined(ETA_VERSION)
 import Data.Monoid((<>))
+#endif
 import Data.List
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex, toLower, zip)

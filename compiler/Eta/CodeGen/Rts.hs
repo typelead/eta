@@ -1,12 +1,12 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Eta.CodeGen.Rts where
 
 import Data.Text (Text)
 import Codec.JVM
 import Codec.JVM.Const
-
+#if !defined(ETA_VERSION)
 import Data.Monoid((<>))
-
+#endif
 import qualified Data.Text as T
 
 -- NOTE: If the RTS is refactored, this file must also be updated accordingly
@@ -351,4 +351,3 @@ getClosureMethod int =
      iconst jint (fromIntegral int)
   <> invokestatic (mkMethodRef "eta/serv/Utils" "getClosure" [jint] (ret jobject))
   <> gconv jobject closureType
-

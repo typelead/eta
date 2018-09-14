@@ -350,6 +350,10 @@ instance Monoid (UniqFM a) where
     mempty = emptyUFM
     mappend = plusUFM
 
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup (UniqFM a) where
+    (<>) = plusUFM
+#endif
 -- Output-ery
 
 instance Outputable a => Outputable (UniqFM a) where

@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-{-# LANGUAGE OverloadedStrings, BangPatterns #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns, CPP #-}
 module Eta.CodeGen.Foreign where
 
 import Eta.Types.Type
@@ -16,7 +16,9 @@ import Eta.CodeGen.Types
 
 import Codec.JVM
 import Data.List
-import Data.Monoid ((<>))
+#if !defined(ETA_VERSION)
+import Data.Monoid((<>))
+#endif
 import Data.Maybe (fromJust, isJust)
 import Data.Foldable (fold)
 import Control.Monad (when)

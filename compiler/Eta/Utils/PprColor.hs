@@ -1,7 +1,10 @@
+{-# LANGUAGE CPP #-}
 module Eta.Utils.PprColor where
 
 import Data.Maybe
+#if !defined(ETA_VERSION)
 import Data.Monoid
+#endif
 import Eta.Utils.Util (OverridingBool(..), split)
 
 -- | A color\/style for use with 'colored'.
@@ -15,6 +18,11 @@ mapPprColor f (PprColor s) = PprColor (f s)
 instance Monoid PprColor where
   mempty = PprColor mempty
   PprColor s1 `mappend` PprColor s2 = PprColor (s1 <> s2)
+
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup PprColor where
+  PprColor s1 <> PprColor s2 = PprColor (s1 <> s2)
+#endif
 
 renderColorAfresh :: PprColor -> String
 renderColorAfresh c = renderColor (colReset `mappend` c)

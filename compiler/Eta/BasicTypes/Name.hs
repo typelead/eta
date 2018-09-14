@@ -5,7 +5,7 @@
 \section[Name]{@Name@: to transmit name info from renamer to typechecker}
 -}
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 
 -- |
 -- #name_types#
@@ -89,6 +89,10 @@ import Eta.Utils.FastString
 import Eta.Utils.Outputable
 
 import Data.Data
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 {-
 ************************************************************************

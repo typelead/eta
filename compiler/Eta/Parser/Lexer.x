@@ -708,8 +708,8 @@ data Token
   | ITcparenbar                 --  |)
   | ITlarrowtail                --  -<
   | ITrarrowtail                --  >-
-  | ITLarrowtail                --  -<<
-  | ITRarrowtail                --  >>-
+  | ITLarrowtail1               --  -<<
+  | ITRarrowtail1                --  >>-
 
   | ITunknown String            -- Used when the lexer can't make sense of it
   | ITeof                       -- end of file token
@@ -849,8 +849,8 @@ reservedSymsFM = listToUFM $
 
        ,("-<",  ITlarrowtail, arrowsEnabled)
        ,(">-",  ITrarrowtail, arrowsEnabled)
-       ,("-<<", ITLarrowtail, arrowsEnabled)
-       ,(">>-", ITRarrowtail, arrowsEnabled)
+       ,("-<<", ITLarrowtail1, arrowsEnabled)
+       ,(">>-", ITRarrowtail1, arrowsEnabled)
 
        ,("∷",   ITdcolon, unicodeSyntaxEnabled)
        ,("⇒",   ITdarrow, unicodeSyntaxEnabled)
@@ -860,8 +860,8 @@ reservedSymsFM = listToUFM $
 
        ,("⤙",   ITlarrowtail, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
        ,("⤚",   ITrarrowtail, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
-       ,("⤛",   ITLarrowtail, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
-       ,("⤜",   ITRarrowtail, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
+       ,("⤛",   ITLarrowtail1, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
+       ,("⤜",   ITRarrowtail1, \i -> unicodeSyntaxEnabled i && arrowsEnabled i)
 
        ,("★", ITstar, unicodeSyntaxEnabled)
 

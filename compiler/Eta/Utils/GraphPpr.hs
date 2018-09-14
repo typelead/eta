@@ -1,5 +1,5 @@
 -- | Pretty printing of graphs.
-
+{-# LANGUAGE CPP #-}
 module Eta.Utils.GraphPpr (
         dumpGraph,
         dotGraph
@@ -15,6 +15,10 @@ import Eta.Utils.UniqFM
 
 import Data.List
 import Data.Maybe
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 
 -- | Pretty print a graph in a somewhat human readable format.

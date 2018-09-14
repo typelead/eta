@@ -67,7 +67,11 @@ import Eta.Utils.Fingerprint
 import System.Directory
 import System.FilePath
 import System.IO (fixIO)
+
+#if !defined(ETA_VERSION)
 import System.PosixCompat.Files (fileExist, touchFile)
+#endif
+
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( partition, nub, union , (\\) )
@@ -1128,10 +1132,13 @@ hscPostBackendPhase dflags _ hsc_lang =
         HscNothing     -> StopLn
         HscInterpreted -> StopLn
 
+foreign import java unsafe "@static eta.java.Utils.touch" touchFile
+   :: String -> IO ()
+
 touchObjectFile :: DynFlags -> FilePath -> IO ()
 touchObjectFile _dflags path = do
   createDirectoryIfMissing True $ takeDirectory path
-  exists <- fileExist path
+  exists <- doesFileExist path
   if exists
     then touchFile path
     else writeFile path ""

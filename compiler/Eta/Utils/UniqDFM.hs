@@ -16,7 +16,7 @@ is not deterministic.
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, CPP #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Eta.Utils.UniqDFM (
@@ -374,6 +374,11 @@ allUDFM p (UDFM m _i) = M.foldr ((&&) . p . taggedFst) True m
 instance Monoid (UniqDFM a) where
   mempty = emptyUDFM
   mappend = plusUDFM
+
+#if MIN_VERSION_base(4,10,0)
+instance Semigroup (UniqDFM a) where
+    (<>) = plusUDFM
+#endif
 
 -- This should not be used in commited code, provided for convenience to
 -- make ad-hoc conversions when developing

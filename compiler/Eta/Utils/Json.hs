@@ -1,10 +1,14 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, CPP #-}
 module Eta.Utils.Json where
 
 import Eta.Utils.Outputable
 import Data.Char
 import Data.Time
 import Numeric
+
+#if defined(ETA_VERSION)
+import Prelude hiding ((<>))
+#endif
 
 -- | Simple data type to represent JSON documents.
 data JsonDoc where

@@ -9,9 +9,9 @@ you will screw up the layout where they are used in case expressions!
 (This is cpp-dependent, of course)
 
 #endif
-
+#if !defined(ETA_VERSION)
 #include "ghcplatform.h"
-
+#endif
 /* Useful in the headers that we share with the RTS */
 #define COMPILING_GHC 1
 
