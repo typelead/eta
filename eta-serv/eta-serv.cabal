@@ -1,7 +1,7 @@
 name:                eta-serv
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
-version:             0.8.6.2
+version:             0.8.6.3
 license:             BSD3
 license-file:        LICENSE
 maintainer:          typeleadhq@gmail.com

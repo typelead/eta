@@ -175,18 +175,25 @@ solveSimples cts
   = {-# SCC "solveSimples" #-}
     do { dyn_flags <- getDynFlags
        ; updWorkListTcS (\wl -> foldrBag extendWorkListCt wl cts)
-       ; solve_loop (maxSubGoalDepth dyn_flags) }
+       ; solve_loop dyn_flags (maxSubGoalDepth dyn_flags) }
   where
-    solve_loop max_depth
+    solve_loop dyn_flags max_depth
       = {-# SCC "solve_loop" #-}
         do { sel <- selectNextWorkItem max_depth
            ; case sel of
               NoWorkRemaining     -- Done, successfuly (modulo frozen)
-                -> return ()
+                -> do dicts <- getUnsolvedInertDicts
+                      new_work <- getUniqueInstanceWanteds dyn_flags dicts
+                      if null new_work
+                      then return ()
+                      else do
+                        updWorkListTcS (extendWorkListCts new_work)
+                        solve_loop dyn_flags max_depth
+
               MaxDepthExceeded cnt ct -- Failure, depth exceeded
                 -> wrapErrTcS $ solverDepthErrorTcS cnt (ctEvidence ct)
               NextWorkItem ct     -- More work, loop around!
-                -> do { runSolverPipeline thePipeline ct; solve_loop max_depth } }
+                -> do { runSolverPipeline thePipeline ct; solve_loop dyn_flags max_depth } }
 
 
 -- | Extract the (inert) givens and invoke the plugins on them.

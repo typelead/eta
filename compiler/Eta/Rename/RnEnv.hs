@@ -14,7 +14,7 @@ module Eta.Rename.RnEnv (
         lookupLocalOccThLvl_maybe,
         lookupTypeOccRn, lookupKindOccRn,
         lookupGlobalOccRn, lookupGlobalOccRn_maybe,
-        reportUnboundName,
+        reportUnboundName, unknownNameSuggestions,
 
         HsSigCtxt(..), lookupLocalTcNames, lookupSigOccRn,
         lookupSigCtxtOccRn,
@@ -860,6 +860,7 @@ addUsedRdrName warnIfDeprec gre rdr
   | isLocalGRE gre = return ()  -- No call to warnIfDeprecated
                                 -- See Note [Handling of deprecations]
   | otherwise      = do { env <- getGblEnv
+                        ; traceRn "addUsedRdrName 1" (ppr gre)
                         ; when warnIfDeprec $ warnIfDeprecated gre
                         ; updMutVar (tcg_used_rdrnames env)
                                     (\s -> Set.insert rdr s) }
@@ -871,6 +872,7 @@ addUsedRdrNames :: [RdrName] -> RnM ()
 -- NB: no call to warnIfDeprecated; see Note [Handling of deprecations]
 addUsedRdrNames rdrs
   = do { env <- getGblEnv
+       ; traceRn "addUsedRdrName 2" (ppr rdrs)
        ; updMutVar (tcg_used_rdrnames env)
                    (\s -> foldr Set.insert s rdrs) }
 
@@ -1541,11 +1543,15 @@ unboundName wl rdr = unboundNameX wl rdr False
 
 unboundNameX :: WhereLooking -> RdrName -> Bool -> RnM Name
 unboundNameX where_look rdr_name is_dk
-  = do  { show_helpful_errors <- goptM Opt_HelpfulErrors
-        ; let err msuggestions = unknownNameErr rdr_name is_dk msuggestions
+  = do  { dflags <- getDynFlags
+        ; let show_helpful_errors = gopt Opt_HelpfulErrors dflags
+              err msuggestions = unknownNameErr rdr_name is_dk msuggestions
         ; if not show_helpful_errors
           then addErr (err [])
-          else do { suggestions <- unknownNameSuggestErr where_look rdr_name
+          else do { local_env   <- getLocalRdrEnv
+                  ; global_env  <- getGlobalRdrEnv
+                  ; let suggestions = unknownNameSuggestions_ where_look dflags global_env
+                                        local_env rdr_name
                   ; addErr (err suggestions) }
         ; return (mkUnboundName rdr_name) }
 
@@ -1553,22 +1559,23 @@ unknownNameErr :: RdrName -> Bool -> [(RdrName, HowInScope)] -> TypeError
 unknownNameErr rdr_name extra suggestions
     = NotInScopeError rdr_name extra suggestions
 
-unknownNameSuggestErr :: WhereLooking -> RdrName -> RnM [(RdrName, HowInScope)]
-unknownNameSuggestErr where_look tried_rdr_name
-  = do { local_env <- getLocalRdrEnv
-       ; global_env <- getGlobalRdrEnv
-       ; dflags <- getDynFlags
+unknownNameSuggestions :: DynFlags -> GlobalRdrEnv -> LocalRdrEnv
+                       -> RdrName -> [(RdrName, HowInScope)]
+-- Called from the typechecker (TcErrors)
+-- when we find an unbound variable
+unknownNameSuggestions = unknownNameSuggestions_ WL_Any
 
-       ; let all_possibilities :: [(String, (RdrName, HowInScope))]
-             all_possibilities
-                =  [ (showPpr dflags r, (r, Left loc))
-                   | (r,loc) <- local_possibilities local_env ]
-                ++ [ (showPpr dflags r, rp) | (r, rp) <- global_possibilities global_env ]
-
-             suggest = fuzzyLookup (showPpr dflags tried_rdr_name) all_possibilities
-
-       ; return suggest }
+unknownNameSuggestions_ :: WhereLooking -> DynFlags -> GlobalRdrEnv -> LocalRdrEnv
+                        -> RdrName -> [(RdrName, HowInScope)]
+unknownNameSuggestions_ where_look dflags global_env local_env tried_rdr_name =
+  fuzzyLookup (showPpr dflags tried_rdr_name) all_possibilities
   where
+
+    all_possibilities :: [(String, (RdrName, HowInScope))]
+    all_possibilities =
+         [ (showPpr dflags r, (r, Left loc))
+         | (r,loc) <- local_possibilities local_env ]
+      ++ [ (showPpr dflags r, rp) | (r, rp) <- global_possibilities global_env ]
 
     tried_occ     = rdrNameOcc tried_rdr_name
     tried_is_sym  = isSymOcc tried_occ

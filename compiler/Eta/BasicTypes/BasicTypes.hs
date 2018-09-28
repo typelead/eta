@@ -43,6 +43,7 @@ module Eta.BasicTypes.BasicTypes(
 
         OverlapFlag(..), OverlapMode(..), setOverlapModeMaybe,
         hasOverlappingFlag, hasOverlappableFlag,
+        hasOverlappingOnlyFlag, hasOverlapsOnlyFlag,
 
         Boxity(..), isBoxed,
 
@@ -495,6 +496,18 @@ hasOverlappingFlag mode =
     Overlaps     _ -> True
     Incoherent   _ -> True
     _              -> False
+
+hasOverlappingOnlyFlag :: OverlapMode -> Bool
+hasOverlappingOnlyFlag mode =
+  case mode of
+    Overlapping  _ -> True
+    _              -> False
+
+hasOverlapsOnlyFlag :: OverlapMode -> Bool
+hasOverlapsOnlyFlag mode =
+  case mode of
+    Overlaps  _ -> True
+    _           -> False
 
 data OverlapMode  -- See Note [Rules for instance lookup] in InstEnv
   = NoOverlap SourceText

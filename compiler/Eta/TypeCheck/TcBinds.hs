@@ -47,7 +47,7 @@ import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Bag
 import Eta.Utils.ListSetOps
-import Eta.Main.Error
+
 import Eta.Utils.Digraph
 import Eta.Utils.Maybes
 import Eta.Utils.Util
@@ -721,8 +721,7 @@ completeTheta inferred_theta
        ; warn_partial_sigs <- woptM Opt_WarnPartialTypeSignatures
        ; msg <- mkLongErrAt loc (PartialTypeSignatureError (mk_msg inferred_diff partial_sigs)) []
        ; case partial_sigs of
-           True | warn_partial_sigs -> reportWarning $ makeIntoWarning
-                                      (Reason Opt_WarnPartialTypeSignatures) msg
+           True | warn_partial_sigs -> reportWarning (Reason Opt_WarnPartialTypeSignatures) msg
                 | otherwise         -> return ()
            False                    -> reportError msg
        ; return final_theta }

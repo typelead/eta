@@ -26,7 +26,7 @@ import Eta.Rename.RnSplice         ( rnBracket, rnSpliceExpr, checkThLocalName )
 import Eta.Rename.RnTypes
 import Eta.Rename.RnPat
 import Eta.Main.DynFlags
-import Eta.BasicTypes.BasicTypes       ( FixityDirection(..) )
+import Eta.BasicTypes.BasicTypes       ( FixityDirection(..), Fixity(..), minPrecedence )
 import Eta.Prelude.PrelNames
 import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Name
@@ -83,12 +83,26 @@ finishHsVar name
         checkThLocalName name
       ; return (HsVar name, unitFV name) }
 
+rnUnboundVar :: RdrName -> RnM (HsExpr Name, FreeVars)
+rnUnboundVar v
+ = do { if isUnqual v
+        then -- Treat this as a "hole"
+             -- Do not fail right now; instead, return HsUnboundVar
+             -- and let the type checker report the error
+             do { let occ = rdrNameOcc v
+                ; uv <- if startsWithUnderscore occ
+                        then return (TrueExprHole occ)
+                        else OutOfScope occ <$> getGlobalRdrEnv
+                ; return (HsUnboundVar uv, emptyFVs) }
+
+        else -- Fail immediately (qualified name)
+             do { n <- reportUnboundName v
+                ; return (HsVar n, emptyFVs) } }
+
 rnExpr (HsVar v)
   = do { mb_name <- lookupOccRn_maybe v
        ; case mb_name of {
-           Nothing -> do { if startsWithUnderscore (rdrNameOcc v)
-                           then return (HsUnboundVar v, emptyFVs)
-                           else do { n <- reportUnboundName v; finishHsVar n } } ;
+           Nothing -> rnUnboundVar v ;
            Just name
               | name == nilDataConName -- Treat [] as an ExplicitList, so that
                                        -- OverloadedLists works correctly
@@ -127,23 +141,23 @@ rnExpr (HsApp fun arg)
        ; (arg',fvArg) <- rnLExpr arg
        ; return (HsApp fun' arg', fvFun `plusFV` fvArg) }
 
-rnExpr (OpApp e1 (L op_loc (HsVar op_rdr)) _ e2)
+rnExpr (OpApp e1 op _ e2)
   = do  { (e1', fv_e1) <- rnLExpr e1
         ; (e2', fv_e2) <- rnLExpr e2
-        ; op_name <- setSrcSpan op_loc (lookupOccRn op_rdr)
-        ; (op', fv_op) <- finishHsVar op_name
-                -- NB: op' is usually just a variable, but might be
-                --     an applicatoin (assert "Foo.hs:47")
+        ; (op', fv_op) <- rnLExpr op
+
         -- Deal with fixity
         -- When renaming code synthesised from "deriving" declarations
         -- we used to avoid fixity stuff, but we can't easily tell any
         -- more, so I've removed the test.  Adding HsPars in TcGenDeriv
         -- should prevent bad things happening.
-        ; fixity <- lookupFixityRn op_name
-        ; final_e <- mkOpAppRn e1' (L op_loc op') fixity e2'
+        ; fixity <- case op' of
+                      L _ (HsVar n) -> lookupFixityRn n
+                      _             -> return (Fixity minPrecedence InfixL)
+                                       -- c.f. lookupFixity for unbound
+
+        ; final_e <- mkOpAppRn e1' op' fixity e2'
         ; return (final_e, fv_e1 `plusFV` fv_op `plusFV` fv_e2) }
-rnExpr (OpApp _ other_op _ _)
-  = failWith (TemplateHaskellSpliceError other_op)
 
 rnExpr (NegApp e _)
   = do { (e', fv_e)         <- rnLExpr e
@@ -299,7 +313,7 @@ Since all the symbols are reservedops we can simply reject them.
 We return a (bogus) EWildPat in each case.
 -}
 
-rnExpr EWildPat        = return (hsHoleExpr, emptyFVs)
+rnExpr EWildPat        = return (hsHoleExpr, emptyFVs)   -- "_" is just a hole
 rnExpr e@(EAsPat {})   = patSynErr e
 rnExpr e@(EViewPat {}) = patSynErr e
 rnExpr e@(ELazyPat {}) = patSynErr e
@@ -361,8 +375,8 @@ rnExpr e@(HsArrForm {}) = arrowFail e
 rnExpr other = pprPanic "rnExpr: unexpected expression" (ppr other)
         -- HsWrap
 
-hsHoleExpr :: HsExpr Name
-hsHoleExpr = HsUnboundVar (mkRdrUnqual (mkVarOcc "_"))
+hsHoleExpr :: HsExpr id
+hsHoleExpr = HsUnboundVar (TrueExprHole (mkVarOcc "_"))
 
 arrowFail :: HsExpr RdrName -> RnM (HsExpr Name, FreeVars)
 arrowFail e

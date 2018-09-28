@@ -76,7 +76,10 @@ between platforms: on Windows, for example, a program invoked as foo
 is probably really @FOO.EXE@, and that is what 'getProgName' will return.
 -}
 getProgName :: IO String
-getProgName = return "eta.main"
+getProgName = fmap fromJString getProgramName
+
+foreign import java unsafe "@static eta.runtime.Runtime.getLocalProgramName"
+  getProgramName :: IO JString
 
 -- | Computation 'getEnv' @var@ returns the value
 -- of the environment variable @var@. For the inverse, POSIX users
@@ -161,9 +164,15 @@ foreign import java unsafe "@static eta.runtime.Runtime.setLocalProgramArguments
 'withProgName' @name act@ - while executing action @act@,
 have 'getProgName' return @name@.
 -}
--- TODO: Figure out how to handle this
 withProgName :: String -> IO a -> IO a
-withProgName _nm act = act
+withProgName nm act = do
+  progName <- getProgramName
+  bracket (setProgName (toJString nm))
+          (const (setProgName progName))
+          (const act)
+
+foreign import java unsafe "@static eta.runtime.Runtime.setLocalProgramName"
+  setProgName :: JString -> IO ()
 
 -- |'getEnvironment' retrieves the entire environment as a
 -- list of @(key,value)@ pairs.

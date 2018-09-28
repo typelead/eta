@@ -433,6 +433,7 @@ data GeneralFlag
    | Opt_HelpfulErrors
    | Opt_DeferTypeErrors
    | Opt_DeferTypedHoles
+   | Opt_DeferOutOfScopeVariables
    | Opt_Parallel
    | Opt_GranMacros
    | Opt_PIC
@@ -565,6 +566,8 @@ data WarningFlag =
    | Opt_WarnMissingExportedSigs
    | Opt_WarnUntickedPromotedConstructors
    | Opt_WarnDerivingTypeable
+   | Opt_WarnDeferredTypeErrors
+   | Opt_WarnDeferredOutOfScopeVariables
    | Opt_WarnMissingHomeModules           -- Since 8.2
    deriving (Eq, Show, Enum)
 
@@ -3039,6 +3042,9 @@ wWarningFlags = [
   flagSpec' "amp"                        Opt_WarnAMP
     (\_ -> deprecate "it has no effect"),
   flagSpec "auto-orphans"                Opt_WarnAutoOrphans,
+  flagSpec "deferred-type-errors"        Opt_WarnDeferredTypeErrors,
+  flagSpec "deferred-out-of-scope-variables"
+                                         Opt_WarnDeferredOutOfScopeVariables,
   flagSpec "deprecations"                Opt_WarnWarningsDeprecations,
   flagSpec "deprecated-flags"            Opt_WarnDeprecatedFlags,
   flagSpec "deriving-typeable"           Opt_WarnDerivingTypeable,
@@ -3129,6 +3135,7 @@ fFlags = [
   flagSpec "cse"                              Opt_CSE,
   flagSpec "defer-type-errors"                Opt_DeferTypeErrors,
   flagSpec "defer-typed-holes"                Opt_DeferTypedHoles,
+  flagSpec "defer-out-of-scope-variables"     Opt_DeferOutOfScopeVariables,
   flagSpec "diagnostics-show-caret"           Opt_DiagnosticsShowCaret,
   flagSpec "dicts-cheap"                      Opt_DictsCheap,
   flagSpec "dicts-strict"                     Opt_DictsStrict,
@@ -3329,6 +3336,7 @@ xFlags = [
   flagSpec "ImpredicativeTypes"               LangExt.ImpredicativeTypes,
   flagSpec' "IncoherentInstances"             LangExt.IncoherentInstances
                                               setIncoherentInsts,
+  flagSpec "UnifiableInstances"               LangExt.UnifiableInstances,
   flagSpec "InstanceSigs"                     LangExt.InstanceSigs,
   flagSpec "ApplicativeDo"                    LangExt.ApplicativeDo,
   flagSpec "InterruptibleFFI"                 LangExt.InterruptibleFFI,
@@ -3428,7 +3436,9 @@ defaultFlags _
              -- The default -O0 options
 
 impliedGFlags :: [(GeneralFlag, TurnOnFlag, GeneralFlag)]
-impliedGFlags = [(Opt_DeferTypeErrors, turnOn, Opt_DeferTypedHoles)]
+impliedGFlags =
+  [(Opt_DeferTypeErrors, turnOn, Opt_DeferTypedHoles)
+  ,(Opt_DeferTypeErrors, turnOn, Opt_DeferOutOfScopeVariables)]
 
 impliedXFlags :: [(LangExt.Extension, TurnOnFlag, LangExt.Extension)]
 impliedXFlags
@@ -3520,7 +3530,7 @@ optLevelFlags -- see Note [Documenting optimisation flags]
     , ([1,2],   Opt_FloatIn)
     , ([1,2],   Opt_FullLaziness)
     , ([1,2],   Opt_IgnoreAsserts)
-    , ([1,2],   Opt_Loopification)
+    , ([0,1,2], Opt_Loopification) -- always to avoid SOE on JVM (#866)
     , ([1,2],   Opt_Specialise)
     , ([1,2],   Opt_Strictness)
     , ([1,2],   Opt_UnboxSmallStrictFields)
@@ -3596,7 +3606,9 @@ standardWarnings -- see Note [Documenting warning flags]
     = [ Opt_WarnOverlappingPatterns,
         Opt_WarnWarningsDeprecations,
         Opt_WarnDeprecatedFlags,
+        Opt_WarnDeferredTypeErrors,
         Opt_WarnTypedHoles,
+        Opt_WarnDeferredOutOfScopeVariables,
         Opt_WarnPartialTypeSignatures,
         Opt_WarnUnrecognisedPragmas,
         Opt_WarnPointlessPragmas,

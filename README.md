@@ -25,10 +25,10 @@ Visit [eta-lang.org](https://eta-lang.org) for instructions on getting started.
 <!-- @BUILD_NUMBER@ -->
 **Version:** 0.8.6
 
-**Stable Build:** 0.8.6b1
+**Stable Build:** 0.8.6b2
 
 <!-- @BUILD_NUMBER@ -->
-**Latest Build:** 0.8.6b1
+**Latest Build:** 0.8.6b2
 
 Subscribe to the [Eta-Discuss](https://groups.google.com/forum/#!forum/eta-discuss)
 for updates.

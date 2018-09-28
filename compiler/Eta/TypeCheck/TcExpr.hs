@@ -39,7 +39,6 @@ import Eta.DeSugar.DsMonad
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.ConLike
 import Eta.BasicTypes.DataCon
-import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Name
 import Eta.Types.TyCon
 import Eta.Types.Type
@@ -130,14 +129,23 @@ tcInferRhoNC (L loc expr)
     do { (expr', rho) <- tcInfer (tcExpr expr)
        ; return (L loc expr', rho) }
 
-tcHole :: OccName -> TcRhoType -> TcM (HsExpr TcId)
-tcHole occ res_ty
- = do { ty <- newFlexiTyVarTy liftedTypeKind
+tcUnboundId :: UnboundVar -> TcRhoType -> TcM (HsExpr TcId)
+-- Typecheck an occurrence of an unbound Id
+--
+-- Some of these started life as a true expression hole "_".
+-- Others might simply be variables that accidentally have no binding site
+--
+-- We turn all of them into HsVar, since HsUnboundVar can't contain an
+-- Id; and indeed the evidence for the CHoleCan does bind it, so it's
+-- not unbound any more!
+tcUnboundId unbound res_ty
+ = do { ty <- newFlexiTyVarTy openTypeKind
+      ; let occ = unboundVarOcc unbound
       ; name <- newSysName occ
       ; let ev = mkLocalId name ty
       ; loc <- getCtLoc HoleOrigin
-      ; let can = CHoleCan { cc_ev = CtWanted ty ev loc, cc_occ = occ
-                           , cc_hole = ExprHole }
+      ; let can = CHoleCan { cc_ev = CtWanted ty ev loc
+                           , cc_hole = ExprHole unbound }
       ; emitInsoluble can
       ; tcWrapResult (HsVar ev) ty res_ty }
 
@@ -154,6 +162,7 @@ tcExpr e res_ty | debugIsOn && isSigmaTy res_ty     -- Sanity check
                 = pprPanic "tcExpr: sigma" (ppr res_ty $$ ppr e)
 
 tcExpr (HsVar name)  res_ty = tcCheckId name res_ty
+tcExpr (HsUnboundVar uv) res_ty = tcUnboundId uv res_ty
 
 tcExpr (HsApp e1 e2) res_ty = tcApp e1 [e2] res_ty
 
@@ -255,8 +264,6 @@ tcExpr (HsType ty) _
         -- so it's not enabled yet.
         -- Can't eliminate it altogether from the parser, because the
         -- same parser parses *patterns*.
-tcExpr (HsUnboundVar v) res_ty
-  = tcHole (rdrNameOcc v) res_ty
 
 {-
 Note [Type-checking overloaded labels]

@@ -545,9 +545,11 @@ tc_rn_src_decls ds
           }
 #else
             -- If there's a splice, we must carry on
-          ; Just (SpliceDecl (L _ splice) _, rest_ds) ->
-            do { -- Rename the splice expression, and get its supporting decls
-                 (spliced_decls, splice_fvs) <- checkNoErrs (rnTopSpliceDecls splice)
+          ; Just (SpliceDecl (L loc splice) _, rest_ds) ->
+            do { recordTopLevelSpliceLoc loc
+
+                 -- Rename the splice expression, and get its supporting decls
+               ; (spliced_decls, splice_fvs) <- checkNoErrs (rnTopSpliceDecls splice)
 
                  -- Glue them on the front of the remaining decls and loop
                ; setGblEnv (tcg_env `addTcgDUs` usesOnly splice_fvs) $
@@ -1645,8 +1647,10 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
         -- naked expression. Deferring type errors here is unhelpful because the
         -- expression gets evaluated right away anyway. It also would potentially
         -- emit two redundant type-error warnings, one from each plan.
-        ; plan <- unsetGOptM Opt_DeferTypeErrors $ runPlans $
-                    plansWith interPrintName ++ plansWith printRawName
+        ; plan <- unsetGOptM Opt_DeferTypeErrors $
+                  unsetGOptM Opt_DeferTypedHoles $
+                  unsetGOptM Opt_DeferOutOfScopeVariables $
+                    runPlans $ plansWith interPrintName ++ plansWith printRawName
 
         ; fix_env <- getFixityEnv
         ; return (plan, fix_env) }
