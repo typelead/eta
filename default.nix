@@ -6,15 +6,11 @@ let
   relative = path: name: lib.removePrefix (toString path + "/") name;
   onlyFiles = files: path: builtins.filterSource (name: type: isValidFile (relative path name) files) path;
 
-  eta-nix = fetchTarball "https://github.com/eta-lang/eta-nix/archive/1638c3f133a3931ec70bd0d4f579b67fd62897e2.tar.gz";
-
-  rewriteRelative = top: path:
-    let path' = lib.removePrefix top (builtins.toString path);
-    in if lib.isStorePath path' then path' else ./. + path';
+  eta-nix = fetchTarball "https://github.com/eta-lang/eta-nix/archive/2ec126d2caaa4636faeb4acd07f9143169bc5631.tar.gz";
 
   overrides = self: super: {
     mkDerivation = args: super.mkDerivation (lib.overrideExisting args {
-      src = rewriteRelative eta-nix args.src;
+      src = if args.src.url == "https://github.com/typelead/eta.git" then ./. else args.src;
     });
 
     eta = haskell.lib.overrideCabal super.eta (drv: {
@@ -22,38 +18,9 @@ let
       src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE" "tests"] drv.src;
     });
   };
-  hpkgs = (import eta-nix { }).override { inherit overrides; };
+  eta = import eta-nix { inherit pkgs overrides; };
+  etaPackages = callPackage "${eta-nix}/eta-modules" { etaHaskellPackages = eta; };
 in
-hpkgs // {
-  eta-build-shell = runCommand "eta-build-shell" {
-    # Libraries don't pass -encoding to javac.
-    LC_ALL = "en_US.utf8";
-    buildInputs = [
-      hpkgs.eta
-      hpkgs.eta-build
-      hpkgs.eta-pkg
-      hpkgs.etlas
-      gitMinimal
-      jdk
-      glibcLocales
-    ];
-  } "";
-
-  shells = {
-    ghc = hpkgs.shellFor {
-      packages = p: [
-        p.eta
-        p.codec-jvm
-        p.eta-boot
-        p.eta-boot-meta
-        p.eta-meta
-        p.eta-repl
-        p.eta-pkg
-        p.etlas
-        p.etlas-cabal
-        p.hackage-security
-        p.shake
-        ];
-    };
-  };
+eta // {
+  inherit etaPackages;
 }

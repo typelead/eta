@@ -8,19 +8,18 @@ Make sure you have the following tools installed on your system:
 
 ## Installation
 
-To obtain an environment with `eta` and `etlas`, run the following commands:
+Install the Nix overlay:
 
 ```sh
-$ git clone --recursive --depth 1 https://github.com/typelead/eta
-$ cd eta
-$ nix-shell -A eta-build-shell
+$ git clone https://github.com/eta-lang/eta-nix.git
+$ mkdir -p ~/.config/nixpkgs/overlays
+$ ln -s $PWD/eta-nix/overlay.nix ~/.config/nixpkgs/overlays/eta-overlay.nix
 ```
 
-Once in the shell, run the following commands:
+To obtain an environment with `eta` and the `lens` package available:
 
 ```sh
-$ eta-build uninstall
-$ eta-build install
+$ nix-shell -p 'etaPackages.etaWithPackages (p: [ p.lens ])'
 ```
 
 ## Jump to Module
