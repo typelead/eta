@@ -1,0 +1,8 @@
+name: Arr016
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+executable Arr016
+    build-depends: base, random, array
+    main-is: Arr016.hs
