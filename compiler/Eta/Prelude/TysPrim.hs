@@ -121,7 +121,7 @@ module Eta.Prelude.TysPrim(
 
 #include "HsVersions.h"
 
-import Eta.BasicTypes.Var              ( TyVar, KindVar, mkTyVar )
+import Eta.BasicTypes.Var              ( TyVar, KindVar, mkTyVar, ArgFlag(..) )
 import Eta.BasicTypes.Name             ( Name, BuiltInSyntax(..), mkInternalName, mkWiredInName )
 import Eta.BasicTypes.OccName          ( mkTyVarOccFS, mkTcOccFS )
 import Eta.Types.TyCon
@@ -589,14 +589,14 @@ mkProxyPrimTy k ty = TyConApp proxyPrimTyCon [k, ty]
 
 proxyPrimTyCon :: TyCon
 proxyPrimTyCon = mkPrimTyCon proxyPrimTyConName kind [Nominal,Nominal] VoidRep
-  where kind = ForAllTy kv $ mkArrowKind k unliftedTypeKind
+  where kind = mkForAllTy kv Specified $ mkArrowKind k unliftedTypeKind
         kv   = kKiVar
         k    = mkTyVarTy kv
 
 eqPrimTyCon :: TyCon  -- The representation type for equality predicates
                       -- See Note [The ~# TyCon]
 eqPrimTyCon  = mkPrimTyCon eqPrimTyConName kind [Nominal, Nominal, Nominal] VoidRep
-  where kind = ForAllTy kv $ mkArrowKinds [k, k] unliftedTypeKind
+  where kind = mkForAllTy kv Specified $ mkArrowKinds [k, k] unliftedTypeKind
         kv = kKiVar
         k = mkTyVarTy kv
 
@@ -607,7 +607,7 @@ eqReprPrimTyCon :: TyCon
 eqReprPrimTyCon = mkPrimTyCon eqReprPrimTyConName kind
                                   -- the roles really should be irrelevant!
                               [Nominal, Representational, Representational] VoidRep
-  where kind = ForAllTy kv $ mkArrowKinds [k, k] unliftedTypeKind
+  where kind = mkForAllTy kv Specified $ mkArrowKinds [k, k] unliftedTypeKind
         kv = kKiVar
         k  = mkTyVarTy kv
 
@@ -869,7 +869,7 @@ anyTyCon = mkFamilyTyCon anyTyConName kind [kKiVar]
                          AbstractClosedSynFamilyTyCon
                          NoParentTyCon
   where
-    kind = ForAllTy kKiVar (mkTyVarTy kKiVar)
+    kind = mkForAllTy kKiVar Specified (mkTyVarTy kKiVar)
 
 anyTypeOfKind :: Kind -> Type
 anyTypeOfKind kind = TyConApp anyTyCon [kind]

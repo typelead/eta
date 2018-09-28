@@ -720,7 +720,7 @@ mkDataCon name declared_infix
 
     tag = assoc "mkDataCon" (tyConDataCons rep_tycon `zip` [fIRST_TAG..]) con
     rep_arg_tys = dataConRepArgTys con
-    rep_ty = mkForAllTys univ_tvs $ mkForAllTys ex_tvs $
+    rep_ty = mkSpecForAllTys univ_tvs $ mkInvForAllTys ex_tvs $
              mkFunTys rep_arg_tys $
              mkTyConApp rep_tycon (mkTyVarTys univ_tvs)
 
@@ -978,7 +978,7 @@ dataConUserType  (MkData { dcUnivTyVars = univ_tvs,
                            dcExTyVars = ex_tvs, dcEqSpec = eq_spec,
                            dcOtherTheta = theta, dcOrigArgTys = arg_tys,
                            dcOrigResTy = res_ty })
-  = mkForAllTys ((univ_tvs `minusList` map fst eq_spec) ++ ex_tvs) $
+  = mkSpecForAllTys ((univ_tvs `minusList` map fst eq_spec) ++ ex_tvs) $
     mkFunTys theta $
     mkFunTys arg_tys $
     res_ty
@@ -1163,7 +1163,7 @@ The transformation from type to kind is done by promoteType
 -- Assumes the argument satisfies 'isPromotableType'
 promoteType :: Type -> Kind
 promoteType ty
-  = mkForAllTys kvs (go rho)
+  = mkSpecForAllTys kvs (go rho)
   where
     (tvs, rho) = splitForAllTys ty
     kvs = [ mkKindVar (tyVarName tv) superKind | tv <- tvs ]

@@ -28,6 +28,7 @@ module Eta.Types.TypeRep (
 
         -- Functions over types
         mkTyConTy, mkTyVarTy, mkTyVarTys,
+        mkForAllTy, mkForAllTys,
         isLiftedTypeKind, isSuperKind, isTypeVar, isKindVar,
 
         -- Pretty-printing
@@ -131,8 +132,8 @@ data Type
                         -- See Note [Equality-constrained types]
 
   | ForAllTy
-        Var         -- Type or kind variable
-        Type            -- ^ A polymorphic type
+        {-# UNPACK #-} !TyVarBinder -- Type or kind variable
+        Type                        -- ^ A polymorphic type
 
   | LitTy TyLit     -- ^ Type literals are similar to type constructors.
 
@@ -274,6 +275,13 @@ mkTyVarTy  = TyVarTy
 mkTyVarTys :: [TyVar] -> [Type]
 mkTyVarTys = map mkTyVarTy -- a common use of mkTyVarTy
 
+mkForAllTy :: TyVar -> ArgFlag -> Type -> Type
+mkForAllTy tv vis ty = ForAllTy (TvBndr tv vis) ty
+
+-- | Wraps foralls over the type using the provided 'TyVar's from left to right
+mkForAllTys :: [TyVarBinder] -> Type -> Type
+mkForAllTys tyvars ty = foldr ForAllTy ty tyvars
+
 -- | Create the plain type constructor type which has been applied to no type arguments at all.
 mkTyConTy :: TyCon -> Type
 mkTyConTy tycon = TyConApp tycon []
@@ -337,9 +345,13 @@ tyVarsOfTypeAcc (FunTy arg res) fv_cand in_scope acc =
   (tyVarsOfTypeAcc arg `unionFV` tyVarsOfTypeAcc res) fv_cand in_scope acc
 tyVarsOfTypeAcc (AppTy fun arg) fv_cand in_scope acc =
   (tyVarsOfTypeAcc fun `unionFV` tyVarsOfTypeAcc arg) fv_cand in_scope acc
-tyVarsOfTypeAcc (ForAllTy tyvar ty) fv_cand in_scope acc =
-  (delFV tyvar (tyVarsOfTypeAcc ty) `unionFV`
-    tyVarsOfTypeAcc (tyVarKind tyvar)) fv_cand in_scope acc
+tyVarsOfTypeAcc (ForAllTy bndr ty) fv_cand in_scope acc =
+  tyVarsOfTypeBndrAcc bndr (tyVarsOfTypeAcc ty) fv_cand in_scope acc
+
+tyVarsOfTypeBndrAcc :: TyVarBinder -> FV -> FV
+-- Free vars of (forall b. <thing with fvs>)
+tyVarsOfTypeBndrAcc (TvBndr tv _) fvs =
+  delFV tv fvs `unionFV` tyVarsOfTypeAcc (tyVarKind tv)
 
 tyVarsOfTypesAcc :: [Type] -> FV
 tyVarsOfTypesAcc (ty:tys) fv_cand in_scope acc =
@@ -624,6 +636,7 @@ ppr_type p fun_ty@(FunTy ty1 ty2)
 ppr_forall_type :: TyPrec -> Type -> SDoc
 ppr_forall_type p ty
   = maybeParen p FunPrec $ ppr_sigma_type True False ty
+
     -- True <=> we always print the foralls on *nested* quantifiers
     -- Opt_PrintExplicitForalls only affects top-level quantifiers
     -- False <=> we don't print an extra-constraints wildcard
@@ -666,18 +679,36 @@ pprSigmaType ty = ppr_sigma_type False False ty
 pprSigmaTypeExtraCts :: Bool -> Type -> SDoc
 pprSigmaTypeExtraCts = ppr_sigma_type False
 
-pprUserForAll :: [TyVar] -> SDoc
+pprUserForAll :: [TyVarBinder] -> SDoc
 -- Print a user-level forall; see Note [WHen to print foralls]
 pprUserForAll tvs
   = sdocWithDynFlags $ \dflags ->
     ppWhen (any tv_has_kind_var tvs || gopt Opt_PrintExplicitForalls dflags) $
     pprForAll tvs
   where
-    tv_has_kind_var tv = not (isEmptyVarSet (tyVarsOfType (tyVarKind tv)))
+    tv_has_kind_var (TvBndr tv _) = not (isEmptyVarSet (tyVarsOfType (tyVarKind tv)))
 
-pprForAll :: [TyVar] -> SDoc
+pprForAll :: [TyVarBinder] -> SDoc
 pprForAll []  = empty
-pprForAll tvs = forAllLit <+> pprTvBndrs tvs <> dot
+pprForAll bndrs@(TvBndr _ vis : _)
+  = forAllLit <+> doc <> dot <+> pprForAll bndrs'
+  where
+    (bndrs', doc) = ppr_tv_bndrs bndrs vis
+
+-- | Render the ... in @(forall ... .)@ or @(forall ... ->)@.
+-- Returns both the list of not-yet-rendered binders and the doc.
+-- No anonymous binders here!
+ppr_tv_bndrs :: [TyVarBinder]
+             -> ArgFlag  -- ^ visibility of the first binder in the list
+             -> ([TyVarBinder], SDoc)
+ppr_tv_bndrs (TvBndr tv vis : bndrs) vis1
+  = let (bndrs', doc) = ppr_tv_bndrs bndrs vis1
+        pp_tv = sdocWithDynFlags $ \dflags ->
+                  if Inferred == vis && gopt Opt_PrintExplicitForalls dflags
+                  then braces (pprTvBndrNoParens tv)
+                  else pprTvBndr tv
+    in (bndrs', pp_tv <+> doc)
+ppr_tv_bndrs [] _ = ([], empty)
 
 pprTvBndrs :: [TyVar] -> SDoc
 pprTvBndrs tvs = sep (map pprTvBndr tvs)
@@ -686,8 +717,13 @@ pprTvBndr :: TyVar -> SDoc
 pprTvBndr tv
   | isLiftedTypeKind kind = ppr_tvar tv
   | otherwise             = parens (ppr_tvar tv <+> dcolon <+> pprKind kind)
-             where
-               kind = tyVarKind tv
+  where kind = tyVarKind tv
+
+pprTvBndrNoParens :: TyVar -> SDoc
+pprTvBndrNoParens tv
+  | isLiftedTypeKind kind = ppr_tvar tv
+  | otherwise             = ppr_tvar tv <+> dcolon <+> pprKind kind
+  where kind = tyVarKind tv
 
 {-
 Note [When to print foralls]
@@ -939,9 +975,24 @@ tidyType env (TyConApp tycon tys) = let args = tidyTypes env tys
                                     in args `seqList` TyConApp tycon args
 tidyType env (AppTy fun arg)      = (AppTy $! (tidyType env fun)) $! (tidyType env arg)
 tidyType env (FunTy fun arg)      = (FunTy $! (tidyType env fun)) $! (tidyType env arg)
-tidyType env (ForAllTy tv ty)     = ForAllTy tvp $! (tidyType envp ty)
-                                  where
-                                    (envp, tvp) = tidyTyVarBndr env tv
+tidyType env (ty@(ForAllTy{}))    = mkForAllTys' (zip tvs' vis) $! tidyType env' body_ty
+  where
+    (tvs, vis, body_ty) = splitForAllTys' ty
+    (env', tvs') = tidyTyVarBndrs env tvs
+
+-- The following two functions differ from mkForAllTys and splitForAllTys in that
+-- they expect/preserve the ArgFlag argument. Thes belong to types/Type.hs, but
+-- how should they be named?
+mkForAllTys' :: [(TyVar, ArgFlag)] -> Type -> Type
+mkForAllTys' tvvs ty = foldr strictMkForAllTy ty tvvs
+  where
+    strictMkForAllTy (tv,vis) ty = (ForAllTy $! ((TvBndr $! tv) $! vis)) $! ty
+
+splitForAllTys' :: Type -> ([TyVar], [ArgFlag], Type)
+splitForAllTys' ty = go ty [] []
+  where
+    go (ForAllTy (TvBndr tv vis) ty) tvs viss = go ty (tv:tvs) (vis:viss)
+    go ty                            tvs viss = (reverse tvs, reverse viss, ty)
 
 ---------------
 -- | Grabs the free type variables, tidies them

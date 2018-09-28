@@ -13,6 +13,7 @@ module Eta.Iface.IfaceType (
         IfaceType(..), IfacePredType, IfaceKind, IfaceTyCon(..), IfaceCoercion(..),
         IfaceTyLit(..), IfaceTcArgs(..),
         IfaceContext, IfaceBndr(..), IfaceOneShot(..), IfaceLamBndr, IfaceTvBndr, IfaceIdBndr,
+        IfaceForAllBndr, ArgFlag(..),
 
         -- Conversion from Type -> IfaceType
         toIfaceType, toIfaceTypes, toIfaceKind, toIfaceTyVar,
@@ -102,7 +103,7 @@ data IfaceType     -- A kind of universal type, used for types and kinds
   | IfaceAppTy    IfaceType IfaceType
   | IfaceFunTy    IfaceType IfaceType
   | IfaceDFunTy   IfaceType IfaceType
-  | IfaceForAllTy IfaceTvBndr IfaceType
+  | IfaceForAllTy IfaceForAllBndr IfaceType
   | IfaceTyConApp IfaceTyCon IfaceTcArgs  -- Not necessarily saturated
                                           -- Includes newtypes, synonyms, tuples
   | IfaceLitTy IfaceTyLit
@@ -113,6 +114,8 @@ type IfaceContext = [IfacePredType]
 data IfaceTyLit
   = IfaceNumTyLit Integer
   | IfaceStrTyLit FastString
+
+type IfaceForAllBndr  = TyVarBndr IfaceTvBndr ArgFlag
 
 -- See Note [Suppressing kinds]
 -- We use a new list type (rather than [(IfaceType,Bool)], because
@@ -158,7 +161,7 @@ data IfaceCoercion
 ************************************************************************
 -}
 
-splitIfaceSigmaTy :: IfaceType -> ([IfaceTvBndr], [IfacePredType], IfaceType)
+splitIfaceSigmaTy :: IfaceType -> ([IfaceForAllBndr], [IfacePredType], IfaceType)
 -- Mainly for printing purposes
 splitIfaceSigmaTy ty
   = (tvs, theta, tau)
@@ -166,8 +169,8 @@ splitIfaceSigmaTy ty
     (tvs,   rho)   = split_foralls ty
     (theta, tau)   = split_rho rho
 
-    split_foralls (IfaceForAllTy tv ty)
-        = case split_foralls ty of { (tvs, rho) -> (tv:tvs, rho) }
+    split_foralls (IfaceForAllTy bndr ty)
+        = case split_foralls ty of { (bndrs, rho) -> (bndr:bndrs, rho) }
     split_foralls rho = ([], rho)
 
     split_rho (IfaceDFunTy ty1 ty2)
@@ -204,7 +207,7 @@ ifTyVarsOfType ty
         -> ifTyVarsOfType arg `unionUniqSets` ifTyVarsOfType res
       IfaceDFunTy arg res
         -> ifTyVarsOfType arg `unionUniqSets` ifTyVarsOfType res
-      IfaceForAllTy (var,t) ty
+      IfaceForAllTy (TvBndr (var,t) _) ty
         -> delOneFromUniqSet (ifTyVarsOfType ty) var `unionUniqSets`
            ifTyVarsOfType t
       IfaceTyConApp _ args -> ifTyVarsOfArgs args
@@ -436,11 +439,11 @@ ppr_iface_sigma_type show_foralls_unconditionally ty
   where
     (tvs, theta, tau) = splitIfaceSigmaTy ty
 
-pprIfaceForAllPart :: Outputable a => [IfaceTvBndr] -> [a] -> SDoc -> SDoc
+pprIfaceForAllPart :: Outputable a => [IfaceForAllBndr] -> [a] -> SDoc -> SDoc
 pprIfaceForAllPart tvs ctxt sdoc = ppr_iface_forall_part False tvs ctxt sdoc
 
 ppr_iface_forall_part :: Outputable a
-                      => Bool -> [IfaceTvBndr] -> [a] -> SDoc -> SDoc
+                      => Bool -> [IfaceForAllBndr] -> [a] -> SDoc -> SDoc
 ppr_iface_forall_part show_foralls_unconditionally tvs ctxt sdoc
   = sep [ if show_foralls_unconditionally
           then pprIfaceForAll tvs
@@ -448,14 +451,14 @@ ppr_iface_forall_part show_foralls_unconditionally tvs ctxt sdoc
         , pprIfaceContextArr ctxt
         , sdoc]
 
-pprIfaceForAll :: [IfaceTvBndr] -> SDoc
+pprIfaceForAll :: [IfaceForAllBndr] -> SDoc
 pprIfaceForAll []  = empty
 pprIfaceForAll tvs = ptext (sLit "forall") <+> pprIfaceTvBndrs tvs <> dot
 
 pprIfaceSigmaType :: IfaceType -> SDoc
 pprIfaceSigmaType ty = ppr_iface_sigma_type False ty
 
-pprUserIfaceForAll :: [IfaceTvBndr] -> SDoc
+pprUserIfaceForAll :: [IfaceForAllBndr] -> SDoc
 pprUserIfaceForAll tvs
    = sdocWithDynFlags $ \dflags ->
      ppWhen (any tv_has_kind_var tvs || gopt Opt_PrintExplicitForalls dflags) $
@@ -886,8 +889,10 @@ instance Binary IfaceCoercion where
 ----------------
 toIfaceTvBndr :: TyVar -> (IfLclName, IfaceType)
 toIfaceTvBndr tyvar   = (occNameFS (getOccName tyvar), toIfaceKind (tyVarKind tyvar))
+
 toIfaceIdBndr :: Id -> (IfLclName, IfaceType)
 toIfaceIdBndr id      = (occNameFS (getOccName id),    toIfaceType (idType id))
+
 toIfaceTvBndrs :: [TyVar] -> [(IfLclName, IfaceType)]
 toIfaceTvBndrs tyvars = map toIfaceTvBndr tyvars
 
@@ -909,13 +914,16 @@ toIfaceType (FunTy t1 t2)
   | otherwise   = IfaceFunTy  (toIfaceType t1) (toIfaceType t2)
 toIfaceType (TyConApp tc tys) = IfaceTyConApp (toIfaceTyCon tc) (toIfaceTcArgs tc tys)
 toIfaceType (LitTy n)         = IfaceLitTy (toIfaceTyLit n)
-toIfaceType (ForAllTy tv t)   = IfaceForAllTy (toIfaceTvBndr tv) (toIfaceType t)
+toIfaceType (ForAllTy bndr t) = IfaceForAllTy (toIfaceForAllBndr bndr) (toIfaceType t)
 
 toIfaceTyVar :: TyVar -> FastString
 toIfaceTyVar = occNameFS . getOccName
 
 toIfaceCoVar :: CoVar -> FastString
 toIfaceCoVar = occNameFS . getOccName
+
+toIfaceForAllBndr :: TyVarBinder -> IfaceForAllBndr
+toIfaceForAllBndr fr (TvBndr v vis) = TvBndr (toIfaceTvBndr v) vis
 
 ----------------
 toIfaceTyCon :: TyCon -> IfaceTyCon

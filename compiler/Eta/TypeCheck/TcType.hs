@@ -45,7 +45,9 @@ module Eta.TypeCheck.TcType (
 
   --------------------------------
   -- Builders
-  mkPhiTy, mkSigmaTy, mkTcEqPred, mkTcReprEqPred, mkTcEqPredRole,
+
+  mkPhiTy, mkInfSigmaTy, mkSpecSigmaTy, mkSigmaTy,
+  mkTcEqPred, mkTcReprEqPred, mkTcEqPredRole,
 
   --------------------------------
   -- Splitters
@@ -624,13 +626,13 @@ exactTyVarsOfType :: Type -> TyVarSet
 exactTyVarsOfType ty
   = go ty
   where
-    go ty | Just ty' <- tcView ty = go ty'  -- This is the key line
-    go (TyVarTy tv)         = unitVarSet tv
-    go (TyConApp _ tys)     = exactTyVarsOfTypes tys
-    go (LitTy {})           = emptyVarSet
-    go (FunTy arg res)      = go arg `unionVarSet` go res
-    go (AppTy fun arg)      = go fun `unionVarSet` go arg
-    go (ForAllTy tyvar ty)  = delVarSet (go ty) tyvar
+    go ty | Just ty' <- tcView ty     = go ty'  -- This is the key line
+    go (TyVarTy tv)                   = unitVarSet tv
+    go (TyConApp _ tys)               = exactTyVarsOfTypes tys
+    go (LitTy {})                     = emptyVarSet
+    go (FunTy arg res)                = go arg `unionVarSet` go res
+    go (AppTy fun arg)                = go fun `unionVarSet` go arg
+    go (ForAllTy (TvBndr tyvar _) ty) = delVarSet (go ty) tyvar
 
 exactTyVarsOfTypes :: [Type] -> TyVarSet
 exactTyVarsOfTypes = mapUnionVarSet exactTyVarsOfType
@@ -814,8 +816,18 @@ isRuntimeUnkSkol x
 ************************************************************************
 -}
 
-mkSigmaTy :: [TyVar] -> [PredType] -> Type -> Type
-mkSigmaTy tyvars theta tau = mkForAllTys tyvars (mkPhiTy theta tau)
+mkSigmaTy :: [TyVarBinder] -> [PredType] -> Type -> Type
+mkSigmaTy binders theta tau = mkForAllTys binders (mkPhiTy theta tau)
+
+-- | Make a sigma ty where all type variables are 'Inferred'. That is,
+-- they cannot be used with visible type application.
+mkInfSigmaTy :: [TyVar] -> [PredType] -> Type -> Type
+mkInfSigmaTy tyvars theta ty = mkSigmaTy (mkTyVarBinders Inferred tyvars) theta ty
+
+-- | Make a sigma ty where all type variables are "specified". That is,
+-- they can be used with visible type application
+mkSpecSigmaTy :: [TyVar] -> [PredType] -> Type -> Type
+mkSpecSigmaTy tyvars preds ty = mkSigmaTy (mkTyVarBinders Specified tyvars) preds ty
 
 mkPhiTy :: [PredType] -> Type -> Type
 mkPhiTy theta ty = foldr mkFunTy ty theta
@@ -900,7 +912,7 @@ tcSplitForAllTys :: Type -> ([TyVar], Type)
 tcSplitForAllTys ty = split ty ty []
    where
      split orig_ty ty tvs | Just ty' <- tcView ty = split orig_ty ty' tvs
-     split _ (ForAllTy tv ty) tvs = split ty ty (tv:tvs)
+     split _ (ForAllTy (TvBndr tv _) ty) tvs = split ty ty (tv:tvs)
      split orig_ty _          tvs = (reverse tvs, orig_ty)
 
 tcIsForAllTy :: Type -> Bool
@@ -1116,8 +1128,9 @@ tcEqType ty1 ty2
                  | Just t2' <- tcView t2 = go env t1 t2'
     go env (TyVarTy tv1)       (TyVarTy tv2)     = rnOccL env tv1 == rnOccR env tv2
     go _   (LitTy lit1)        (LitTy lit2)      = lit1 == lit2
-    go env (ForAllTy tv1 t1)   (ForAllTy tv2 t2) = go env (tyVarKind tv1) (tyVarKind tv2)
-                                                && go (rnBndr2 env tv1 tv2) t1 t2
+    go env (ForAllTy (TvBndr tv1 _) t1)
+           (ForAllTy (TvBndr tv2 _) t2) = go env (tyVarKind tv1) (tyVarKind tv2)
+                                       && go (rnBndr2 env tv1 tv2) t1 t2
     go env (AppTy s1 t1)       (AppTy s2 t2)     = go env s1 s2 && go env t1 t2
     go env (FunTy s1 t1)       (FunTy s2 t2)     = go env s1 s2 && go env t1 t2
     go env (TyConApp tc1 ts1) (TyConApp tc2 ts2) = (tc1 == tc2) && gos env ts1 ts2
@@ -1136,8 +1149,9 @@ pickyEqType ty1 ty2
     init_env = mkRnEnv2 (mkInScopeSet (tyVarsOfType ty1 `unionVarSet` tyVarsOfType ty2))
     go env (TyVarTy tv1)       (TyVarTy tv2)     = rnOccL env tv1 == rnOccR env tv2
     go _   (LitTy lit1)        (LitTy lit2)      = lit1 == lit2
-    go env (ForAllTy tv1 t1)   (ForAllTy tv2 t2) = go env (tyVarKind tv1) (tyVarKind tv2)
-                                                && go (rnBndr2 env tv1 tv2) t1 t2
+    go env (ForAllTy (TvBndr tv1 _) t1)
+           (ForAllTy (TvBndr tv2 _) t2) = go env (tyVarKind tv1) (tyVarKind tv2)
+                                       && go (rnBndr2 env tv1 tv2) t1 t2
     go env (AppTy s1 t1)       (AppTy s2 t2)     = go env s1 s2 && go env t1 t2
     go env (FunTy s1 t1)       (FunTy s2 t2)     = go env s1 s2 && go env t1 t2
     go env (TyConApp tc1 ts1) (TyConApp tc2 ts2) = (tc1 == tc2) && gos env ts1 ts2
@@ -1228,9 +1242,8 @@ occurCheckExpand dflags tv ty
     fast_check (TyConApp _ tys)  = all fast_check tys
     fast_check (FunTy arg res)   = fast_check arg && fast_check res
     fast_check (AppTy fun arg)   = fast_check fun && fast_check arg
-    fast_check (ForAllTy tv' ty) = impredicative
-                                && fast_check (tyVarKind tv')
-                                && (tv == tv' || fast_check ty)
+    fast_check (ForAllTy (TvBndr tv' _) ty) =
+      impredicative && fast_check (tyVarKind tv') && (tv == tv' || fast_check ty)
 
     go t@(TyVarTy tv') | tv == tv' = OC_Occurs
                        | otherwise = return t
@@ -1241,7 +1254,7 @@ occurCheckExpand dflags tv ty
     go (FunTy ty1 ty2) = do { ty1' <- go ty1
                             ; ty2' <- go ty2
                             ; return (mkFunTy ty1' ty2') }
-    go ty@(ForAllTy tv' body_ty)
+    go ty@(ForAllTy (TvBndr tv' vis) body_ty)
        | not impredicative                = OC_Forall
        | not (fast_check (tyVarKind tv')) = OC_Occurs
            -- Can't expand away the kinds unless we create
@@ -1251,7 +1264,7 @@ occurCheckExpand dflags tv ty
            -- going to worry about that now
        | tv == tv' = return ty
        | otherwise = do { body' <- go body_ty
-                        ; return (ForAllTy tv' body') }
+                        ; return (mkForAllTy tv' vis body') }
 
     -- For a type constructor application, first try expanding away the
     -- offending variable from the arguments.  If that doesn't work, next
@@ -1463,7 +1476,7 @@ isTyVarUnderDatatype tv = go False
     go _        (LitTy {}) = False
     go _        (FunTy arg res) = go True arg || go True res
     go under_dt (AppTy fun arg) = go under_dt fun || go under_dt arg
-    go under_dt (ForAllTy tv' inner_ty)
+    go under_dt (ForAllTy (TvBndr tv' _) inner_ty)
       | tv' == tv = False
       | otherwise = go under_dt inner_ty
 
@@ -1489,8 +1502,9 @@ tcTyVarsOfType (TyConApp _ tys)     = tcTyVarsOfTypes tys
 tcTyVarsOfType (LitTy {})           = emptyVarSet
 tcTyVarsOfType (FunTy arg res)      = tcTyVarsOfType arg `unionVarSet` tcTyVarsOfType res
 tcTyVarsOfType (AppTy fun arg)      = tcTyVarsOfType fun `unionVarSet` tcTyVarsOfType arg
-tcTyVarsOfType (ForAllTy tyvar ty)  = tcTyVarsOfType ty `delVarSet` tyvar
-        -- We do sometimes quantify over skolem TcTyVars
+tcTyVarsOfType (ForAllTy (TvBndr tyvar _) ty)
+  = tcTyVarsOfType ty `delVarSet` tyvar
+  -- We do sometimes quantify over skolem TcTyVars
 
 tcTyVarsOfTypes :: [Type] -> TyVarSet
 tcTyVarsOfTypes = mapUnionVarSet tcTyVarsOfType
@@ -1847,8 +1861,8 @@ toTcType ty = to_tc_type emptyVarSet ty
     to_tc_type  ftvs (FunTy t1 t2)     = FunTy (to_tc_type ftvs t1) (to_tc_type ftvs t2)
     to_tc_type  ftvs (AppTy t1 t2)     = AppTy (to_tc_type ftvs t1) (to_tc_type ftvs t2)
     to_tc_type  ftvs (TyConApp tc tys) = TyConApp tc (map (to_tc_type ftvs) tys)
-    to_tc_type  ftvs (ForAllTy tv ty)  = let tv' = toTcTyVar tv
-                                         in ForAllTy tv' (to_tc_type (ftvs `extendVarSet` tv') ty)
+    to_tc_type  ftvs (ForAllTy (TvBndr tv vis) ty) =
+      let tv' = toTcTyVar tv in mkForAllTy tv' vis (to_tc_type (ftvs `extendVarSet` tv') ty)
     to_tc_type _ftvs (LitTy l)         = LitTy l
 
 toTcTyVar :: TyVar -> TcTyVar

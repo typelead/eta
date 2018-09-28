@@ -762,7 +762,7 @@ ppr_fun_co p co = pprArrowChain p (split co)
 ppr_forall_co :: TyPrec -> Coercion -> SDoc
 ppr_forall_co p ty
   = maybeParen p FunPrec $
-    sep [pprForAll tvs, ppr_co TopPrec rho]
+    sep [pprForAll (mkTyVarBinders Specified tvs), ppr_co TopPrec rho]
   where
     (tvs,  rho) = split1 [] ty
     split1 tvs (ForAllCo tv ty) = split1 (tv:tvs) ty
@@ -777,7 +777,7 @@ pprCoAxBranch :: TyCon -> CoAxBranch -> SDoc
 pprCoAxBranch fam_tc (CoAxBranch { cab_tvs = tvs
                                  , cab_lhs = lhs
                                  , cab_rhs = rhs })
-  = hang (pprUserForAll tvs)
+  = hang (pprUserForAll (mkTyVarBinders Specified tvs))
        2 (hang (pprTypeApp fam_tc lhs) 2 (equals <+> (ppr rhs)))
 
 pprCoAxBranchHdr :: CoAxiom br -> BranchIndex -> SDoc
@@ -1047,7 +1047,7 @@ mkFunCo r co1 co2 = mkTyConAppCo r funTyCon [co1, co2]
 -- | Make a 'Coercion' which binds a variable within an inner 'Coercion'
 mkForAllCo :: Var -> Coercion -> Coercion
 -- note that a TyVar should be used here, not a CoVar (nor a TcTyVar)
-mkForAllCo tv (Refl r ty)  = ASSERT( isTyVar tv ) Refl r (mkForAllTy tv ty)
+mkForAllCo tv (Refl r ty)  = ASSERT( isTyVar tv ) Refl r (mkForAllTy tv Specified ty)
 mkForAllCo tv  co          = ASSERT( isTyVar tv ) ForAllCo tv co
 
 -------------------------------
@@ -1693,9 +1693,9 @@ ty_co_subst subst role ty
                            -- about kind instantiations? I don't think
                            -- so.  see Note [Kind coercions]
     go role (FunTy ty1 ty2)   = mkFunCo role (go role ty1) (go role ty2)
-    go role (ForAllTy v ty)   = mkForAllCo v' $! (ty_co_subst subst' role ty)
-                         where
-                           (subst', v') = liftCoSubstTyVarBndr subst v
+    go role (ForAllTy (TvBndr v _) ty) =
+      mkForAllCo v' $! (ty_co_subst subst' role ty)
+      where (subst', v') = liftCoSubstTyVarBndr subst v
     go role ty@(LitTy {})     = ASSERT( role == Nominal )
                                 mkReflCo role ty
 
@@ -1767,9 +1767,9 @@ subst_kind subst@(LCS _ cenv) kind
 
     go (FunTy arg res)   = (FunTy $! (go arg)) $! (go res)
     go (AppTy fun arg)   = mkAppTy (go fun) $! (go arg)
-    go (ForAllTy tv ty)  = case liftCoSubstTyVarBndr subst tv of
-                              (subst', tv') ->
-                                 ForAllTy tv' $! (subst_kind subst' ty)
+    go (ForAllTy (TvBndr tv vis) ty) =
+      case liftCoSubstTyVarBndr subst tv of
+        (subst', tv') -> mkForAllTy tv' vis $! (subst_kind subst' ty)
 
     subst_kv kv
       | Just co <- lookupVarEnv cenv kv
@@ -1834,7 +1834,7 @@ ty_co_match menv subst (TyConApp tc1 tys) (TyConAppCo _ tc2 cos)
 ty_co_match menv subst (FunTy ty1 ty2) (TyConAppCo _ tc cos)
   | tc == funTyCon = ty_co_matches menv subst [ty1,ty2] cos
 
-ty_co_match menv subst (ForAllTy tv1 ty) (ForAllCo tv2 co)
+ty_co_match menv subst (ForAllTy (TvBndr tv1 _) ty) (ForAllCo tv2 co)
   = ty_co_match menv' subst ty co
   where
     menv' = menv { me_env = rnBndr2 (me_env menv) tv1 tv2 }
@@ -1853,7 +1853,7 @@ pushRefl (Refl r (FunTy ty1 ty2))
   = Just (TyConAppCo r funTyCon [Refl r ty1, Refl r ty2])
 pushRefl (Refl r (TyConApp tc tys))
   = Just (TyConAppCo r tc (zipWith mkReflCo (tyConRolesX r tc) tys))
-pushRefl (Refl r (ForAllTy tv ty)) = Just (ForAllCo tv (Refl r ty))
+pushRefl (Refl r (ForAllTy (TvBndr tv _) ty)) = Just (ForAllCo tv (Refl r ty))
 pushRefl _                          = Nothing
 
 {-
@@ -1922,7 +1922,7 @@ coercionKind co = go co
     go (Refl _ ty)           = Pair ty ty
     go (TyConAppCo _ tc cos) = mkTyConApp tc <$> (sequenceA $ map go cos)
     go (AppCo co1 co2)       = mkAppTy <$> go co1 <*> go co2
-    go (ForAllCo tv co)      = mkForAllTy tv <$> go co
+    go (ForAllCo tv co)      = mkForAllTy tv Specified <$> go co
     go (CoVarCo cv)          = toPair $ coVarKind cv
     go (AxiomInstCo ax ind cos)
       | CoAxBranch { cab_tvs = tvs, cab_lhs = lhs, cab_rhs = rhs } <- coAxiomNthBranch ax ind
@@ -1966,7 +1966,7 @@ coercionKindRole = go
         (mkAppTy <$> tys1 <*> coercionKind co2, r1)
     go (ForAllCo tv co)
       = let (tys, r) = go co in
-        (mkForAllTy tv <$> tys, r)
+        (mkForAllTy tv Specified <$> tys, r)
     go (CoVarCo cv) = (toPair $ coVarKind cv, coVarRole cv)
     go co@(AxiomInstCo ax _ _) = (coercionKind co, coAxiomRole ax)
     go (UnivCo _ r ty1 ty2) = (Pair ty1 ty2, r)

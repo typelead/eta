@@ -32,7 +32,10 @@ module Eta.Types.Type (
         splitTyConApp_maybe, splitTyConApp, tyConAppArgN, nextRole,
         splitListTyConApp_maybe,
 
-        mkForAllTy, mkForAllTys, splitForAllTy_maybe, splitForAllTys,
+
+        mkForAllTy, mkForAllTys, mkInvForAllTys, mkSpecForAllTys,
+        mkInvForAllTy,
+        splitForAllTy_maybe, splitForAllTys,
         mkPiKinds, mkPiType, mkPiTypes,
         piResultTy,
         applyTy, applyTys, applyTysD, applyTysX, dropForAlls,
@@ -562,7 +565,7 @@ piResultTy_maybe ty arg
   | FunTy _ res <- ty
   = Just res
 
-  | ForAllTy tv res <- ty
+  | ForAllTy (TvBndr tv _) res <- ty
   = let empty_subst = extendTvInScopeList emptyTvSubst
                     $ varSetElems $ tyVarsOfTypes [arg,res]
     in Just (substTy (extendTvSubst empty_subst tv arg) res)
@@ -869,20 +872,30 @@ in TypeRep.
                                 ~~~~~~~~
 -}
 
-mkForAllTy :: TyVar -> Type -> Type
-mkForAllTy tyvar ty
-  = ForAllTy tyvar ty
+-- | Make a dependent forall over an Inferred (as opposed to Specified)
+-- variable
+mkInvForAllTy :: TyVar -> Type -> Type
+mkInvForAllTy tv ty = ASSERT( isTyVar tv )
+                      ForAllTy (TvBndr tv Inferred) ty
 
--- | Wraps foralls over the type using the provided 'TyVar's from left to right
-mkForAllTys :: [TyVar] -> Type -> Type
-mkForAllTys tyvars ty = foldr ForAllTy ty tyvars
+-- | Like mkForAllTys, but assumes all variables are dependent and Inferred,
+-- a common case
+mkInvForAllTys :: [TyVar] -> Type -> Type
+mkInvForAllTys tvs ty = ASSERT( all isTyVar tvs )
+                        foldr mkInvForAllTy ty tvs
+
+-- | Like mkForAllTys, but assumes all variables are dependent and specified,
+-- a common case
+mkSpecForAllTys :: [TyVar] -> Type -> Type
+mkSpecForAllTys tvs = ASSERT( all isTyVar tvs )
+                     mkForAllTys [ TvBndr tv Specified | tv <- tvs ]
 
 mkPiKinds :: [TyVar] -> Kind -> Kind
 -- mkPiKinds [k1, k2, (a:k1 -> *)] k2
 -- returns forall k1 k2. (k1 -> *) -> k2
 mkPiKinds [] res = res
 mkPiKinds (tv:tvs) res
-  | isKindVar tv = ForAllTy tv          (mkPiKinds tvs res)
+  | isKindVar tv = mkInvForAllTy tv (mkPiKinds tvs res)
   | otherwise    = FunTy (tyVarKind tv) (mkPiKinds tvs res)
 
 mkPiType  :: Var -> Type -> Type
@@ -893,7 +906,7 @@ mkPiTypes :: [Var] -> Type -> Type
 
 mkPiType v ty
    | isId v    = mkFunTy (varType v) ty
-   | otherwise = mkForAllTy v ty
+   | otherwise = mkInvForAllTy v ty
 
 mkPiTypes vs ty = foldr mkPiType ty vs
 
@@ -907,7 +920,7 @@ splitForAllTy_maybe :: Type -> Maybe (TyVar, Type)
 splitForAllTy_maybe ty = splitFAT_m ty
   where
     splitFAT_m ty | Just ty' <- coreView ty = splitFAT_m ty'
-    splitFAT_m (ForAllTy tyvar ty)          = Just(tyvar, ty)
+    splitFAT_m (ForAllTy (TvBndr tv _) ty)  = Just (tv, ty)
     splitFAT_m _                            = Nothing
 
 -- | Attempts to take a forall type apart, returning all the immediate such bound
@@ -917,7 +930,7 @@ splitForAllTys :: Type -> ([TyVar], Type)
 splitForAllTys ty = split ty ty []
    where
      split orig_ty ty tvs | Just ty' <- coreView ty = split orig_ty ty' tvs
-     split _       (ForAllTy tv ty)  tvs = split ty ty (tv:tvs)
+     split _       (ForAllTy (TvBndr tv _) ty)  tvs = split ty ty (tv:tvs)
      split orig_ty _                 tvs = (reverse tvs, orig_ty)
 
 -- | Equivalent to @snd . splitForAllTys@
@@ -940,7 +953,7 @@ applyTy, applyTys
 -- Panics if no application is possible.
 applyTy :: Type -> KindOrType -> Type
 applyTy ty arg | Just ty' <- coreView ty = applyTy ty' arg
-applyTy (ForAllTy tv ty) arg = substTyWith [tv] [arg] ty
+applyTy (ForAllTy (TvBndr tv _) ty) arg = substTyWith [tv] [arg] ty
 applyTy _                _   = panic "applyTy"
 
 applyTys :: Type -> [KindOrType] -> Type
@@ -972,7 +985,7 @@ applyTysD doc orig_fun_ty arg_tys
   = substTyWith tvs arg_tys rho_ty
   | n_tvs > n_args      -- Too many for-alls
   = substTyWith (take n_args tvs) arg_tys
-                (mkForAllTys (drop n_args tvs) rho_ty)
+                (mkForAllTys (mkTyVarBinders Inferred $ drop n_args tvs) rho_ty)
   | otherwise           -- Too many type args
   = ASSERT2( n_tvs > 0, doc $$ ppr orig_fun_ty $$ ppr arg_tys )        -- Zero case gives infinite loop!
     applyTysD doc (substTyWith tvs (take n_tvs arg_tys) rho_ty)
@@ -1019,7 +1032,7 @@ isPredTy ty = go ty []
     -- True <=> kind is k1 -> .. -> kn -> Constraint
     go_k k                [] = isConstraintKind k
     go_k (FunTy _ k1)     (_ :args) = go_k k1 args
-    go_k (ForAllTy kv k1) (k2:args) = go_k (substKiWith [kv] [k2] k1) args
+    go_k (ForAllTy (TvBndr kv _) k1) (k2:args) = go_k (substKiWith [kv] [k2] k1) args
     go_k _ _ = False                  -- Typeable * Int :: Constraint
 
 isClassPred, isEqPred, isIPPred :: PredType -> Bool
@@ -1353,7 +1366,7 @@ seqType (TyVarTy tv)      = tv `seq` ()
 seqType (AppTy t1 t2)     = seqType t1 `seq` seqType t2
 seqType (FunTy t1 t2)     = seqType t1 `seq` seqType t2
 seqType (TyConApp tc tys) = tc `seq` seqTypes tys
-seqType (ForAllTy tv ty)  = seqType (tyVarKind tv) `seq` seqType ty
+seqType (ForAllTy (TvBndr tv vis) ty)  = vis `seq` seqType (tyVarKind tv) `seq` seqType ty
 
 seqTypes :: [Type] -> ()
 seqTypes []       = ()
@@ -1432,7 +1445,8 @@ cmpTypeX env t1 t2 | Just t1' <- coreView t1 = cmpTypeX env t1' t2
 -- So the RHS has a data type
 
 cmpTypeX env (TyVarTy tv1)       (TyVarTy tv2)       = rnOccL env tv1 `compare` rnOccR env tv2
-cmpTypeX env (ForAllTy tv1 t1)   (ForAllTy tv2 t2)   = cmpTypeX env (tyVarKind tv1) (tyVarKind tv2)
+cmpTypeX env (ForAllTy (TvBndr tv1 _) t1)
+             (ForAllTy (TvBndr tv2 _) t2)   = cmpTypeX env (tyVarKind tv1) (tyVarKind tv2)
                                                        `thenCmp` cmpTypeX (rnBndr2 env tv1 tv2) t1 t2
 cmpTypeX env (AppTy s1 t1)       (AppTy s2 t2)       = cmpTypeX env s1 s2 `thenCmp` cmpTypeX env t1 t2
 cmpTypeX env (FunTy s1 t1)       (FunTy s2 t2)       = cmpTypeX env s1 s2 `thenCmp` cmpTypeX env t1 t2
@@ -1744,9 +1758,9 @@ subst_ty subst ty
                 -- The mkAppTy smart constructor is important
                 -- we might be replacing (a Int), represented with App
                 -- by [Int], represented with TyConApp
-    go (ForAllTy tv ty)  = case substTyVarBndr subst tv of
-                              (subst', tv') ->
-                                 ForAllTy tv' $! (subst_ty subst' ty)
+    go (ForAllTy (TvBndr tv vis) ty)  = case substTyVarBndr subst tv of
+                                          (subst', tv') ->
+                                            mkForAllTy tv' vis $! (subst_ty subst' ty)
 
 substTyVar :: TvSubst -> TyVar  -> Type
 substTyVar (TvSubst _ tenv) tv

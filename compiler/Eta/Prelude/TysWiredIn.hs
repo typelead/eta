@@ -609,7 +609,7 @@ unboxedPairDataCon = tupleCon   UnboxedTuple 2
 
 eqTyCon :: TyCon
 eqTyCon = mkAlgTyCon eqTyConName
-            (ForAllTy kv $ mkArrowKinds [k, k] constraintKind)
+            (mkForAllTy kv Specified $ mkArrowKinds [k, k] constraintKind)
             [kv, a, b]
             [Nominal, Nominal, Nominal]
             Nothing
@@ -637,7 +637,7 @@ coercibleTyCon :: TyCon
 coercibleTyCon = mkClassTyCon
     coercibleTyConName kind tvs [Nominal, Representational, Representational]
     rhs coercibleClass NonRecursive
-  where kind = (ForAllTy kv $ mkArrowKinds [k, k] constraintKind)
+  where kind = mkForAllTy kv Specified $ mkArrowKinds [k, k] constraintKind
         kv = kKiVar
         k = mkTyVarTy kv
         [a,b] = mkTemplateTyVars [k,k]

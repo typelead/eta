@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
@@ -53,6 +54,12 @@ module Eta.BasicTypes.Var (
         isLocalVar, isLocalId,
         isGlobalId, isExportedId,
         mustHaveLocalBinding,
+
+        -- * TyVar's
+        TyVarBndr(..), ArgFlag(..), TyVarBinder,
+        binderVar, binderVars, binderArgFlag, binderKind,
+        isVisibleArgFlag, isInvisibleArgFlag, sameVis,
+        mkTyVarBinder, mkTyVarBinders,
 
         -- ** Constructing 'TyVar's
         mkTyVar, mkTcTyVar, mkKindVar,
@@ -270,6 +277,76 @@ setVarName var new_name
 setVarType :: Id -> Type -> Id
 setVarType id ty = id { varType = ty }
 
+{- *********************************************************************
+*                                                                      *
+*                   ArgFlag
+*                                                                      *
+********************************************************************* -}
+
+-- | Argument Flag
+--
+-- Is something permitted by request ('Specified') (visible type application), or
+-- prohibited entirely from appearing in source Eta ('Inferred')?
+data ArgFlag = Inferred | Specified
+  deriving (Eq, Ord, Data)
+  -- (<) on ArgFlag meant "is less visible than"
+
+-- NOTE: These are here to make backporting easy.
+-- | Does this 'ArgFlag' classify an argument that is written in Eta?
+isVisibleArgFlag :: ArgFlag -> Bool
+isVisibleArgFlag _ = False
+
+-- | Does this 'ArgFlag' classify an argument that is not written in Eta?
+isInvisibleArgFlag :: ArgFlag -> Bool
+isInvisibleArgFlag = not . isVisibleArgFlag
+
+-- | Do these denote the same level of visibility? 'Required'
+-- arguments are visible, others are not. So this function
+-- equates 'Specified' and 'Inferred'. Used for printing.
+sameVis :: ArgFlag -> ArgFlag -> Bool
+sameVis _  _  = True
+
+{- *********************************************************************
+*                                                                      *
+*                   TyVarBndr, TyVarBinder
+*                                                                      *
+********************************************************************* -}
+
+-- Type Variable Binder
+--
+-- TyVarBndr is polymorphic in both tyvar and visibility fields:
+--   * tyvar can be TyVar or IfaceTv
+--   * argf  can be ArgFlag or TyConBndrVis
+data TyVarBndr tyvar argf = TvBndr tyvar argf
+  deriving( Data )
+
+-- | Type Variable Binder
+--
+-- A 'TyVarBinder' is the binder of a ForAllTy
+-- It's convenient to define this synonym here rather its natural
+-- home in TypeRep, because it's used in DataCon.hs-boot
+type TyVarBinder = TyVarBndr TyVar ArgFlag
+
+binderVar :: TyVarBndr tv argf -> tv
+binderVar (TvBndr v _) = v
+
+binderVars :: [TyVarBndr tv argf] -> [tv]
+binderVars tvbs = map binderVar tvbs
+
+binderArgFlag :: TyVarBndr tv argf -> argf
+binderArgFlag (TvBndr _ argf) = argf
+
+binderKind :: TyVarBndr TyVar argf -> Kind
+binderKind (TvBndr tv _) = tyVarKind tv
+
+-- | Make a named binder
+mkTyVarBinder :: ArgFlag -> Var -> TyVarBinder
+mkTyVarBinder vis var = TvBndr var vis
+
+-- | Make many named binders
+mkTyVarBinders :: ArgFlag -> [TyVar] -> [TyVarBinder]
+mkTyVarBinders vis = map (mkTyVarBinder vis)
+
 {-
 ************************************************************************
 *                                                                      *
@@ -322,6 +399,10 @@ tcTyVarDetails var = pprPanic "tcTyVarDetails" (ppr var)
 
 setTcTyVarDetails :: TyVar -> TcTyVarDetails -> TyVar
 setTcTyVarDetails tv details = tv { tc_tv_details = details }
+
+instance Outputable tv => Outputable (TyVarBndr tv ArgFlag) where
+  ppr (TvBndr v Specified) = char '@' <> ppr v
+  ppr (TvBndr v Inferred)  = braces (ppr v)
 
 mkKindVar :: Name -> SuperKind -> KindVar
 -- mkKindVar take a SuperKind as argument because we don't have access

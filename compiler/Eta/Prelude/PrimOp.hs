@@ -31,8 +31,8 @@ import Eta.BasicTypes.Demand
 import Eta.BasicTypes.Var              ( TyVar )
 import Eta.BasicTypes.OccName          ( OccName, pprOccName, mkVarOccFS )
 import Eta.Types.TyCon            ( TyCon, isPrimTyCon, tyConPrimRep, PrimRep(..) )
-import Eta.Types.Type             ( Type, mkForAllTys, mkFunTy, mkFunTys, tyConAppTyCon,
-                          typePrimRep )
+import Eta.Types.Type             ( Type, mkFunTy, mkFunTys, tyConAppTyCon,
+                                    typePrimRep, mkSpecForAllTys )
 import Eta.BasicTypes.BasicTypes       ( Arity, Fixity(..), FixityDirection(..), TupleSort(..) )
 import Eta.Prelude.ForeignCall      ( CLabelString )
 import Eta.BasicTypes.Unique           ( Unique, mkPrimOpIdUnique )
@@ -5246,7 +5246,7 @@ primOpType op
     Compare _occ ty -> compare_fun_ty ty
 
     GenPrimOp _occ tyvars arg_tys res_ty ->
-        mkForAllTys tyvars (mkFunTys arg_tys res_ty)
+        mkSpecForAllTys tyvars (mkFunTys arg_tys res_ty)
 
 primOpOcc :: PrimOp -> OccName
 primOpOcc op = case primOpInfo op of

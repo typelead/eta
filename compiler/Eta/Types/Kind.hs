@@ -45,6 +45,7 @@ module Eta.Types.Kind (
 
 import {-# SOURCE #-} Eta.Types.Type      ( typeKind, substKiWith, eqKind )
 
+import Eta.BasicTypes.Var
 import Eta.Types.TypeRep
 import Eta.Prelude.TysPrim
 import Eta.Types.TyCon
@@ -90,7 +91,7 @@ during type inference.  Hence cmpTc treats them as equal.
 -- | Essentially 'funResultTy' on kinds handling pi-types too
 kindFunResult :: SDoc -> Kind -> KindOrType -> Kind
 kindFunResult _ (FunTy _ res)     _   = res
-kindFunResult _ (ForAllTy kv res) arg = substKiWith [kv] [arg] res
+kindFunResult _ (ForAllTy (TvBndr kv _) res) arg = substKiWith [kv] [arg] res
 #ifdef DEBUG
 kindFunResult doc k _ = pprPanic "kindFunResult" (ppr k $$ doc)
 #else
