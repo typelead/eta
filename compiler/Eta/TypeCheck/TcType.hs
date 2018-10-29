@@ -1649,12 +1649,15 @@ isFFIExternalTy vs ty
   | otherwise = checkRepTyCon legalFEArgTyCon ty empty
 
 isFFIImportResultTy :: DynFlags -> Type -> Validity
-isFFIImportResultTy dflags ty
-  | isTyVarTy ty = IsValid
-  | otherwise = checkRepTyCon (legalFIResultTyCon dflags) ty empty
+isFFIImportResultTy dflags = isFFIResultTy (legalFIResultTyCon dflags) 
 
 isFFIExportResultTy :: Type -> Validity
-isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
+isFFIExportResultTy = isFFIResultTy legalFEResultTyCon
+
+isFFIResultTy :: (TyCon -> Type -> Bool) -> Type -> Validity
+isFFIResultTy isLegalResultTyCon ty
+  | isTyVarTy ty = IsValid
+  | otherwise = checkRepTyCon isLegalResultTyCon ty empty
 
 -- isFFIDynTy :: Type -> Type -> Validity
 -- -- The type in a foreign import dynamic must be Ptr, FunPtr, or a newtype of
