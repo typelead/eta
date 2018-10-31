@@ -429,6 +429,11 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
          { token ITcubxparen }
 }
 
+<0> {
+  ".("          / { ifExtension overloadedDotEnabled } { token ITopendot }
+  "." @varid    / { ifExtension overloadedDotEnabled } { dotvar }
+}
+
 <0,option_prags,java_import> {
   \(                                    { special IToparen }
   \)                                    { special ITcparen }
@@ -727,6 +732,9 @@ data Token
   -- Java annotations
   | ITjavaannot FastString
   | ITjavaid FastString
+
+  | ITopendot
+  | ITdotvar FastString
 
   deriving Show
 
@@ -1189,6 +1197,9 @@ varid span buf len =
       return $ L span $ ITvarid fs
   where
     !fs = lexemeToFastString buf len
+
+dotvar :: Action
+dotvar span buf len = return $ L span $ ITdotvar $! lexemeToFastString (stepOn buf) (len - 1)
 
 conid :: StringBuffer -> Int -> Token
 conid buf len = ITconid $! lexemeToFastString buf len
@@ -2065,6 +2076,7 @@ data ExtBits
   | ThBit
   | IpBit
   | OverloadedLabelsBit -- #x overloaded labels
+  | OverloadedDotBit -- .( Opening of overloaded dot
   | ExplicitForallBit -- the 'forall' keyword and '.' symbol
   | BangPatBit -- Tells the parser to understand bang-patterns
                -- (doesn't affect the lexer)
@@ -2106,6 +2118,8 @@ ipEnabled :: ExtsBitmap -> Bool
 ipEnabled = xtest IpBit
 overloadedLabelsEnabled :: ExtsBitmap -> Bool
 overloadedLabelsEnabled = xtest OverloadedLabelsBit
+overloadedDotEnabled :: ExtsBitmap -> Bool
+overloadedDotEnabled = xtest OverloadedDotBit
 explicitForallEnabled :: ExtsBitmap -> Bool
 explicitForallEnabled = xtest ExplicitForallBit
 bangPatEnabled :: ExtsBitmap -> Bool
@@ -2196,6 +2210,7 @@ mkPState flags buf loc =
                .|. QqBit                       `setBitIf` xopt LangExt.QuasiQuotes              flags
                .|. IpBit                       `setBitIf` xopt LangExt.ImplicitParams           flags
                .|. OverloadedLabelsBit         `setBitIf` xopt LangExt.OverloadedLabels         flags
+               .|. OverloadedDotBit            `setBitIf` xopt LangExt.OverloadedDot            flags
                .|. ExplicitForallBit           `setBitIf` xopt LangExt.ExplicitForAll           flags
                .|. BangPatBit                  `setBitIf` xopt LangExt.BangPatterns             flags
                .|. HaddockBit                  `setBitIf` gopt Opt_EtaDoc                       flags
@@ -2207,13 +2222,13 @@ mkPState flags buf loc =
                .|. DatatypeContextsBit         `setBitIf` xopt LangExt.DatatypeContexts         flags
                .|. TransformComprehensionsBit  `setBitIf` xopt LangExt.TransformListComp        flags
                .|. TransformComprehensionsBit  `setBitIf` xopt LangExt.MonadComprehensions      flags
-               .|. RawTokenStreamBit           `setBitIf` gopt Opt_KeepRawTokenStream       flags
-               .|. HpcBit                      `setBitIf` gopt Opt_Hpc                      flags
+               .|. RawTokenStreamBit           `setBitIf` gopt Opt_KeepRawTokenStream           flags
+               .|. HpcBit                      `setBitIf` gopt Opt_Hpc                          flags
                .|. AlternativeLayoutRuleBit    `setBitIf` xopt LangExt.AlternativeLayoutRule    flags
                .|. RelaxedLayoutBit            `setBitIf` xopt LangExt.RelaxedLayout            flags
-               .|. SccProfilingOnBit           `setBitIf` gopt Opt_SccProfilingOn           flags
+               .|. SccProfilingOnBit           `setBitIf` gopt Opt_SccProfilingOn               flags
                .|. NondecreasingIndentationBit `setBitIf` xopt LangExt.NondecreasingIndentation flags
-               .|. SafeHaskellBit              `setBitIf` safeImportsOn                     flags
+               .|. SafeHaskellBit              `setBitIf` safeImportsOn                         flags
                .|. TraditionalRecordSyntaxBit  `setBitIf` xopt LangExt.TraditionalRecordSyntax  flags
                .|. ExplicitNamespacesBit       `setBitIf` xopt LangExt.ExplicitNamespaces flags
                .|. LambdaCaseBit               `setBitIf` xopt LangExt.LambdaCase               flags

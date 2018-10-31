@@ -3364,6 +3364,7 @@ xFlags = [
   flagSpec "NumDecimals"                      LangExt.NumDecimals,
   flagSpec' "OverlappingInstances"            LangExt.OverlappingInstances
                                               setOverlappingInsts,
+  flagSpec "OverloadedDot"                    LangExt.OverloadedDot,
   flagSpec "OverloadedLists"                  LangExt.OverloadedLists,
   flagSpec "OverloadedStrings"                LangExt.OverloadedStrings,
   flagSpec "PackageImports"                   LangExt.PackageImports,
@@ -3488,6 +3489,7 @@ impliedXFlags
     , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFunctor)
     , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFoldable)
     , (LangExt.Strict,                    turnOn, LangExt.StrictData)
+    , (LangExt.OverloadedDot,             turnOn, LangExt.UnifiableInstances)
   ]
 
 -- Note [Documenting optimisation flags]

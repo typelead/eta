@@ -2161,7 +2161,8 @@ data CtOrigin
   | CoercibleOrigin TcType TcType  -- a Coercible constraint
 
   | IPOccOrigin  HsIPName       -- Occurrence of an implicit parameter
-  | OverLabelOrigin FastString -- Occurrence of an overloaded label
+  | OverLabelOrigin FastString  -- Occurrence of an overloaded label
+  | DotChainOrigin              -- Occurrence of a dot chain
 
   | LiteralOrigin (HsOverLit Name)      -- Occurrence of a literal
   | NegateOrigin                        -- Occurrence of syntactic negation
@@ -2262,36 +2263,36 @@ pprCtOrigin simple_origin
 
 ----------------
 pprCtO :: CtOrigin -> SDoc  -- Ones that are short one-liners
-pprCtO (OccurrenceOf name)   = hsep [ptext (sLit "a use of"), quotes (ppr name)]
-pprCtO AppOrigin             = ptext (sLit "an application")
-pprCtO (SpecPragOrigin name) = hsep [ptext (sLit "a specialisation pragma for"), quotes (ppr name)]
-pprCtO (IPOccOrigin name)    = hsep [ptext (sLit "a use of implicit parameter"), quotes (ppr name)]
-pprCtO (OverLabelOrigin l)   = hsep [ptext (sLit "the overloaded label")
-                                    ,quotes (char '#' <> ppr l)]
-pprCtO RecordUpdOrigin       = ptext (sLit "a record update")
-pprCtO ExprSigOrigin         = ptext (sLit "an expression type signature")
-pprCtO PatSigOrigin          = ptext (sLit "a pattern type signature")
-pprCtO PatOrigin             = ptext (sLit "a pattern")
-pprCtO ViewPatOrigin         = ptext (sLit "a view pattern")
-pprCtO IfOrigin              = ptext (sLit "an if statement")
-pprCtO (LiteralOrigin lit)   = hsep [ptext (sLit "the literal"), quotes (ppr lit)]
-pprCtO (ArithSeqOrigin seq)  = hsep [ptext (sLit "the arithmetic sequence"), quotes (ppr seq)]
-pprCtO (PArrSeqOrigin seq)   = hsep [ptext (sLit "the parallel array sequence"), quotes (ppr seq)]
-pprCtO SectionOrigin         = ptext (sLit "an operator section")
-pprCtO TupleOrigin           = ptext (sLit "a tuple")
-pprCtO NegateOrigin          = ptext (sLit "a use of syntactic negation")
-pprCtO ScOrigin              = ptext (sLit "the superclasses of an instance declaration")
-pprCtO DerivOrigin           = ptext (sLit "the 'deriving' clause of a data type declaration")
-pprCtO StandAloneDerivOrigin = ptext (sLit "a 'deriving' declaration")
-pprCtO DefaultOrigin         = ptext (sLit "a 'default' declaration")
-pprCtO DoOrigin              = ptext (sLit "a do statement")
-pprCtO MCompOrigin           = ptext (sLit "a statement in a monad comprehension")
-pprCtO ProcOrigin            = ptext (sLit "a proc expression")
-pprCtO (TypeEqOrigin t1 t2)  = ptext (sLit "a type equality") <+> sep [ppr t1, char '~', ppr t2]
-pprCtO AnnOrigin             = ptext (sLit "an annotation")
-pprCtO HoleOrigin            = ptext (sLit "a use of") <+> quotes (ptext $ sLit "_")
-pprCtO ListOrigin            = ptext (sLit "an overloaded list")
-pprCtO StaticOrigin          = ptext (sLit "a static form")
+pprCtO (OccurrenceOf name)   = hsep [text "a use of", quotes (ppr name)]
+pprCtO AppOrigin             = text "an application"
+pprCtO (SpecPragOrigin name) = hsep [text "a specialisation pragma for", quotes (ppr name)]
+pprCtO (IPOccOrigin name)    = hsep [text "a use of implicit parameter", quotes (ppr name)]
+pprCtO (OverLabelOrigin l)   = hsep [text "the overloaded label", quotes (char '#' <> ppr l)]
+pprCtO DotChainOrigin        = text "an application"
+pprCtO RecordUpdOrigin       = text "a record update"
+pprCtO ExprSigOrigin         = text "an expression type signature"
+pprCtO PatSigOrigin          = text "a pattern type signature"
+pprCtO PatOrigin             = text "a pattern"
+pprCtO ViewPatOrigin         = text "a view pattern"
+pprCtO IfOrigin              = text "an if statement"
+pprCtO (LiteralOrigin lit)   = hsep [text "the literal", quotes (ppr lit)]
+pprCtO (ArithSeqOrigin seq)  = hsep [text "the arithmetic sequence", quotes (ppr seq)]
+pprCtO (PArrSeqOrigin seq)   = hsep [text "the parallel array sequence", quotes (ppr seq)]
+pprCtO SectionOrigin         = text "an operator section"
+pprCtO TupleOrigin           = text "a tuple"
+pprCtO NegateOrigin          = text "a use of syntactic negation"
+pprCtO ScOrigin              = text "the superclasses of an instance declaration"
+pprCtO DerivOrigin           = text "the 'deriving' clause of a data type declaration"
+pprCtO StandAloneDerivOrigin = text "a 'deriving' declaration"
+pprCtO DefaultOrigin         = text "a 'default' declaration"
+pprCtO DoOrigin              = text "a do statement"
+pprCtO MCompOrigin           = text "a statement in a monad comprehension"
+pprCtO ProcOrigin            = text "a proc expression"
+pprCtO (TypeEqOrigin t1 t2)  = text "a type equality" <+> sep [ppr t1, char '~', ppr t2]
+pprCtO AnnOrigin             = text "an annotation"
+pprCtO HoleOrigin            = text "a use of" <+> quotes (text "_")
+pprCtO ListOrigin            = text "an overloaded list"
+pprCtO StaticOrigin          = text "a static form"
 pprCtO _                     = panic "pprCtOrigin"
 
 {-

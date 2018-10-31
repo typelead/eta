@@ -140,6 +140,7 @@ library
         Data.Void
         Data.Word
         Debug.Trace
+        Eta.Dot
         Eta.Interop
         Eta.Overloadable
         Eta.RTS

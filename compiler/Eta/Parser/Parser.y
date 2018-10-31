@@ -96,6 +96,7 @@ import Eta.Prelude.TysWiredIn       ( unitTyCon, unitDataCon, tupleTyCon, tupleC
                           unboxedUnitTyCon, unboxedUnitDataCon,
                           listTyCon_RDR, parrTyCon_RDR, consDataCon_RDR, eqTyCon_RDR )
 import Data.Maybe
+import Data.List
 
 }
 
@@ -428,6 +429,8 @@ for some background.
 
  JAVAANNOT      { L _ (ITjavaannot _) }
  JAVAID         { L _ (ITjavaid _) }
+ '.('           { L _ ITopendot }
+ DOTVAR         { L _ (ITdotvar _) }
 
 -- Template Haskell
 '[|'            { L _ ITopenExpQuote  }
@@ -2207,11 +2210,22 @@ exp   :: { LHsExpr RdrName }
         | infixexp              { $1 }
 
 infixexp :: { LHsExpr RdrName }
-        : exp10                   { $1 }
+        : aexp1 dotchain          { let loc = foldl' combineSrcSpans (getLoc $1)
+                                            $ map getLoc $2
+                                    in sL loc $ HsDotChain $1 (reverse $2) }
+        | exp10                   { $1 }
         | infixexp qop exp10      {% ams (sLL $1 $>
                                              (OpApp $1 $2 placeHolderFixity $3))
                                          [mj AnnVal $2] }
                  -- AnnVal annotation for NPlusKPat, which discards the operator
+
+dotchain :: { [LHsExpr RdrName] }
+         : dotchain dotchain1   { $2 : $1  }
+         | dotchain1            { [$1] }
+
+dotchain1 :: { LHsExpr RdrName }
+          : DOTVAR           { sL1 $1 (HsVar (mkUnqual varName (getDOTVAR $1))) }
+          | '.(' exp ')'     { $2 }
 
 
 exp10 :: { LHsExpr RdrName }
@@ -3166,6 +3180,7 @@ happyError :: P a
 happyError = srcParseFail
 
 getVARID         (L _ (ITvarid    x)) = x
+getDOTVAR        (L _ (ITdotvar   x)) = x
 getCONID         (L _ (ITconid    x)) = x
 getVARSYM        (L _ (ITvarsym   x)) = x
 getCONSYM        (L _ (ITconsym   x)) = x

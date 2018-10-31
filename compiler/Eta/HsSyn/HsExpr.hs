@@ -455,6 +455,8 @@ data HsExpr id
                 FastString            -- hdaume: core annotation
                 (LHsExpr id)
 
+  | HsDotChain (LHsExpr id) [LHsExpr id]
+
   -----------------------------------------------------------
   -- MetaHaskell Extensions
 
@@ -691,6 +693,10 @@ ppr_expr (HsPar e)       = parens (ppr_lexpr e)
 
 ppr_expr (HsCoreAnn _ s e)
   = vcat [ptext (sLit "HsCoreAnn") <+> ftext s, ppr_lexpr e]
+
+-- TODO: Fix this!
+ppr_expr (HsDotChain e es)
+  = hcat $ [ text "HsDotChain[", ppr e] ++ map ppr es ++ [ text "]" ]
 
 ppr_expr (HsApp e1 e2)
   = let (fun, args) = collect_args e1 [e2] in

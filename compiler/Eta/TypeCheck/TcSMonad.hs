@@ -139,7 +139,7 @@ import Control.Arrow ( first )
 import Control.Monad( ap, when, unless, MonadPlus(..), forM )
 import Eta.Utils.MonadUtils
 import Data.IORef
-import Data.List ( partition, foldl' )
+import Data.List ( partition, foldl', sortOn, groupBy )
 import Data.Maybe
 import qualified Eta.LanguageExtensions as LangExt
 
@@ -1911,9 +1911,16 @@ getUniqueInstanceWantedsM dflags cts'
   where cts = bagToList cts'
         loc = ctl_origin (ctev_loc (cc_ev (head cts)))
 
+        get_lowest_dof = fmap (map snd)
+                       . safeHead
+                       . groupBy (\(x1,_) (x2,_) -> x1 == x2)
+                       . sortOn fst
+                       . map (\is -> (length (is_tvs is), is))
+
         get_uniq (ct, ([], [unifier], _)) = Just (ct, unifier)
         get_uniq (ct, ([], unifiers, _))
-          | ([unifier], _) <- pruneMatches  id unifiers = Just (ct, unifier)
+          | Just unifiers' <- get_lowest_dof unifiers
+          , ([unifier], _) <- pruneMatches id unifiers' = Just (ct, unifier)
         get_uniq _ = Nothing
 
         lookup_cls_inst inst_envs ct = (ct, lookupInstEnv inst_envs clas tys)

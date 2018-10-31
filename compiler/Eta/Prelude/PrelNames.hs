@@ -336,7 +336,10 @@ basicKnownKeyNames
         knownNatClassName, knownSymbolClassName,
 
         -- Overloaded labels
-       isLabelClassName,
+        isLabelClassName,
+
+        -- Overloaded dot
+        dotSmashClassName,
 
         -- Source locations
         callStackDataConName, callStackTyConName, hasCallStackTyConName,
@@ -521,6 +524,9 @@ gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
 
 gHC_OVER_LABELS :: Module
 gHC_OVER_LABELS = mkBaseModule (fsLit "GHC.OverloadedLabels")
+
+eTA_DOT :: Module
+eTA_DOT = mkBaseModule (fsLit "Eta.Dot")
 
 jAVA_STRING, jAVA_UTILS, jAVA_PRIMITIVEBASE, eTA_INTEROP :: Module
 jAVA_STRING = mkBaseModule (fsLit "Java.StringBase")
@@ -1271,6 +1277,10 @@ isLabelClassName :: Name
 isLabelClassName
  = clsQual gHC_OVER_LABELS (fsLit "IsLabel") isLabelClassNameKey
 
+dotSmashClassName :: Name
+dotSmashClassName
+ = clsQual eTA_DOT (fsLit "DotSmash") dotSmashClassNameKey
+
 -- Source Locations
 callStackDataConName, callStackTyConName, emptyCallStackName, pushCallStackName,
  srcLocDataConName, hasCallStackTyConName :: Name
@@ -1446,6 +1456,9 @@ ghciIoClassKey = mkPreludeClassUnique 44
 
 isLabelClassNameKey :: Unique
 isLabelClassNameKey = mkPreludeClassUnique 49
+
+dotSmashClassNameKey :: Unique
+dotSmashClassNameKey = mkPreludeClassUnique 50
 
 extendsClassKey, classClassKey, overloadableClassKey :: Unique
 extendsClassKey = mkPreludeClassUnique 46

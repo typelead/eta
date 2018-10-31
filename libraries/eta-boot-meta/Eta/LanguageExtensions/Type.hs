@@ -70,6 +70,7 @@ data Extension
    | DataKinds                -- Datatype promotion
    | InstanceSigs
    | ApplicativeDo
+   | OverloadedDot
 
    | StandaloneDeriving
    | DeriveDataTypeable

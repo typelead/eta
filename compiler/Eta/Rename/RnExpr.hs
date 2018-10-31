@@ -198,6 +198,11 @@ rnExpr (HsCoreAnn src ann expr)
   = do { (expr', fvs_expr) <- rnLExpr expr
        ; return (HsCoreAnn src ann expr', fvs_expr) }
 
+rnExpr (HsDotChain base_expr chain_exprs)
+  = do { (base_expr', base_fvs) <- rnLExpr base_expr
+       ; (chain_exprs', chain_fvs) <- mapFvRn rnLExpr chain_exprs
+       ; return (HsDotChain base_expr' chain_exprs', base_fvs `plusFV` chain_fvs) }
+
 rnExpr (HsSCC src lbl expr)
   = do { (expr', fvs_expr) <- rnLExpr expr
        ; return (HsSCC src lbl expr', fvs_expr) }

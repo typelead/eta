@@ -870,6 +870,32 @@ tcExpr (HsSpliceE splice)          res_ty
 tcExpr e@(HsBracket brack)         res_ty = tcTypedBracket e brack res_ty
 tcExpr e@(HsRnBracketOut brack ps) res_ty = tcUntypedBracket e brack ps res_ty
 
+-------------------
+
+tcExpr (HsDotChain base_expr chain_exprs) res_ty = do
+  dotSmashClass  <- tcLookupClass dotSmashClassName
+  dot_result_tys <- newFlexiTyVarTys chain_length liftedTypeKind
+  expr_tys       <- newFlexiTyVarTys (1 + chain_length) liftedTypeKind
+  loc            <- getSrcSpanM
+  dot_exprs'     <- mapM (uncurry tcMonoExprNC) $ zip (base_expr:chain_exprs) expr_tys
+
+  let emitSmashConstraints (expr1:expr2:exprs) (alphaTy:betaTy:operands)
+                           (gammaTy:results) = do
+        let pred = mkClassPred dotSmashClass [alphaTy, betaTy, gammaTy]
+        ev <- emitWanted DotChainOrigin pred
+        -- TODO: Make location info accurate
+        let expr = L loc (L loc (L loc (fromDict pred (HsVar ev)) `HsApp` expr1) `HsApp` expr2)
+        emitSmashConstraints (expr:exprs) (gammaTy:operands) results
+      emitSmashConstraints [expr] _ _ = return $ unLoc expr
+      emitSmashConstraints a b c = pprPanic "emitSmashConstraints" (ppr a <+> ppr b <+> ppr c)
+
+      -- Coerces a dictionary for `DotSmash a b c` into `a -> b -> c`.
+      fromDict pred = HsWrap $ mkWpCast $ TcCoercion $ unwrapIP pred
+
+  expr' <- emitSmashConstraints dot_exprs' expr_tys dot_result_tys
+  tcWrapResult expr' (last dot_result_tys) res_ty
+  where chain_length = length chain_exprs
+
 {-
 ************************************************************************
 *                                                                      *
