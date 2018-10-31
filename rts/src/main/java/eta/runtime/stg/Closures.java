@@ -3,6 +3,7 @@ package eta.runtime.stg;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
+import eta.runtime.apply.FunctionId;
 import eta.runtime.thunk.ApO;
 import eta.runtime.thunk.Ap1Upd;
 import eta.runtime.thunk.Ap2Upd;
@@ -36,12 +37,14 @@ public class Closures {
     public static Closure runFinalizerBatch;
     public static Closure $fExceptionJException;
     public static Closure showException;
-
+    public static Closure trivialExtendsInstance;
+    public static Closure $fClass_Object;
     /* Standard Constructors */
     public static Constructor Int = null;
     public static Constructor JException = null;
     public static Constructor SomeException = null;
-
+    public static Constructor DZCExtends = null;
+    
     /* Classes */
     public static Class<?> ZC;
     public static Class<?> ZMZN;
@@ -68,12 +71,19 @@ public class Closures {
             SomeException     = loadDataCon("base.ghc.Exception", "SomeException", Closure.class, Closure.class);
             $fExceptionJException = loadClosure("base.java.Exception", "$fException_JException");
             showException         = loadClosure("base.java.Exception", "showException");
+            $fClass_Object    = loadClosure("ghc_prim.ghc.Classes", "$fClass_Object");
+            DZCExtends        = loadDataCon("ghc_prim.ghc.classes","DZCExtends",
+                                            Closure.class, Closure.class,
+                                            Closure.class, Closure.class);
+            trivialExtendsInstance = loadTrivialExtendsInstance($fClass_Object);
+            
             ZC   = Class.forName("ghc_prim.ghc.types.datacons.ZC");
             ZMZN = Class.forName("ghc_prim.ghc.types.datacons.ZMZN");
             Czh  = Class.forName("ghc_prim.ghc.types.datacons.Czh");
             Izh  = Class.forName("ghc_prim.ghc.types.datacons.Izh");
             Szh  = Class.forName("integer.ghc.integer.type.datacons.Szh");
             Jzh  = Class.forName("integer.ghc.integer.type.datacons.Jzh");
+
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");
             e.printStackTrace();
@@ -94,7 +104,17 @@ public class Closures {
         return Class.forName(className.toLowerCase() + ".datacons." + dataConName).getConstructor(types);
     }
 
+    public static Closure loadTrivialExtendsInstance(Closure $fClass_Object)
+        throws InstantiationException, IllegalAccessException, InvocationTargetException
+    {
+        return (Closure) DZCExtends.newInstance($fClass_Object, $fClass_Object,
+                                                FunctionId.INSTANCE, FunctionId.INSTANCE);
+    }
 
+    public static Closure getTrivialExtendsInstance()
+    {
+        return trivialExtendsInstance;
+    }
     /* Closures for Main Evaluation */
 
     public static Closure evalLazyIO(Closure p) {
