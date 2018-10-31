@@ -645,6 +645,10 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
                                           []
                                           (ret closureType))))
           closureId
+      varBoundsArgs =
+        mconcat $ replicate (length tyVarBounds)
+                $ invokestatic (mkMethodRef trivialExtendsClass trivialExtendsMethod
+                                [] (ret closureType))
       boxedArgs =
         if length argFts > 5
         then error $ "Foreign exports with number of arguments > 5 are currently not "
@@ -680,6 +684,7 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
           <> new apFt
           <> dup apFt
           <> loadClosureRef
+          <> varBoundsArgs
           <> boxedArgs
           <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
           <> invokespecial (mkMethodRef ap2Class "<init>" [ closureType
@@ -696,6 +701,8 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
          , mFieldDef )
   where ty = pSnd $ coercionKind co
         modClass = moduleJavaClass mod
+        trivialExtendsClass = "eta/runtime/stg/Closures"
+        trivialExtendsMethod = "getTrivialExtendsInstance"
         (tyVars, thetaFunTy) = tcSplitForAllTys ty
         (tyVarBounds, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
@@ -756,7 +763,7 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
                   | Just cls <- staticMethodClass = cls
                   | otherwise = modClass
 
-        numApplied = length argTypes + 1
+        numApplied = length tyVarBounds + length argTypes + 1
         apClass = apUpdName numApplied
         apFt = obj apClass
         ap2Class = apUpdName 2
