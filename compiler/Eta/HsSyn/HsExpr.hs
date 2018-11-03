@@ -694,9 +694,8 @@ ppr_expr (HsPar e)       = parens (ppr_lexpr e)
 ppr_expr (HsCoreAnn _ s e)
   = vcat [ptext (sLit "HsCoreAnn") <+> ftext s, ppr_lexpr e]
 
--- TODO: Fix this!
 ppr_expr (HsDotChain e es)
-  = hcat $ [ text "HsDotChain[", ppr e] ++ map ppr es ++ [ text "]" ]
+  = hcat $ ppr e : map ((dot <>) . ppr) es
 
 ppr_expr (HsApp e1 e2)
   = let (fun, args) = collect_args e1 [e2] in

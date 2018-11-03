@@ -139,7 +139,7 @@ import Control.Arrow ( first )
 import Control.Monad( ap, when, unless, MonadPlus(..), forM )
 import Eta.Utils.MonadUtils
 import Data.IORef
-import Data.List ( partition, foldl', sortOn, groupBy )
+import Data.List ( partition, foldl', groupBy )
 import Data.Maybe
 import qualified Eta.LanguageExtensions as LangExt
 
@@ -1886,6 +1886,11 @@ getUniqueInstanceWantedsM dflags cts'
                          (ct, (a, c, insts', map (getUnifier ct) insts'))) lookups
     if | not (null cts) -> do
          let uniq_insts = mapMaybe get_uniq lookups
+             multi_insts = mapMaybe getAllUnifiers lookups
+
+             getAllUnifiers (ct, ([], unifiers, _))
+               | not (null unifiers) = Just (ct, unifiers)
+             getAllUnifiers _ = Nothing
 
              genWanteds (ct, inst)
                  | (_, tys) <- getClassPredTys (ctPred ct)
@@ -1899,11 +1904,37 @@ getUniqueInstanceWantedsM dflags cts'
                       fmap Just $ forM (zip tys unifyTys) $ \(ty, unifyTy) ->
                           TcM.newSimpleWanted loc (mkTcEqPred ty unifyTy)
                  | otherwise = return Nothing
+
+             genPartialWanteds (ct, insts)
+                 | (_, tys) <- getClassPredTys (ctPred ct)
+                 , let unified_heads = mapMaybe (\inst -> do
+                         subst <- tcUnifyTys instanceBindFun (is_tys inst) tys
+                         return $ map (substTy subst) tys) insts
+                       checkForPartials []  = []
+                       checkForPartials [_] = []
+                       checkForPartials heads
+                         | any null heads = []
+                         | [(ty:_)] <- groupBy eqType (map head heads) =
+                           Just ty : tails
+                         | otherwise = Nothing : tails
+                         where tails = checkForPartials (map tail heads)
+                       mkWanteds [] = return []
+                       mkWanteds ((ty, Just ty'):rest)
+                         | isEmptyVarSet (tyVarsOfType ty) = mkWanteds rest
+                         | otherwise = do
+                            ct  <- TcM.newSimpleWanted loc (mkTcEqPred ty ty')
+                            cts <- mkWanteds rest
+                            return (ct:cts)
+                       mkWanteds (_:rest) = mkWanteds rest
+                  = mkWanteds $ zip tys (checkForPartials unified_heads)
+
          TcM.traceTc "getUniqueInstanceWanteds: Lookups" (ppr lookups')
          if null uniq_insts
          then TcM.traceTc "getUniqueInstanceWanteds: None" empty
          else TcM.traceTc "getUniqueInstanceWanteds: Found" (ppr uniq_insts)
-         fmap concat $ mapMaybeM genWanteds uniq_insts
+         cts1 <- fmap concat $ mapMaybeM genWanteds uniq_insts
+         cts2 <- fmap concat $ mapM genPartialWanteds multi_insts
+         return $ cts1 ++ cts2
        | otherwise -> do
          TcM.traceTc "getUniqueInstanceWanteds: None" (ppr lookups')
          return []
@@ -1911,16 +1942,9 @@ getUniqueInstanceWantedsM dflags cts'
   where cts = bagToList cts'
         loc = ctl_origin (ctev_loc (cc_ev (head cts)))
 
-        get_lowest_dof = fmap (map snd)
-                       . safeHead
-                       . groupBy (\(x1,_) (x2,_) -> x1 == x2)
-                       . sortOn fst
-                       . map (\is -> (length (is_tvs is), is))
-
         get_uniq (ct, ([], [unifier], _)) = Just (ct, unifier)
         get_uniq (ct, ([], unifiers, _))
-          | Just unifiers' <- get_lowest_dof unifiers
-          , ([unifier], _) <- pruneMatches id unifiers' = Just (ct, unifier)
+          | ([unifier], _) <- pruneMatches id unifiers = Just (ct, unifier)
         get_uniq _ = Nothing
 
         lookup_cls_inst inst_envs ct = (ct, lookupInstEnv inst_envs clas tys)

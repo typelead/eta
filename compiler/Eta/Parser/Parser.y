@@ -2225,7 +2225,7 @@ dotchain :: { [LHsExpr RdrName] }
 
 dotchain1 :: { LHsExpr RdrName }
           : DOTVAR           { sL1 $1 (HsVar (mkUnqual varName (getDOTVAR $1))) }
-          | '.(' exp ')'     { $2 }
+          | '.(' texp ')'    { sL (comb3 $1 $2 $3) (HsPar $2) }
 
 
 exp10 :: { LHsExpr RdrName }

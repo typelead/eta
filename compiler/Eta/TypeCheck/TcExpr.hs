@@ -877,7 +877,7 @@ tcExpr (HsDotChain base_expr chain_exprs) res_ty = do
   dot_result_tys <- newFlexiTyVarTys chain_length liftedTypeKind
   expr_tys       <- newFlexiTyVarTys (1 + chain_length) liftedTypeKind
   loc            <- getSrcSpanM
-  dot_exprs'     <- mapM (uncurry tcMonoExprNC) $ zip (base_expr:chain_exprs) expr_tys
+  dot_exprs'     <- mapM (uncurry tcMonoExpr) $ zip (base_expr:chain_exprs) expr_tys
 
   let emitSmashConstraints (expr1:expr2:exprs) (alphaTy:betaTy:operands)
                            (gammaTy:results) = do
