@@ -349,6 +349,7 @@ instance Ord RdrName where
 -- Reason: see Note [Splicing Exact Names] in RnEnv
 data LocalRdrEnv = LRE { lre_env      :: OccEnv Name
                        , lre_in_scope :: NameSet }
+  deriving Data
 
 instance Outputable LocalRdrEnv where
   ppr (LRE {lre_env = env, lre_in_scope = ns})

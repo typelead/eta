@@ -111,6 +111,9 @@ rnExpr (HsVar v)
               | otherwise
               -> finishHsVar name }}
 
+-- Can happen when pre-transforming a dot chain
+rnExpr (HsUnboundVar uv) = return (HsUnboundVar uv, emptyFVs)
+
 rnExpr (HsIPVar v)
   = return (HsIPVar v, emptyFVs)
 
@@ -199,8 +202,20 @@ rnExpr (HsCoreAnn src ann expr)
        ; return (HsCoreAnn src ann expr', fvs_expr) }
 
 rnExpr (HsDotChain base_expr chain_exprs)
-  = do { (base_expr', base_fvs) <- rnLExpr base_expr
-       ; (chain_exprs', chain_fvs) <- mapFvRn rnLExpr chain_exprs
+  = do { let transformUnbound (L loc expr) = fmap (L loc) $ transformUnbound' expr
+             transformUnbound' (HsVar rdr_name) = do
+                names <- lookupInfoOccRn rdr_name
+                return $ hsDotVarExpr (rdrNameOcc rdr_name) names
+             transformUnbound' (HsApp (L loc (HsVar rdr_name)) e) = do
+                names <- lookupInfoOccRn rdr_name
+                return $ HsApp (L loc (hsDotVarExpr (rdrNameOcc rdr_name) names)) e
+             transformUnbound' (HsApp e1 e2) = do
+               e1' <- transformUnbound e1
+               return $ HsApp e1' e2
+             transformUnbound' e             = return e
+       ; (base_expr', base_fvs) <- rnLExpr base_expr
+       ; chain_exprs1 <- mapM transformUnbound chain_exprs
+       ; (chain_exprs', chain_fvs) <- mapFvRn rnLExpr chain_exprs1
        ; return (HsDotChain base_expr' chain_exprs', base_fvs `plusFV` chain_fvs) }
 
 rnExpr (HsSCC src lbl expr)
@@ -382,6 +397,9 @@ rnExpr other = pprPanic "rnExpr: unexpected expression" (ppr other)
 
 hsHoleExpr :: HsExpr id
 hsHoleExpr = HsUnboundVar (TrueExprHole (mkVarOcc "_"))
+
+hsDotVarExpr :: OccName -> [Name] -> HsExpr id
+hsDotVarExpr name names = HsUnboundVar (DotVar name names)
 
 arrowFail :: HsExpr RdrName -> RnM (HsExpr Name, FreeVars)
 arrowFail e

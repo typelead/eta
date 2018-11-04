@@ -137,16 +137,20 @@ data UnboundVar
                                      -- See Note [OutOfScope and GlobalRdrEnv]
 
   | TrueExprHole OccName             -- ^ A "true" expression hole (_ or _x)
-
+  | DotVar OccName [Name]            -- ^ The varid right after the . in a dot chain
+                                     -- with a list of names that it may correspond to.
+                                     -- Note that this list is non-null!
   deriving Data
 
 instance Outputable UnboundVar where
-    ppr (OutOfScope occ _) = text "OutOfScope" <> parens (ppr occ)
-    ppr (TrueExprHole occ) = text "ExprHole"   <> parens (ppr occ)
+    ppr (OutOfScope   occ _) = text "OutOfScope" <> parens (ppr occ)
+    ppr (TrueExprHole occ)   = text "ExprHole"   <> parens (ppr occ)
+    ppr (DotVar       occ _) = text "DotVar"     <> parens (ppr occ)
 
 unboundVarOcc :: UnboundVar -> OccName
-unboundVarOcc (OutOfScope occ _) = occ
-unboundVarOcc (TrueExprHole occ) = occ
+unboundVarOcc (OutOfScope   occ _) = occ
+unboundVarOcc (TrueExprHole occ)   = occ
+unboundVarOcc (DotVar       occ _) = occ
 
 {-
 Note [OutOfScope and GlobalRdrEnv]
