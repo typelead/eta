@@ -82,7 +82,7 @@ public class Stg {
         if (!(closure instanceof Thunk) && !(closure instanceof DataCon)) {
             final Class<?> clazz = closure.getClass();
             throw new IllegalStateException
-                ("The trampoline function expects a thunk and not a function ["
+                ("The trampoline function expects a thunk or data constructor and not a function ["
                  + clazz + " extends "
                  + clazz.getSuperclass() + "]");
         }
