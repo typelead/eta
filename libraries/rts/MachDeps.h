@@ -84,4 +84,7 @@
 #define SIZEOF_HSSTABLEPTR      SIZEOF_INT
 #define ALIGNMENT_HSSTABLEPTR   ALIGNMENT_INT
 
+/* The JVM uses big-endian. */
+#define WORDS_BIGENDIAN
+
 #endif /* MACHDEPS_H */
