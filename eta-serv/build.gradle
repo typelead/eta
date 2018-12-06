@@ -5,7 +5,7 @@ buildscript {
 }
 
 plugins {
-    id 'com.typelead.eta' version '0.7.9'
+    id 'com.typelead.eta' version '0.8.0'
     id 'com.github.johnrengelman.shadow' version '2.0.3'
 }
 
