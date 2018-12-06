@@ -291,9 +291,7 @@ goldenVsFileDiff' name cmdf ref new act =
    upd _ = BS.readFile new >>= BS.writeFile ref
 
 ignored :: Set String
-ignored = S.fromList ["Echo", "tc141", "tc168", "tc211",
-        "T14163", "T4912", "T6018", "T7541", "InstanceMethod", "TcTypeNatSimple",
-        "TcTypeSymbolSimple", "tcfail150", "tcfail205", "annrun01", "TH_overloadedlabels"]
+ignored = S.fromList (unsafePerformIO $ fmap lines $ readFile (rootDir </> "IGNORED"))
 
 filterIgnored :: [FilePath] -> [FilePath]
 filterIgnored = filter f
