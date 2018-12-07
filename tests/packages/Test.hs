@@ -24,25 +24,29 @@ import System.Exit (die)
 
 data Packages = Packages {
       patched :: [Text],
-      vanilla :: [Text]
+      vanilla :: [Text],
+      ignored :: [Text],
+      ignoredVersions :: [Text]
     } deriving (Show, Eq, Ord)
 
 instance FromJSON Packages where
-    parseJSON (Object v) = Packages <$> v.: "patched" <*> v.: "vanilla"
+    parseJSON (Object v) =
+      Packages <$> v.: "patched"
+               <*> v.: "vanilla"
+               <*> v.: "ignored"
+               <*> v.: "ignored-versions"
     parseJSON _ = empty
 
 parsePackagesFile :: FilePath -> IO (Maybe Packages)
 parsePackagesFile fname = do
   contents <- BS.readFile fname
-  let packages = decode contents
-  patched' <- patchedLibraries
-  return $ fmap (\p -> p { patched = patched' }) packages
+  traverse modifyPatchedLibraries $ decode contents
 
 packagesFilePath :: IO FilePath
 packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "etlas"
 
-patchedLibraries :: IO [Text]
-patchedLibraries = do
+modifyPatchedLibraries :: Packages -> IO Packages
+modifyPatchedLibraries pkgs = do
   patchesDir     <- fmap (</> "patches" </> "patches") $ getAppUserDataDirectory "etlas"
   packageListing <- getDirectoryContents patchesDir
   let packages = map T.pack
@@ -51,23 +55,16 @@ patchedLibraries = do
                . map dropExtension
                . filter (\p -> p `notElem` ["",".",".."])
                $ packageListing
-  return $ filterLibraries packages
-
--- These will not be built for various reasons.
-ignoredPackages :: [Text]
-ignoredPackages = ["singletons" ,"directory", "servant-docs", "regex-tdfa", "tasty", "conduit-combinators"]
+  return $ pkgs { patched = filterLibraries pkgs packages }
 
 -- These packages will not be verified
 dontVerify :: [Text]
 dontVerify = ["sbv"]
 
--- WARNING: regex-tdfa exceeds the bytecode offset limit for if_acmpeq, ditto tasty
-
-ignoredPackageVersions :: [Text]
-ignoredPackageVersions = []
-
-filterLibraries :: [Text] -> [Text]
-filterLibraries set0 = recentVersions -- ++ remoteVersions ++ concat restVersions
+filterLibraries :: Packages -> [Text] -> [Text]
+filterLibraries Packages { ignored         = ignoredPackages
+                         , ignoredVersions = ignoredPackageVersions } set0 =
+  recentVersions -- ++ remoteVersions ++ concat restVersions
   where (recentVersions, _restVersions) = unzip $ map findAndExtractMaximum
                                                $ groupBy grouping set1
         _remoteVersions = map actualName recentVersions
