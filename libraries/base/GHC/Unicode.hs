@@ -360,29 +360,25 @@ toLower c = chr (towlower (ord c))
 toUpper c = chr (towupper (ord c))
 toTitle c = chr (towtitle (ord c))
 
--- TODO: Most of the following should be verified to see if compatible with GHC
 foreign import java unsafe "@static java.lang.Character.isLetter"
   iswalpha :: Int -> Bool
 
--- TODO: Inconsistent with GHC
-foreign import java unsafe "@static java.lang.Character.isLetterOrDigit"
+foreign import java unsafe "@static eta.base.Utils.iswalnum"
   iswalnum :: Int -> Bool
 
 foreign import java unsafe "@static java.lang.Character.isISOControl"
   iswcntrl :: Int -> Bool
 
--- TODO: Inconsistent with GHC
-foreign import java unsafe "@static java.lang.Character.isSpaceChar"
+foreign import java unsafe "@static eta.base.Utils.iswspace"
   iswspace :: Int -> Bool
 
-foreign import java unsafe "@static eta.base.Utils.isPrintableChar"
+foreign import java unsafe "@static eta.base.Utils.iswprint"
   iswprint :: Int -> Bool
 
-foreign import java unsafe "@static java.lang.Character.isLowerCase"
+foreign import java unsafe "@static eta.base.Utils.iswlower"
   iswlower :: Int -> Bool
 
--- TODO: Inconsistent with GHC
-foreign import java unsafe "@static java.lang.Character.isUpperCase"
+foreign import java unsafe "@static eta.base.Utils.iswupper"
   iswupper :: Int -> Bool
 
 foreign import java unsafe "@static java.lang.Character.toLowerCase"
@@ -394,5 +390,5 @@ foreign import java unsafe "@static java.lang.Character.toUpperCase"
 foreign import java unsafe "@static java.lang.Character.toTitleCase"
   towtitle :: Int -> Int
 
-foreign import java unsafe "@static java.lang.Character.getType"
+foreign import java unsafe "@static eta.base.Utils.wgencat"
   wgencat :: Int -> Int

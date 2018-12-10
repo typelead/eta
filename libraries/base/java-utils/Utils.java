@@ -63,32 +63,132 @@ public class Utils {
         return (float) Math.rint((double) f);
     }
 
-    // TODO: Verify
-    public static boolean isPrintableChar(int c) {
-        return ((((1 << Character.UPPERCASE_LETTER)          |
-                  (1 << Character.LOWERCASE_LETTER)          |
-                  (1 << Character.TITLECASE_LETTER)          |
-                  (1 << Character.MODIFIER_LETTER)           |
-                  (1 << Character.OTHER_LETTER)              |
-                  (1 << Character.COMBINING_SPACING_MARK)    |
-                  (1 << Character.OTHER_NUMBER)              |
-                  (1 << Character.MODIFIER_SYMBOL)           |
-                  (1 << Character.ENCLOSING_MARK)            |
-                  (1 << Character.DECIMAL_DIGIT_NUMBER)      |
-                  (1 << Character.DASH_PUNCTUATION)          |
-                  (1 << Character.OTHER_PUNCTUATION)         |
-                  (1 << Character.CONNECTOR_PUNCTUATION)     |
-                  (1 << Character.MATH_SYMBOL)               |
-                  (1 << Character.SPACE_SEPARATOR)           |
-                  (1 << Character.OTHER_SYMBOL)              |
-                  (1 << Character.END_PUNCTUATION)           |
-                  (1 << Character.FINAL_QUOTE_PUNCTUATION)   |
-                  (1 << Character.START_PUNCTUATION)         |
-                  (1 << Character.CURRENCY_SYMBOL)           |
-                  (1 << Character.INITIAL_QUOTE_PUNCTUATION) |
-                  (1 << Character.LETTER_NUMBER)             |
-                  (1 << Character.LETTER_NUMBER)) >> Character.getType(c)) & 1)
-            != 0;
+    public static boolean iswprint(int codepoint) {
+        switch (Character.getType(codepoint)) {
+          case Character.UPPERCASE_LETTER:
+          case Character.LOWERCASE_LETTER:
+          case Character.TITLECASE_LETTER:
+          case Character.MODIFIER_LETTER:
+          case Character.OTHER_LETTER:
+          case Character.COMBINING_SPACING_MARK:
+          case Character.OTHER_NUMBER:
+          case Character.MODIFIER_SYMBOL:
+          case Character.ENCLOSING_MARK:
+          case Character.DECIMAL_DIGIT_NUMBER:
+          case Character.DASH_PUNCTUATION:
+          case Character.OTHER_PUNCTUATION:
+          case Character.CONNECTOR_PUNCTUATION:
+          case Character.MATH_SYMBOL:
+          case Character.SPACE_SEPARATOR:
+          case Character.OTHER_SYMBOL:
+          case Character.END_PUNCTUATION:
+          case Character.FINAL_QUOTE_PUNCTUATION:
+          case Character.START_PUNCTUATION:
+          case Character.CURRENCY_SYMBOL:
+          case Character.INITIAL_QUOTE_PUNCTUATION:
+          case Character.LETTER_NUMBER:
+          case Character.NON_SPACING_MARK:
+            return true;
+        }
+        return false;
+    }
+
+    public static int wgencat(int codepoint) {
+        switch (Character.getType(codepoint)) {
+            case Character.UPPERCASE_LETTER:
+                return 0;
+            case Character.LOWERCASE_LETTER:
+                return 1;
+            case Character.TITLECASE_LETTER:
+                return 2;
+            case Character.MODIFIER_LETTER:
+                return 3;
+            case Character.OTHER_LETTER:
+                return 4;
+            case Character.NON_SPACING_MARK:
+                return 5;
+            case Character.COMBINING_SPACING_MARK:
+                return 6;
+            case Character.ENCLOSING_MARK:
+                return 7;
+            case Character.DECIMAL_DIGIT_NUMBER:
+                return 8;
+            case Character.LETTER_NUMBER:
+                return 9;
+            case Character.OTHER_NUMBER:
+                return 10;
+            case Character.CONNECTOR_PUNCTUATION:
+                return 11;
+            case Character.DASH_PUNCTUATION:
+                return 12;
+            case Character.START_PUNCTUATION:
+                return 13;
+            case Character.END_PUNCTUATION:
+                return 14;
+            case Character.INITIAL_QUOTE_PUNCTUATION:
+                return 15;
+            case Character.FINAL_QUOTE_PUNCTUATION:
+                return 16;
+            case Character.OTHER_PUNCTUATION:
+                return 17;
+            case Character.MATH_SYMBOL:
+                return 18;
+            case Character.CURRENCY_SYMBOL:
+                return 19;
+            case Character.MODIFIER_SYMBOL:
+                return 20;
+            case Character.OTHER_SYMBOL:
+                return 21;
+            case Character.SPACE_SEPARATOR:
+                return 22;
+            case Character.LINE_SEPARATOR:
+                return 23;
+            case Character.PARAGRAPH_SEPARATOR:
+                return 24;
+            case Character.CONTROL:
+                return 25;
+            case Character.FORMAT:
+                return 26;
+            case Character.SURROGATE:
+                return 27;
+            case Character.PRIVATE_USE:
+                return 28;
+            case Character.UNASSIGNED:
+                return 29;
+        }
+        return -1;
+    }
+
+    public static boolean iswalnum(int codepoint) {
+        switch (Character.getType(codepoint)) {
+            case Character.UPPERCASE_LETTER:
+            case Character.LOWERCASE_LETTER:
+            case Character.TITLECASE_LETTER:
+            case Character.MODIFIER_LETTER:
+            case Character.OTHER_LETTER:
+            case Character.DECIMAL_DIGIT_NUMBER:
+            case Character.LETTER_NUMBER:
+            case Character.OTHER_NUMBER:
+                return true;
+        }
+        return false;
+    }
+
+    public static boolean iswspace(int codepoint) {
+        return Character.getType(codepoint) == Character.SPACE_SEPARATOR;
+    }
+
+    public static boolean iswlower(int codepoint) {
+        return Character.getType(codepoint) == Character.LOWERCASE_LETTER;
+    }
+
+    public static boolean iswupper(int codepoint) {
+        switch (Character.getType(codepoint)) {
+          case Character.UPPERCASE_LETTER:
+          case Character.TITLECASE_LETTER:
+              return true;
+        }
+        return false;
     }
 
     public static boolean isFloatNegativeZero(float f) {
