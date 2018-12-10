@@ -181,9 +181,9 @@ foreign import java unsafe "@static eta.runtime.Runtime.setLocalProgramName"
 -- the @key@ is the whole entry and the @value@ is the empty string.
 getEnvironment :: IO [(String, String)]
 getEnvironment = do
-  env <- getenv
+  env <- getenv0
   return $ map (\(k, v) -> (fromJString k, fromJString v))
          $ fromJava env
 
-foreign import java unsafe "@static java.lang.System.getenv" getenv
+foreign import java unsafe "@static java.lang.System.getenv" getenv0
   :: IO (Map JString JString)

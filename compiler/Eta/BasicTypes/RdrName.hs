@@ -48,7 +48,7 @@ module Eta.BasicTypes.RdrName (
         lookupGlobalRdrEnv, extendGlobalRdrEnv,
         pprGlobalRdrEnv, globalRdrEnvElts,
         lookupGRE_RdrName, lookupGRE_Name, getGRE_NameQualifier_maybes,
-        transformGREs, findLocalDupsRdrEnv, pickGREs,
+        transformGREs, findLocalDupsRdrEnv, findLocalSimsRdrEnv, pickGREs,
 
         -- * GlobalRdrElts
         gresFromAvails, gresFromAvail, greRdrNames, greUsedRdrName,
@@ -76,6 +76,7 @@ import Eta.Utils.Util
 import Eta.Main.StaticFlags( opt_PprStyle_Debug )
 
 import Data.Data
+import Data.Char (toLower)
 import Data.List
 
 {-
@@ -798,6 +799,69 @@ findLocalDupsRdrEnv rdr_env occs
           dup_gres -> go rdr_env' (dup_gres : dups) names
       where
         occ      = nameOccName name
+        gres     = lookupOccEnv rdr_env occ `orElse` []
+        rdr_env' = delFromOccEnv rdr_env occ
+            -- The delFromOccEnv avoids repeating the same
+            -- complaint twice, when names itself has a duplicate
+            -- which is a common case
+
+    -- See Note [Template Haskell binders in the GlobalRdrEnv]
+    pick name (GRE { gre_name = n, gre_prov = LocalDef })
+      | isInternalName name = isInternalName n
+      | otherwise           = True
+    pick _ _ = False
+
+findLocalSimsRdrEnv :: GlobalRdrEnv -> [Name] -> [[GlobalRdrElt]]
+-- ^ For each 'OccName', see if there are multiple local definitions
+-- for it; return a list of all such
+-- and return a list of the similar (case-insensitive) bindings
+findLocalSimsRdrEnv rdr_env0 occs0
+  = go rdr_env [] occs
+  where
+
+    occs = filter (not . flip elemNameSet ignore_names) occs0
+
+    {- Filter out all the tycon names which don't have associated datacons
+       since that means they don't generate any code and only exist at
+       compile-time. -}
+    ignore_names = ty_elts0 `minusNameSet` ty_elts1
+      where elts = filter isLocalGRE $ globalRdrEnvElts rdr_env0
+            ty_elts0 = mkNameSet
+                     $ mapMaybe (\gre ->
+                         let name = gre_name gre in
+                         if isTyConName name
+                         then Just name
+                         else Nothing) elts
+            ty_elts1 = foldl' (\set gre ->
+                                  case gre_par gre of
+                                    NoParent   -> set
+                                    ParentIs n -> extendNameSet set n)
+                       emptyNameSet
+                     $ filter (isDataConName . gre_name) elts
+
+    rdr_env = foldOccEnv (\elts env ->
+                case elts of
+                  []      -> env
+                  gres@(gre:_)
+                    | let elts' =
+                            filter (\gre -> not (gre_name gre `elemNameSet` ignore_names)) gres
+                    , not (null elts') ->
+                      extendOccEnv_C (++) env (lowerName (gre_name gre)) elts'
+                    | otherwise       -> env)
+              emptyGlobalRdrEnv rdr_env0
+
+    lowerName name = mkOccName (occNameSpace occ) occString'
+      where occString' = map toLower $ occNameString occ
+            occ = nameOccName name
+
+    go _       dups [] = dups
+    go rdr_env dups (name:names)
+      = case filter (pick name) gres of
+          []       -> go rdr_env  dups              names
+          [_]      -> go rdr_env  dups              names   -- The common case
+          dup_gres -> go rdr_env' (dup_gres : dups) names
+      where
+        occ      = lowerName name
         gres     = lookupOccEnv rdr_env occ `orElse` []
         rdr_env' = delFromOccEnv rdr_env occ
             -- The delFromOccEnv avoids repeating the same

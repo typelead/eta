@@ -724,11 +724,13 @@ extendGlobalRdrEnvRn avails new_fixities
                                                        | n <- new_names ] }
               fix_env' = foldl extend_fix_env fix_env new_names
               dups = findLocalDupsRdrEnv rdr_env2 new_names
+              sims = findLocalSimsRdrEnv rdr_env2 new_names
 
               gbl_env' = gbl_env { tcg_rdr_env = rdr_env2, tcg_fix_env = fix_env' }
 
         ; traceRn "extendGlobalRdrEnvRn 1" (ppr avails $$ (ppr dups))
         ; mapM_ (addDupDeclErr . map gre_name) dups
+        ; mapM_ (addSimDeclErr . map gre_name) sims
 
         ; traceRn "extendGlobalRdrEnvRn 2" (pprGlobalRdrEnv True rdr_env2)
         ; return (gbl_env', lcl_env3) }
@@ -772,8 +774,6 @@ getLocalNonValBinders fixity_env
   = do  { -- Process all type/class decls *except* family instances
         ; tc_avails <- mapM new_tc (tyClGroupConcat tycl_decls)
         ; traceRn "getLocalNonValBinders 1" (ppr tc_avails)
-        ; let sames = findSames tc_avails
-        ; when (not (null sames)) (addSimDeclErrors sames)
         ; envs <- extendGlobalRdrEnvRn tc_avails fixity_env
         ; setEnvs envs $ do {
             -- Bring these things into scope first

@@ -1,0 +1,12 @@
+
+tests/suite/similar-names/fail/simfail03.hs:6:26: error:
+    Multiple declarations with names differing only in case.
+    Declared at: tests/suite/similar-names/fail/simfail03.hs:5:26
+                 tests/suite/similar-names/fail/simfail03.hs:6:26
+                 tests/suite/similar-names/fail/simfail03.hs:7:26
+                 tests/suite/similar-names/fail/simfail03.hs:9:11
+
+tests/suite/similar-names/fail/simfail03.hs:9:11: error:
+    Multiple declarations of ‘BAA’
+    Declared at: tests/suite/similar-names/fail/simfail03.hs:7:26
+                 tests/suite/similar-names/fail/simfail03.hs:9:11

@@ -33,7 +33,6 @@ import Eta.Rename.RnPat
 import Eta.Rename.RnNames
 import Eta.Rename.RnEnv
 import Eta.Main.DynFlags
-import Eta.BasicTypes.Avail
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
@@ -167,31 +166,8 @@ it expects the global environment to contain bindings for the binders
 rnTopBindsLHS :: MiniFixityEnv
               -> HsValBinds RdrName
               -> RnM (HsValBindsLR Name RdrName)
-rnTopBindsLHS fix_env binds = do
-  binds' <- rnValBindsLHS (topRecNameMaker fix_env) binds
-  checkSimilarNames binds'
-  return binds'
-
-isPatSynBind :: HsBindLR l r -> Bool
-isPatSynBind (PatSynBind _) = True
-isPatSynBind _ = False
-
-checkSimilarNames :: HsValBindsLR Name RdrName
-                  -> RnM ()
-checkSimilarNames (ValBindsIn mbinds _)
-  = do { let
-        { (patSyns, others) = partitionBag (isPatSynBind . unLoc) mbinds }
-        ; checkBinds patSyns
-        ; checkBinds others }
-    where
-      checkBinds binds =
-        do { let
-            { bndrs = collectHsBindsBinders binds
-            ; val_avails  = map Avail bndrs
-            ; similar_names = (findSames val_avails)
-            }
-            ; when (not (null similar_names)) (addSimDeclErrors similar_names) }
-checkSimilarNames b = pprPanic "checkSimilarNames" (ppr b)
+rnTopBindsLHS fix_env binds =
+  rnValBindsLHS (topRecNameMaker fix_env) binds
 
 rnTopBindsRHS :: NameSet -> HsValBindsLR Name RdrName
               -> RnM (HsValBinds Name, DefUses)
