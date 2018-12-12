@@ -1,5 +1,5 @@
 
-tests/suite/similar-names/fail/sim02.hs:7:11: error:
+tests/suite/similar-names/fail/simfail02.hs:7:11: error:
     Multiple declarations with names differing only in case.
-    Declared at: tests/suite/similar-names/fail/sim02.hs:5:23
-                 tests/suite/similar-names/fail/sim02.hs:7:11
+    Declared at: tests/suite/similar-names/fail/simfail02.hs:5:23
+                 tests/suite/similar-names/fail/simfail02.hs:7:11

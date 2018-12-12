@@ -1,7 +1,18 @@
 import GHC.Unicode
 import Data.Ix ( index )
 
+main :: IO ()
 main = do
+  putStrLn "\xFFFF"
+  putStrLn "\x10000"
+  putStrLn "\x1F600"
+  putStrLn "\x10FFFF"
+  putStrLn "7"
+  putStrLn "S"
+  putStrLn "△"
+  putStrLn "☃"
+  putStrLn "¥"
+  putStrLn "n̂"
   print $ UppercaseLetter == UppercaseLetter
   print $ UppercaseLetter == LowercaseLetter
   print $ NonSpacingMark <= MathSymbol
