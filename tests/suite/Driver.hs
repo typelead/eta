@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase, MultiWayIf, CPP #-}
+{-# LANGUAGE LambdaCase, MultiWayIf, CPP, OverloadedStrings #-}
 
 import System.FilePath
 import System.Directory
@@ -9,6 +9,7 @@ import qualified System.Process as P
 import System.Process.ByteString.Lazy
 import System.IO
 import System.IO.Unsafe
+import Data.Char (isSpace)
 import System.Exit
 import Control.Monad
 import Data.Monoid
@@ -40,7 +41,7 @@ createTestSuites cp rootDir = do
         (pattern, actionMode)
           | isBackpack = ("*.bkp", BackpackAction)
           | otherwise = ("*.hs", CompileAction)
-        genTestGroup mode name ext = do
+        genTestGroup mode name ext f = do
           let path = suitePath </> name
           exists <- doesDirectoryExist path
           if exists
@@ -56,7 +57,7 @@ createTestSuites cp rootDir = do
                     goldenFile = testFile -<.> ext
                 return $ goldenVsFileDiff' testName
                         (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                        (etaAction cp mode builddir testFile targetFile)
+                        (etaAction cp mode builddir testFile targetFile f)
             tests2 <- forM testDirs $ \testDir -> do
                 let testName   = takeBaseName testDir
                     builddir   = buildDir suiteName name testName
@@ -64,17 +65,19 @@ createTestSuites cp rootDir = do
                     goldenFile = testDir </> (testName <.> ext)
                 return $ goldenVsFileDiff' testName
                         (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                        (etlasAction mode builddir testDir targetFile)
+                        (etlasAction mode builddir testDir targetFile f)
             return $ tests1 ++ tests2
           else return []
 
-    compileGroup <- genTestGroup (actionMode CompileMode) "compile" "stderr"
-    failGroup    <- genTestGroup (actionMode FailMode)    "fail"    "stderr"
-    runGroup     <- genTestGroup (actionMode RunMode)     "run"     "stdout"
+    compileGroup <- genTestGroup (actionMode CompileMode) "compile"  "stderr" noModification
+    failGroup    <- genTestGroup (actionMode FailMode)    "fail"     "stderr" noModification
+    runGroup     <- genTestGroup (actionMode RunMode)     "run"      "stdout" noModification
+    runFailGroup <- genTestGroup (actionMode RunFailMode) "run_fail" "stderr" exceptionFilter
     return $ testGroup suiteName
-        [ testGroup "compile" compileGroup
-        , testGroup "fail"    failGroup
-        , testGroup "run"     runGroup
+        [ testGroup "compile"  compileGroup
+        , testGroup "fail"     failGroup
+        , testGroup "run"      runGroup
+        , testGroup "run_fail" runFailGroup
         ]
 
 data ActionMode = CompileAction  { actionResult :: ResultMode }  -- Invokes eta --make
@@ -83,25 +86,31 @@ data ActionMode = CompileAction  { actionResult :: ResultMode }  -- Invokes eta 
 data ResultMode = CompileMode
                 | FailMode
                 | RunMode
+                | RunFailMode
 
-etlasAction :: ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
-etlasAction mode builddir inputDir outputFile = do
+type OutputFilter = BC.ByteString -> BC.ByteString
+
+noModification :: OutputFilter
+noModification = id
+
+exceptionFilter :: OutputFilter
+exceptionFilter contents = BC.unlines $ filter onlyException contentLines
+  where contentLines = BC.lines contents
+        onlyException line
+          | first3 == "at " = False
+          | first3 == "..." = False
+          | otherwise       = True
+          where first3 = BC.take 3 $ BC.dropWhile isSpace line
+
+etlasAction :: ActionMode -> FilePath -> FilePath -> FilePath -> OutputFilter -> IO ()
+etlasAction mode builddir inputDir outputFile outputFilter = do
   builddir <- makeAbsolute builddir
   createDirectoryIfMissing True builddir
   let (command, expectedExitCode, extraOpts) = case actionResult mode of
-        CompileMode -> (["build"],
-                        \case ExitSuccess   -> True
-                              ExitFailure _ -> False,
-                        ["all"])
-
-        FailMode    -> (["build"],
-                        \case ExitSuccess   -> False
-                              ExitFailure _ -> True,
-                        ["all"])
-        RunMode     -> (["run"],
-                        \case ExitSuccess   -> True
-                              ExitFailure _ -> False,
-                        [])
+        CompileMode -> (["build"], expectSuccess, ["all"])
+        FailMode    -> (["build"], expectFailure, ["all"])
+        RunMode     -> (["run"],   expectSuccess, [])
+        RunFailMode -> (["run"],   expectFailure, [])
       options = command ++ ["-v0", "--builddir=" ++ builddir] ++ extraOpts
   (exitCode, stdout, stderr) <- readCreateProcessWithExitCode
                                   ((P.proc "etlas" options) { cwd = Just inputDir })
@@ -110,25 +119,19 @@ etlasAction mode builddir inputDir outputFile = do
       output
         | not (expectedExitCode exitCode) = BC.pack (show exitCode ++ "\n") <> mainOutput
         | otherwise = mainOutput
-  BS.writeFile outputFile output
+  BS.writeFile outputFile (outputFilter output)
 
-etaAction :: [FilePath] -> ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
-etaAction defaultClassPath mode builddir srcFile outputFile = do
+etaAction :: [FilePath] -> ActionMode -> FilePath -> FilePath -> FilePath -> OutputFilter
+          -> IO ()
+etaAction defaultClassPath mode builddir srcFile outputFile outputFilter = do
   createDirectoryIfMissing True builddir
   let (specificOptions, expectedExitCode, shouldRun) = case actionResult mode of
         CompileMode -> (if isBackpack then [] else ["-staticlib"],
-                        \case ExitSuccess   -> True
-                              ExitFailure _ -> False,
-                        False)
+                                        expectSuccess, False)
 
-        FailMode    -> (["-staticlib"],
-                        \case ExitSuccess   -> False
-                              ExitFailure _ -> True,
-                        False)
-        RunMode     -> (["-shared"],
-                        \case ExitSuccess   -> True
-                              ExitFailure _ -> False,
-                        True)
+        FailMode    -> (["-staticlib"], expectFailure, False)
+        RunMode     -> (["-shared"],    expectSuccess, True)
+        RunFailMode -> (["-shared"],    expectFailure, True)
       outFlags = ["-o", outJar]
       (isBackpack, outputOptions)
         | BackpackAction {} <- mode = (True, outFlags)
@@ -147,7 +150,7 @@ etaAction defaultClassPath mode builddir srcFile outputFile = do
   let getOutput
         | shouldRun = do
           (exitCode, stdout, stderr) <-
-            if expectedExitCode exitCode'
+            if expectSuccess exitCode'
             then do
               let getClasspath
                     | isBackpack =
@@ -183,7 +186,8 @@ etaAction defaultClassPath mode builddir srcFile outputFile = do
                   BC.pack (show exitCode ++ "\n") <> mainOutput
                 | otherwise = mainOutput
           in return output
-  getOutput >>= BS.writeFile outputFile
+  o <- getOutput
+  BS.writeFile outputFile (outputFilter o)
 
 genericEtlasOptions :: [String]
 genericEtlasOptions =
@@ -297,3 +301,11 @@ filterIgnored :: [FilePath] -> [FilePath]
 filterIgnored = filter f
   where f path = not (base `S.member` ignored) && not ("ignored_" `isPrefixOf` base)
           where base = takeBaseName path
+
+expectSuccess :: ExitCode -> Bool
+expectSuccess ExitSuccess     = True
+expectSuccess (ExitFailure _) = False
+
+expectFailure :: ExitCode -> Bool
+expectFailure ExitSuccess     = False
+expectFailure (ExitFailure _) = True

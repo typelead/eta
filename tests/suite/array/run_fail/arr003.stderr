@@ -1,0 +1,2 @@
+Exception in thread "main" eta.runtime.exception.EtaException: Ix{Int}.index: Index (4) out of range ((1,3))
+Caused by: eta.runtime.exception.EtaException: Ix{Int}.index: Index (4) out of range ((1,3))
