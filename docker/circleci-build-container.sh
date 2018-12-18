@@ -17,7 +17,7 @@ case $1 in
     cp -r ~/.eta ./docker/bin/
     cp -r ~/.etlas ./docker/bin/
     rm -rf ./docker/bin/.etlas/logs/*
-    rm -rf ./docker/bin/.etlas/packages/*
+    rm -rf ./docker/bin/.etlas/packages/hackage.haskell.org/01-index.tar
 
     echo "Building an image: $HASH_TAG"
     docker build -t "$HASH_TAG" ./docker
