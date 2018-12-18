@@ -485,11 +485,15 @@ public class Utils {
 
     public static void setNonBlockingFD(Channel c, boolean nonblocking) throws IOException {
         if (c instanceof SelectableChannel) {
+            // Clear interrupt status to avoid unnecessarily closing the stream.
+            Thread.interrupted();
             ((SelectableChannel) c).configureBlocking(!nonblocking);
         }
     }
 
     public static long c_lseek(FileChannel fc, long offset, int mode) throws IOException {
+        // Clear interrupt status to avoid unnecessarily closing the stream.
+        Thread.interrupted();
         switch (mode) {
             case 0:
                 fc.position(fc.position() + offset);
@@ -503,6 +507,8 @@ public class Utils {
             default:
                 return (-1);
         }
+        // Clear interrupt status to avoid unnecessarily closing the stream.
+        Thread.interrupted();
         return fc.position();
     }
 
@@ -511,6 +517,8 @@ public class Utils {
             try {
                 Selector s             = Selector.open();
                 SelectableChannel sc   = (SelectableChannel) c;
+                // Clear interrupt status to avoid unnecessarily closing the stream.
+                Thread.interrupted();
                 SelectionKey selectKey = sc.register(s,
                                                      write? SelectionKey.OP_WRITE
                                                           : SelectionKey.OP_READ);
