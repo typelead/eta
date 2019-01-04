@@ -1,7 +1,7 @@
 name:           eta-repl
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
-version:        0.8.6.3
+version:        0.8.6.4
 license:        BSD3
 license-file:   LICENSE
 category:       Eta Tools
