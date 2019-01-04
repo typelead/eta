@@ -1057,7 +1057,7 @@ rnTyClDecl (ClassDecl {tcdCtxt = context, tcdLName = lcls,
 
         -- Check the signatures
         -- First process the class op sigs (op_sigs), then the fixity sigs (non_op_sigs).
-        ; let sig_rdr_names_w_locs = [op | L _ (TypeSig ops _ _) <- sigs, op <- ops]
+        ; let sig_rdr_names_w_locs = [op | L _ (TypeSig ops _ _ _) <- sigs, op <- ops]
         ; checkDupRdrNames sig_rdr_names_w_locs
                 -- Typechecker is responsible for checking that we only
                 -- give default-method bindings for things in this class.
@@ -1151,7 +1151,7 @@ orphanRoleAnnotErr (L loc decl)
             text "is declared.")
 
 rnDataDefn :: HsDocContext -> HsDataDefn RdrName -> RnM (HsDataDefn Name, FreeVars)
-rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
+rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType, _java_annotations)
                            , dd_ctxt = context, dd_cons = condecls
                            , dd_kindSig = sig, dd_derivs = derivs })
   = do  { checkTc (h98_style || null (unLoc context))
@@ -1173,7 +1173,7 @@ rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
 
         ; let all_fvs = fvs1 `plusFV` fvs3 `plusFV`
                         con_fvs `plusFV` sig_fvs
-        ; return ( HsDataDefn { dd_ND = new_or_data, dd_cType = cType
+        ; return ( HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType, [])
                               , dd_ctxt = context', dd_kindSig = sig'
                               , dd_cons = condecls'
                               , dd_derivs = derivs' }
@@ -1361,7 +1361,7 @@ rnConDecl decl@(ConDecl { con_names = names, con_qvars = tvs
                      <- rnConResult doc (map unLoc new_names) new_details res_ty
         ; return (decl { con_names = new_names, con_qvars = new_tyvars
                        , con_cxt = new_context, con_details = new_details'
-                       , con_res = new_res_ty, con_doc = mb_doc' },
+                       , con_res = new_res_ty, con_doc = mb_doc', con_anns = [] },
                   fvs1 `plusFV` fvs2 `plusFV` fvs3) }}
  where
     doc = ConDeclCtx names

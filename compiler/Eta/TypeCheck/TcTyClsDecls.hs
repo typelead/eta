@@ -485,9 +485,9 @@ kcTyClDecl (ClassDecl { tcdLName = L _ name, tcdTyVars = hs_tvs
     do  { _ <- tcHsContext ctxt
         ; mapM_ (wrapLocM kc_sig)     sigs }
   where
-    kc_sig (TypeSig _ op_ty _)  = discardResult (tcHsLiftedType op_ty)
-    kc_sig (GenericSig _ op_ty) = discardResult (tcHsLiftedType op_ty)
-    kc_sig _                    = return ()
+    kc_sig (TypeSig _ op_ty _ _) = discardResult (tcHsLiftedType op_ty)
+    kc_sig (GenericSig _ op_ty)  = discardResult (tcHsLiftedType op_ty)
+    kc_sig _                     = return ()
 
 -- closed type families look at their equations, but other families don't
 -- do anything here
@@ -756,7 +756,7 @@ tcDataDefn :: RecTyInfo -> Name
            -> HsDataDefn Name -> TcM [TyThing]
   -- NB: not used for newtype/data instances (whether associated or not)
 tcDataDefn rec_info tc_name tvs kind
-         (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
+         (HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType, _)
                      , dd_ctxt = ctxt, dd_kindSig = mb_ksig
                      , dd_cons = cons' })
  = let cons = cons' -- AZ List monad coming

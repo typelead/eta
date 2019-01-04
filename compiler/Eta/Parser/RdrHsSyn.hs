@@ -83,6 +83,7 @@ import Eta.Prelude.TysPrim          ( jobjectPrimTyConName )
 import Eta.Prelude.ForeignCall
 import Eta.BasicTypes.OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
+import Eta.BasicTypes.JavaAnnotation
 import Eta.Prelude.PrelNames        ( forall_tv_RDR, allNameStrings )
 import Eta.Main.DynFlags
 import Eta.BasicTypes.SrcLoc
@@ -175,7 +176,7 @@ mkATDefault (L loc (TyFamInstDecl { tfid_eqn = L _ e }))
 checkNoPartialSigs :: [LSig RdrName] -> Located RdrName -> P ()
 checkNoPartialSigs sigs cls_name =
   sequence_ [ whenIsJust mb_loc $ \loc -> parseErrorSDoc loc $ err sig
-            | L _ sig@(TypeSig _ ty _) <- sigs
+            | L _ sig@(TypeSig _ ty _ _) <- sigs
             , let mb_loc = maybeLocation $ findWildcards ty ]
   where err sig =
           vcat [ text "The type signature of a class method cannot be partial:"
@@ -273,12 +274,14 @@ mkTyData :: SrcSpan
          -> Maybe (LHsKind RdrName)
          -> [LConDecl RdrName]
          -> Maybe (Located [LHsType RdrName])
+         -> [JavaAnnotation RdrName]
          -> P (LTyClDecl RdrName)
-mkTyData loc new_or_data cType (L _ (mcxt, tycl_hdr)) ksig data_cons maybe_deriv
+mkTyData loc new_or_data cType (L _ (mcxt, tycl_hdr)) ksig data_cons maybe_deriv java_anns
   = do { (tc, tparams,ann) <- checkTyClHdr tycl_hdr
        ; mapM_ (\a -> a loc) ann -- Add any API Annotations to the top SrcSpan
        ; tyvars <- checkTyVarsP (ppr new_or_data) equalsDots tc tparams
        ; defn <- mkDataDefn (unLoc tc) new_or_data cType mcxt ksig data_cons maybe_deriv
+                            java_anns
        ; return (L loc (DataDecl { tcdLName = tc, tcdTyVars = tyvars,
                                    tcdDataDefn = defn,
                                    tcdFVs = placeHolderNames })) }
@@ -290,14 +293,15 @@ mkDataDefn :: RdrName
            -> Maybe (LHsKind RdrName)
            -> [LConDecl RdrName]
            -> Maybe (Located [LHsType RdrName])
+           -> [JavaAnnotation RdrName]
            -> P (HsDataDefn RdrName)
-mkDataDefn tcName new_or_data cType mcxt ksig data_cons maybe_deriv
+mkDataDefn tcName new_or_data cType mcxt ksig data_cons maybe_deriv java_anns
   = do { checkDatatypeContext mcxt
        ; checkNoPartialCon data_cons
        ; whenIsJust maybe_deriv $
          \(L _ deriv) -> mapM_ (checkNoPartialType (errDeriv deriv)) deriv
        ; let cxt = fromMaybe (noLoc []) mcxt
-       ; return (HsDataDefn { dd_ND = new_or_data, dd_cType = cType'
+       ; return (HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType', java_anns)
                             , dd_ctxt = cxt
                             , dd_cons = data_cons'
                             , dd_kindSig = ksig
@@ -360,7 +364,7 @@ mkDataFamInst :: SrcSpan
 mkDataFamInst loc new_or_data cType (L _ (mcxt, tycl_hdr)) ksig data_cons maybe_deriv
   = do { (tc, tparams,ann) <- checkTyClHdr tycl_hdr
        ; mapM_ (\a -> a loc) ann -- Add any API Annotations to the top SrcSpan
-       ; defn <- mkDataDefn (unLoc tc) new_or_data cType mcxt ksig data_cons maybe_deriv
+       ; defn <- mkDataDefn (unLoc tc) new_or_data cType mcxt ksig data_cons maybe_deriv []
        ; return (L loc (DataFamInstD (
                   DataFamInstDecl { dfid_tycon = tc, dfid_pats = mkHsWithBndrs tparams
                                   , dfid_defn = defn, dfid_fvs = placeHolderNames }))) }
@@ -644,13 +648,15 @@ mkDeprecatedGadtRecordDecl loc (L con_loc con) flds res_ty
                                 , con_cxt      = noLoc []
                                 , con_details  = RecCon flds
                                 , con_res      = ResTyGADT loc res_ty
+                                , con_anns     = []
                                 , con_doc      = Nothing })) }
 
 mkSimpleConDecl :: Located RdrName -> [LHsTyVarBndr RdrName]
                 -> LHsContext RdrName -> HsConDeclDetails RdrName
+                -> [JavaAnnotation RdrName]
                 -> ConDecl RdrName
 
-mkSimpleConDecl name qvars cxt details
+mkSimpleConDecl name qvars cxt details anns
   = ConDecl { con_old_rec  = False
             , con_names    = [name]
             , con_explicit = Explicit
@@ -658,35 +664,38 @@ mkSimpleConDecl name qvars cxt details
             , con_cxt      = cxt
             , con_details  = details
             , con_res      = ResTyH98
+            , con_anns     = anns
             , con_doc      = Nothing }
 
 mkGadtDeclP :: [Located RdrName]
-           -> LHsType RdrName     -- Always a HsForAllTy
-           -> P ([AddAnn], ConDecl RdrName)
-mkGadtDeclP names (L l ty) = do
+            -> LHsType RdrName     -- Always a HsForAllTy
+            -> [JavaAnnotation RdrName]
+            -> P ([AddAnn], ConDecl RdrName)
+mkGadtDeclP names (L l ty) janns = do
   let
     (anns,ty') = flattenHsForAllTyKeepAnns ty
-  gadt <- mkGadtDeclP' names (L l ty')
+  gadt <- mkGadtDeclP' names (L l ty') janns
   return (anns,gadt)
 
 mkGadtDeclP' :: [Located RdrName]
              -> LHsType RdrName     -- Always a HsForAllTy
+             -> [JavaAnnotation RdrName]
              -> P (ConDecl RdrName)
 
 -- We allow C,D :: ty
 -- and expand it as if it had been
 --    C :: ty; D :: ty
 -- (Just like type signatures in general.)
-mkGadtDeclP' _ ty@(L _ (HsForAllTy _ (Just l) _ _ _))
+mkGadtDeclP' _ ty@(L _ (HsForAllTy _ (Just l) _ _ _)) _
   = parseErrorSDoc l $
     text "A constructor cannot have a partial type:" $$
     ppr ty
-mkGadtDeclP' names lty@(L _ (HsForAllTy _ Nothing _ _ _))
-  = return $ mkGadtDecl names lty
-mkGadtDeclP' _ other_ty = pprPanic "mkGadtDecl" (ppr other_ty)
+mkGadtDeclP' names lty@(L _ (HsForAllTy _ Nothing _ _ _)) anns
+  = return $ mkGadtDecl names lty anns
+mkGadtDeclP' _ other_ty _ = pprPanic "mkGadtDecl" (ppr other_ty)
 
-mkGadtDecl :: [Located RdrName] -> LHsType RdrName -> ConDecl RdrName
-mkGadtDecl names (L ls (HsForAllTy imp Nothing qvars cxt tau))
+mkGadtDecl :: [Located RdrName] -> LHsType RdrName -> [JavaAnnotation RdrName] -> ConDecl RdrName
+mkGadtDecl names (L ls (HsForAllTy imp Nothing qvars cxt tau)) anns
   = mk_gadt_con names
   where
     (details, res_ty)           -- See Note [Sorting out the result type]
@@ -703,8 +712,9 @@ mkGadtDecl names (L ls (HsForAllTy imp Nothing qvars cxt tau))
                  , con_cxt      = cxt
                  , con_details  = details
                  , con_res      = ResTyGADT ls res_ty
+                 , con_anns     = anns
                  , con_doc      = Nothing }
-mkGadtDecl names lty = pprPanic "mkGadtDecl" (ppr names <+> ppr lty)
+mkGadtDecl names lty _ = pprPanic "mkGadtDecl" (ppr names <+> ppr lty)
 
 tyConToDataCon :: SrcSpan -> RdrName -> P (Located RdrName)
 tyConToDataCon loc tc
@@ -1023,11 +1033,12 @@ checkPatBind msg lhs (L _ (_,grhss))
 checkValSig
         :: LHsExpr RdrName
         -> LHsType RdrName
+        -> [JavaAnnotation RdrName]
         -> P (Sig RdrName)
-checkValSig (L l (HsVar v)) ty
+checkValSig (L l (HsVar v)) ty anns
   | isUnqual v && not (isDataOcc (rdrNameOcc v))
-  = return (TypeSig [L l v] ty PlaceHolder)
-checkValSig lhs@(L l _) ty
+  = return (TypeSig [L l v] ty PlaceHolder anns)
+checkValSig lhs@(L l _) ty _
   = parseErrorSDoc l ((text "Invalid type signature:" <+>
                        ppr lhs <+> text "::" <+> ppr ty)
                    $$ text hint)

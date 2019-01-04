@@ -661,7 +661,7 @@ tcDataFamInstDecl mb_clsinfo
     (L loc decl@(DataFamInstDecl
        { dfid_pats = pats
        , dfid_tycon = fam_tc_name
-       , dfid_defn = defn@HsDataDefn { dd_ND = new_or_data, dd_cType = cType
+       , dfid_defn = defn@HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType, _)
                                      , dd_ctxt = ctxt, dd_cons = cons } }))
   = setSrcSpan loc             $
     tcAddDataFamInstCtxt decl  $

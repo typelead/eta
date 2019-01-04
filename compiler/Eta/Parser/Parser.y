@@ -69,11 +69,12 @@ import Eta.Utils.Util
 -- compiler/basicTypes
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.OccName          ( varName, dataName, tcClsName, tvName, startsWithUnderscore,
-                                         mkTcOccFS )
+                                         mkTcOccFS, occNameString )
 import Eta.BasicTypes.DataCon          ( DataCon, dataConName )
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.BasicTypes
+import Eta.BasicTypes.JavaAnnotation
 
 -- compiler/types
 import Eta.Types.Type             ( funTyCon )
@@ -935,8 +936,9 @@ topdecl :: { OrdList (LHsDecl RdrName) }
         | '{-# VECTORISE' 'class' gtycon '#-}'
                                          {% amsu (sLL $1 $>  $ VectD (HsVectClassIn (getVECT_PRAGs $1) $3))
                                                  [mo $1,mj AnnClass $2,mc $4] }
-        | annotation { unitOL $1 }
-        | decl_no_th                            { unLoc $1 }
+        | annotation  {  unitOL $1 }
+        | java_annots {% addJavaAnnotations $1 >> return nilOL }
+        | decl_no_th  {  unLoc $1 }
 
         -- Template Haskell Extension
         -- The $(..) form is one possible form of infixexp
@@ -976,7 +978,7 @@ ty_decl :: { LTyClDecl RdrName }
 
           -- ordinary data type or newtype declaration
         | data_or_newtype capi_ctype tycl_hdr constrs deriving
-                {% amms (mkTyData (comb4 $1 $3 $4 $5) (snd $ unLoc $1) $2 $3
+                {% ammsAnn (mkTyData (comb4 $1 $3 $4 $5) (snd $ unLoc $1) $2 $3
                            Nothing (reverse (snd $ unLoc $4))
                                    (unLoc $5))
                                    -- We need the location on tycl_hdr in case
@@ -987,7 +989,7 @@ ty_decl :: { LTyClDecl RdrName }
         | data_or_newtype capi_ctype tycl_hdr opt_kind_sig
                  gadt_constrlist
                  deriving
-            {% amms (mkTyData (comb4 $1 $3 $5 $6) (snd $ unLoc $1) $2 $3
+            {% ammsAnn (mkTyData (comb4 $1 $3 $5 $6) (snd $ unLoc $1) $2 $3
                             (snd $ unLoc $4) (snd $ unLoc $5) (unLoc $6) )
                                    -- We need the location on tycl_hdr in case
                                    -- constrs and deriving are both empty
@@ -1008,7 +1010,7 @@ inst_decl :: { LInstDecl RdrName }
              ; let err = text "In instance head:" <+> ppr $3
              ; checkNoPartialType err $3
              ; sequence_ [ checkNoPartialType err ty
-                         | sig@(L _ (TypeSig _ ty _ )) <- sigs
+                         | sig@(L _ (TypeSig _ ty _ _)) <- sigs
                          , let err = text "in instance signature" <> colon
                                      <+> quotes (ppr sig) ]
              ; ams (L (comb3 $1 $3 $4) (ClsInstD { cid_inst = cid }))
@@ -1197,6 +1199,61 @@ stand_alone_deriving :: { LDerivDecl RdrName }
                                      [mj AnnDeriving $1,mj AnnInstance $2] }}
 
 -----------------------------------------------------------------------------
+-- Java Annotations
+
+maybe_java_annots :: { [JavaAnnotation RdrName] }
+                  : java_annots { $1 }
+                  | {- empty -} { [] }
+
+java_annots :: { [JavaAnnotation RdrName] }
+  : java_annots java_annot { $2 : $1 }
+  | java_annot             { [$1] }
+
+
+java_annot :: { JavaAnnotation RdrName }
+  : '@' qconid top_annot_exp
+    { JavaAnnotation $ modifySrcSpan (comb2 $1 $2 `combineSrcSpans`) $ $3 $2 }
+
+  -- TODO: Remove this wart eventually
+  | JAVAANNOT top_annot_exp
+    { JavaAnnotation $ modifySrcSpan (getLoc $1 `combineSrcSpans`)
+                     $ $2 $ sL1 $1 $! mkUnqual dataName (getJAVAANNOT $1) }
+
+top_annot_exp :: { Located RdrName -> LAnnExpr RdrName }
+  : '{' abinds '}'    { sLL $1 $3 . flip AnnRecord $2 }
+  | '(' annot_exp ')' { sLL $1 $3 . flip AnnApply (Just $2) }
+  | annot_exp1        { sL1 $1    . flip AnnApply (Just $1) }
+  | {- empty -}       { sL0       . flip AnnApply Nothing }
+
+abinds  :: { [(LString, LAnnExpr RdrName)] }
+        : abinds1      { $1 }
+        | {- empty -}  { [] }
+
+abinds1 :: { [(LString, LAnnExpr RdrName)] }
+        : abind ',' abinds1  { $1 : $3 }
+
+        | abind              { [$1] }
+
+abind   :: { (LString, LAnnExpr RdrName) }
+        : varid '=' annot_exp  { (sL1 $1 $ occNameString $ rdrNameOcc $ unLoc $1, $3) }
+
+annot_exp :: { LAnnExpr RdrName }
+          : java_annot   { jaExpr $1 }
+          | annot_exp1   { $1 }
+
+annot_exp1 :: { LAnnExpr RdrName }
+           : CHAR               { sL1 $1    $ AnnCharacter $ getCHAR $1 }
+           | STRING             { sL1 $1    $ AnnString    $ getSTRING $1 }
+           | INTEGER            { sL1 $1    $ AnnInteger   $ il_value $ getINTEGER $1 }
+           | RATIONAL           { sL1 $1    $ AnnRational  $ fl_value $ getRATIONAL $1 }
+           | '[' ']'            { sLL $1 $2 $ AnnList [] }
+           | '[' annot_list ']' { sLL $1 $3 $ AnnList $2}
+
+annot_list :: { [LAnnExpr RdrName] }
+           : annot_list ',' annot_exp { $1 ++ [$3] }
+           | annot_exp                { [$1] }
+
+-----------------------------------------------------------------------------
 -- Role annotations
 
 role_annot :: { LRoleAnnotDecl RdrName }
@@ -1290,7 +1347,8 @@ decl_cls  : at_decl_cls                 { sLL $1 $> (unitOL $1) }
 
           -- A 'default' signature used with the generic-programming extension
           | 'default' infixexp '::' sigtypedoc
-                    {% do { (TypeSig l ty _) <- checkValSig $2 $4
+                    {% do { anns <- takeJavaAnnotations
+                          ; (TypeSig l ty _ _) <- checkValSig $2 $4 anns
                           ; let err = text "in default signature" <> colon <+>
                                       quotes (ppr ty)
                           ; checkNoPartialType err ty
@@ -1939,7 +1997,7 @@ gadt_constrs :: { Located [LConDecl RdrName] }
 gadt_constr :: { LConDecl RdrName }
                    -- Returns a list because of:   C,D :: ty
         : con_list '::' sigtype
-                {% do { (anns,gadtDecl) <- mkGadtDeclP (unLoc $1) $3
+                {% do { (anns,gadtDecl) <- mkGadtDeclP (unLoc $1) $3 []
                       ; ams (sLL $1 $> $ gadtDecl)
                             (mj AnnDcolon $2:anns) } }
 
@@ -1961,18 +2019,18 @@ constrs1 :: { Located [LConDecl RdrName] }
         | constr                                          { sL1 $1 [$1] }
 
 constr :: { LConDecl RdrName }
-        : maybe_docnext forall context '=>' constr_stuff maybe_docprev
-                {% ams (let (con,details) = unLoc $5 in
-                  addConDoc (L (comb4 $2 $3 $4 $5) (mkSimpleConDecl con
-                                                   (snd $ unLoc $2) $3 details))
-                            ($1 `mplus` $6))
-                        (mj AnnDarrow $4:(fst $ unLoc $2)) }
-        | maybe_docnext forall constr_stuff maybe_docprev
-                {% ams ( let (con,details) = unLoc $3 in
-                  addConDoc (L (comb2 $2 $3) (mkSimpleConDecl con
-                                           (snd $ unLoc $2) (noLoc []) details))
-                            ($1 `mplus` $4))
-                       (fst $ unLoc $2) }
+        : maybe_docnext maybe_java_annots forall context '=>' constr_stuff maybe_docprev
+                {% ams (let (con,details) = unLoc $6 in
+                  addConDoc (L (comb4 $3 $4 $5 $6) (mkSimpleConDecl con
+                                                   (snd $ unLoc $3) $4 details $2))
+                            ($1 `mplus` $7))
+                        (mj AnnDarrow $5:(fst $ unLoc $3)) }
+        | maybe_docnext maybe_java_annots forall constr_stuff maybe_docprev
+                {% ams ( let (con,details) = unLoc $4 in
+                  addConDoc (L (comb2 $3 $4) (mkSimpleConDecl con
+                                           (snd $ unLoc $3) (noLoc []) details $2))
+                            ($1 `mplus` $5))
+                       (fst $ unLoc $3) }
 
 forall :: { Located ([AddAnn],[LHsTyVarBndr RdrName]) }
         : 'forall' tv_bndrs '.'       { sLL $1 $> ([mj AnnForall $1,mj AnnDot $3],$2) }
@@ -2001,10 +2059,10 @@ fielddecls1 :: { [LConDeclField RdrName] }
 
 fielddecl :: { LConDeclField RdrName }
                                               -- A list because of   f,g :: Int
-        : maybe_docnext sig_vars '::' ctype maybe_docprev
-            {% ams (L (comb2 $2 $4)
-                      (ConDeclField (reverse (unLoc $2)) $4 ($1 `mplus` $5)))
-                   [mj AnnDcolon $3] }
+        : maybe_docnext maybe_java_annots sig_vars '::' ctype maybe_docprev
+            {% ams (L (comb2 $3 $5)
+                      (ConDeclField (reverse (unLoc $3)) $5 ($1 `mplus` $6) $2))
+                   [mj AnnDcolon $4] }
 
 -- We allow the odd-looking 'inst_type' in a deriving clause, so that
 -- we can do deriving( forall a. C [a] ) in a newtype (GHC extension).
@@ -2115,13 +2173,15 @@ sigdecl :: { Located (OrdList (LHsDecl RdrName)) }
         -- See Note [Declaration/signature overlap] for why we need infixexp here
           infixexp '::' sigtypedoc
                         {% do ty <- checkPartialTypeSignature $3
-                        ; s <- checkValSig $1 ty
+                        ; anns   <- takeJavaAnnotations
+                        ; s <- checkValSig $1 ty anns
                         ; _ <- ams (sLL $1 $> ()) [mj AnnDcolon $2]
                         ; return (sLL $1 $> $ unitOL (sLL $1 $> $ SigD s)) }
 
         | var ',' sig_vars '::' sigtypedoc
            {% do { ty <- checkPartialTypeSignature $5
-                 ; let sig = TypeSig ($1 : reverse (unLoc $3)) ty PlaceHolder
+                 ; anns <- takeJavaAnnotations
+                 ; let sig = TypeSig ($1 : reverse (unLoc $3)) ty PlaceHolder anns
                  ; addAnnotation (gl $1) AnnComma (gl $2)
                  ; ams (sLL $1 $> $ toOL [ sLL $1 $> $ SigD sig ])
                        [mj AnnDcolon $4] } }
@@ -3351,10 +3411,21 @@ ams a@(L l _) bs = mapM_ (\a -> a l) bs >> return a
 
 -- |Add a list of AddAnns to the given AST element, where the AST element is the
 --  result of a monadic action
+ammsAnn :: ([JavaAnnotation RdrName] -> P (Located a)) -> [AddAnn] -> P (Located a)
+ammsAnn f bs = do
+  jas <- takeJavaAnnotations
+  av@(L l _) <- f jas
+  mapM_ (\a -> a l) bs
+  return av
+
+-- |Add a list of AddAnns to the given AST element, where the AST element is the
+--  result of a monadic action
 amms :: P (Located a) -> [AddAnn] -> P (Located a)
 amms a bs = do
+  _ <- takeJavaAnnotations
   av@(L l _) <- a
-  (mapM_ (\a -> a l) bs) >> return av
+  mapM_ (\a -> a l) bs
+  return av
 
 -- |Add a list of AddAnns to the AST element, and return the element as a
 --  OrdList

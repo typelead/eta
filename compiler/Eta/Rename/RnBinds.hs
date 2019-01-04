@@ -679,7 +679,7 @@ mkSigTvFn sigs
 
     env :: NameEnv [Name]
     env = mkNameEnv [ (name, nwcs ++ extractScopedTyVars ty)  -- Kind variables and type variables
-                    | L _ (TypeSig names ty nwcs) <- sigs
+                    | L _ (TypeSig names ty nwcs _) <- sigs
                     , L _ name <- names]
         -- Note the pattern-match on "Explicit"; we only bind
         -- type variables from signatures with an explicit top-level for-all
@@ -810,13 +810,13 @@ renameSig :: HsSigCtxt -> Sig RdrName -> RnM (Sig Name, FreeVars)
 renameSig _ (IdSig x)
   = return (IdSig x, emptyFVs)    -- Actually this never occurs
 
-renameSig ctxt sig@(TypeSig vs ty _)
+renameSig ctxt sig@(TypeSig vs ty _ _)
   = do  { new_vs <- mapM (lookupSigOccRn ctxt sig) vs
         -- (named and anonymous) wildcards are bound here.
         ; (wcs, ty') <- extractWildcards ty
         ; bindLocatedLocalsFV wcs $ \wcs_new -> do {
           (new_ty, fvs) <- rnHsSigType (ppr_sig_bndrs vs) ty'
-        ; return (TypeSig new_vs new_ty wcs_new, fvs) } }
+        ; return (TypeSig new_vs new_ty wcs_new [], fvs) } }
 
 renameSig ctxt sig@(GenericSig vs ty)
   = do  { defaultSigs_on <- xoptM LangExt.DefaultSignatures
@@ -931,7 +931,7 @@ findDupSigs sigs
   where
     expand_sig sig@(FixSig (FixitySig ns _)) = zip ns (repeat sig)
     expand_sig sig@(InlineSig n _)          = [(n,sig)]
-    expand_sig sig@(TypeSig ns _ _)         = [(n,sig) | n <- ns]
+    expand_sig sig@(TypeSig ns _ _ _)       = [(n,sig) | n <- ns]
     expand_sig sig@(GenericSig ns _)        = [(n,sig) | n <- ns]
     expand_sig _ = []
 

@@ -65,6 +65,7 @@ module Eta.BasicTypes.SrcLoc (
         Located,
         RealLocated,
         GenLocated(..),
+        LString,
 
         -- ** Constructing Located
         noLoc,
@@ -76,7 +77,7 @@ module Eta.BasicTypes.SrcLoc (
         -- ** Combining and comparing Located values
         eqLocated, cmpLocated, combineLocs, addCLoc,
         leftmost_smallest, leftmost_largest, rightmost,
-        spans, isSubspanOf, sortLocated
+        spans, isSubspanOf, sortLocated, modifySrcSpan
     ) where
 
 import Eta.Utils.Util
@@ -605,3 +606,8 @@ isSubspanOf src parent
     | srcSpanFileName_maybe parent /= srcSpanFileName_maybe src = False
     | otherwise = srcSpanStart parent <= srcSpanStart src &&
                   srcSpanEnd parent   >= srcSpanEnd src
+
+modifySrcSpan :: (SrcSpan -> SrcSpan) -> Located a -> Located a
+modifySrcSpan f (L l a) = L (f l) a
+
+type LString = Located String

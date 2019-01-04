@@ -198,7 +198,7 @@ tcHsBootSigs (ValBindsOut binds sigs)
   = do  { checkTc (null binds) badBootDeclErr
         ; concat <$> mapM (addLocM tc_boot_sig) (filter isTypeLSig sigs) }
   where
-    tc_boot_sig (TypeSig lnames ty _) = mapM f lnames
+    tc_boot_sig (TypeSig lnames ty _ _) = mapM f lnames
       where
         f (L _ name) = do  { sigma_ty <- tcHsSigType (FunSigCtxt name) ty
                            ; return (mkVanillaGlobal name sigma_ty) }
@@ -1395,7 +1395,7 @@ tcTySig :: LSig Name -> TcM ([TcSigInfo], [TcTyVar])
 tcTySig (L _ (IdSig id))
   = do { sig <- instTcTySigFromId id
        ; return ([sig], []) }
-tcTySig (L loc (TypeSig names@(L _ name1 : _) hs_ty wcs))
+tcTySig (L loc (TypeSig names@(L _ name1 : _) hs_ty wcs _anns))
   = setSrcSpan loc $
     pushTcLevelM   $
     do { nwc_tvs <- mapM newWildcardVarMetaKind wcs      -- Generate fresh meta vars for the wildcards

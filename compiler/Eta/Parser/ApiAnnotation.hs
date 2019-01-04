@@ -288,10 +288,3 @@ data AnnotationComment =
 
 instance Outputable AnnotationComment where
   ppr x = text (show x)
-
--- | - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnOpen',
---             'ApiAnnotation.AnnClose','ApiAnnotation.AnnComma',
---             'ApiAnnotation.AnnRarrow','ApiAnnotation.AnnTildehsh',
---             'ApiAnnotation.AnnTilde'
---   - May have 'ApiAnnotation.AnnComma' when in a list
-type LRdrName = Located RdrName

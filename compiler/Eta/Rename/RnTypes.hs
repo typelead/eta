@@ -531,11 +531,11 @@ rnConDeclFields doc fields = mapFvRn (rnField doc) fields
 
 rnField :: HsDocContext -> LConDeclField RdrName
         -> RnM (LConDeclField Name, FreeVars)
-rnField doc (L l (ConDeclField names ty haddock_doc))
+rnField doc (L l (ConDeclField names ty haddock_doc _))
   = do { new_names <- mapM lookupLocatedTopBndrRn names
        ; (new_ty, fvs) <- rnLHsType doc ty
        ; new_haddock_doc <- rnMbLHsDoc haddock_doc
-       ; return (L l (ConDeclField new_names new_ty new_haddock_doc), fvs) }
+       ; return (L l (ConDeclField new_names new_ty new_haddock_doc []), fvs) }
 
 rnContext :: HsDocContext -> LHsContext RdrName -> RnM (LHsContext Name, FreeVars)
 rnContext doc (L loc cxt)

@@ -192,7 +192,7 @@ hsSigTvBinders binds
 
 get_scoped_tvs :: LSig Name -> [Name]
 get_scoped_tvs sig
-  | L _ (TypeSig _ (L _ (HsForAllTy Explicit _ qtvs _ _)) _) <- sig
+  | L _ (TypeSig _ (L _ (HsForAllTy Explicit _ qtvs _ _)) _ _) <- sig
   = map hsLTyVarName $ hsQTvBndrs qtvs
   | L _ (GenericSig _ (L _ (HsForAllTy Explicit _ qtvs _ _))) <- sig
   = map hsLTyVarName $ hsQTvBndrs qtvs
@@ -833,7 +833,7 @@ rep_sigs :: [LSig Name] -> DsM [(SrcSpan, Core TH.DecQ)]
 rep_sigs = concatMapM rep_sig
 
 rep_sig :: LSig Name -> DsM [(SrcSpan, Core TH.DecQ)]
-rep_sig (L loc (TypeSig nms ty _))    = mapM (rep_ty_sig sigDName loc ty) nms
+rep_sig (L loc (TypeSig nms ty _ _))    = mapM (rep_ty_sig sigDName loc ty) nms
 -- rep_sig (L loc (PatSynSig _ _ _ nms ty))  = mapM (rep_patsyn_ty_sig loc ty) nms
 rep_sig (L _loc (PatSynSig _ _ _ _nms _ty)) = notHandled "Pattern type signatures" empty
 rep_sig (L loc (GenericSig nms ty))   = mapM (rep_ty_sig defaultSigDName loc ty) nms

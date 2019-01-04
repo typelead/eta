@@ -93,6 +93,7 @@ import Eta.Types.Coercion
 import Eta.Prelude.ForeignCall
 import Eta.HsSyn.PlaceHolder ( PostTc,PostRn,PlaceHolder(..),DataId )
 import Eta.BasicTypes.NameSet
+import Eta.BasicTypes.JavaAnnotation
 
 -- others:
 import Eta.Types.InstEnv
@@ -164,10 +165,10 @@ deriving instance (DataId id) => Data (HsDecl id)
 -- fed to the renamer.
 data HsGroup id
   = HsGroup {
-        hs_valds  :: HsValBinds id,
-        hs_splcds :: [LSpliceDecl id],
+        hs_valds   :: HsValBinds id,
+        hs_splcds  :: [LSpliceDecl id],
 
-        hs_tyclds :: [TyClGroup id],
+        hs_tyclds  :: [TyClGroup id],
                 -- A list of mutually-recursive groups
                 -- No family-instances here; they are in hs_instds
                 -- Parser generates a singleton list;
@@ -178,18 +179,18 @@ data HsGroup id
 
         hs_derivds :: [LDerivDecl id],
 
-        hs_fixds  :: [LFixitySig id],
+        hs_fixds   :: [LFixitySig id],
                 -- Snaffled out of both top-level fixity signatures,
                 -- and those in class declarations
 
-        hs_defds  :: [LDefaultDecl id],
-        hs_fords  :: [LForeignDecl id],
-        hs_warnds :: [LWarnDecls id],
-        hs_annds  :: [LAnnDecl id],
-        hs_ruleds :: [LRuleDecls id],
-        hs_vects  :: [LVectDecl id],
+        hs_defds   :: [LDefaultDecl id],
+        hs_fords   :: [LForeignDecl id],
+        hs_warnds  :: [LWarnDecls id],
+        hs_annds   :: [LAnnDecl id],
+        hs_ruleds  :: [LRuleDecls id],
+        hs_vects   :: [LVectDecl id],
 
-        hs_docs   :: [LDocDecl]
+        hs_docs    :: [LDocDecl]
   } deriving (Typeable)
 deriving instance (DataId id) => Data (HsGroup id)
 
@@ -208,48 +209,48 @@ emptyGroup = HsGroup { hs_tyclds = [], hs_instds = [],
 appendGroups :: HsGroup a -> HsGroup a -> HsGroup a
 appendGroups
     HsGroup {
-        hs_valds  = val_groups1,
-        hs_splcds = spliceds1,
-        hs_tyclds = tyclds1,
-        hs_instds = instds1,
+        hs_valds   = val_groups1,
+        hs_splcds  = spliceds1,
+        hs_tyclds  = tyclds1,
+        hs_instds  = instds1,
         hs_derivds = derivds1,
-        hs_fixds  = fixds1,
-        hs_defds  = defds1,
-        hs_annds  = annds1,
-        hs_fords  = fords1,
-        hs_warnds = warnds1,
-        hs_ruleds = rulds1,
-        hs_vects = vects1,
-  hs_docs   = docs1 }
+        hs_fixds   = fixds1,
+        hs_defds   = defds1,
+        hs_annds   = annds1,
+        hs_fords   = fords1,
+        hs_warnds  = warnds1,
+        hs_ruleds  = rulds1,
+        hs_vects   = vects1,
+        hs_docs    = docs1 }
     HsGroup {
-        hs_valds  = val_groups2,
-        hs_splcds = spliceds2,
-        hs_tyclds = tyclds2,
-        hs_instds = instds2,
+        hs_valds   = val_groups2,
+        hs_splcds  = spliceds2,
+        hs_tyclds  = tyclds2,
+        hs_instds  = instds2,
         hs_derivds = derivds2,
-        hs_fixds  = fixds2,
-        hs_defds  = defds2,
-        hs_annds  = annds2,
-        hs_fords  = fords2,
-        hs_warnds = warnds2,
-        hs_ruleds = rulds2,
-        hs_vects  = vects2,
-        hs_docs   = docs2 }
+        hs_fixds   = fixds2,
+        hs_defds   = defds2,
+        hs_annds   = annds2,
+        hs_fords   = fords2,
+        hs_warnds  = warnds2,
+        hs_ruleds  = rulds2,
+        hs_vects   = vects2,
+        hs_docs    = docs2 }
   =
     HsGroup {
-        hs_valds  = val_groups1 `plusHsValBinds` val_groups2,
-        hs_splcds = spliceds1 ++ spliceds2,
-        hs_tyclds = tyclds1 ++ tyclds2,
-        hs_instds = instds1 ++ instds2,
-        hs_derivds = derivds1 ++ derivds2,
-        hs_fixds  = fixds1 ++ fixds2,
-        hs_annds  = annds1 ++ annds2,
-        hs_defds  = defds1 ++ defds2,
-        hs_fords  = fords1 ++ fords2,
-        hs_warnds = warnds1 ++ warnds2,
-        hs_ruleds = rulds1 ++ rulds2,
-        hs_vects  = vects1 ++ vects2,
-        hs_docs   = docs1  ++ docs2 }
+        hs_valds   = val_groups1 `plusHsValBinds` val_groups2,
+        hs_splcds  = spliceds1 ++ spliceds2,
+        hs_tyclds  = tyclds1   ++ tyclds2,
+        hs_instds  = instds1   ++ instds2,
+        hs_derivds = derivds1  ++ derivds2,
+        hs_fixds   = fixds1    ++ fixds2,
+        hs_annds   = annds1    ++ annds2,
+        hs_defds   = defds1    ++ defds2,
+        hs_fords   = fords1    ++ fords2,
+        hs_warnds  = warnds1   ++ warnds2,
+        hs_ruleds  = rulds1    ++ rulds2,
+        hs_vects   = vects1    ++ vects2,
+        hs_docs    = docs1     ++ docs2 }
 
 instance OutputableBndr name => Outputable (HsDecl name) where
     ppr (TyClD dcl)             = ppr dcl
@@ -268,17 +269,17 @@ instance OutputableBndr name => Outputable (HsDecl name) where
     ppr (RoleAnnotD ra)         = ppr ra
 
 instance OutputableBndr name => Outputable (HsGroup name) where
-    ppr (HsGroup { hs_valds  = val_decls,
-                   hs_tyclds = tycl_decls,
-                   hs_instds = inst_decls,
+    ppr (HsGroup { hs_valds   = val_decls,
+                   hs_tyclds  = tycl_decls,
+                   hs_instds  = inst_decls,
                    hs_derivds = deriv_decls,
-                   hs_fixds  = fix_decls,
-                   hs_warnds = deprec_decls,
-                   hs_annds  = ann_decls,
-                   hs_fords  = foreign_decls,
-                   hs_defds  = default_decls,
-                   hs_ruleds = rule_decls,
-                   hs_vects  = vect_decls })
+                   hs_fixds   = fix_decls,
+                   hs_warnds  = deprec_decls,
+                   hs_annds   = ann_decls,
+                   hs_fords   = foreign_decls,
+                   hs_defds   = default_decls,
+                   hs_ruleds  = rule_decls,
+                   hs_vects   = vect_decls })
         = vcat_mb empty
             [ppr_ds fix_decls, ppr_ds default_decls,
              ppr_ds deprec_decls, ppr_ds ann_decls,
@@ -793,10 +794,10 @@ data HsDataDefn name   -- The payload of a data type defn
     --  data/newtype T a = <constrs>
     --  data/newtype instance T [a] = <constrs>
     -- @
-    HsDataDefn { dd_ND     :: NewOrData,
-                 dd_ctxt   :: LHsContext name,           -- ^ Context
-                 dd_cType  :: Maybe (Located CType),
-                 dd_kindSig:: Maybe (LHsKind name),
+    HsDataDefn { dd_ND       :: NewOrData,
+                 dd_ctxt     :: LHsContext name,           -- ^ Context
+                 dd_metaData :: (Maybe (Located CType), [JavaAnnotation name]),
+                 dd_kindSig  :: Maybe (LHsKind name),
                      -- ^ Optional kind signature.
                      --
                      -- @(Just k)@ for a GADT-style @data@,
@@ -897,6 +898,9 @@ data ConDecl name
         -- ^ Result type of the constructor
 
     , con_doc       :: Maybe LHsDocString
+        -- ^ A possible Haddock comment.
+
+    , con_anns      :: [JavaAnnotation name]
         -- ^ A possible Haddock comment.
 
     , con_old_rec :: Bool

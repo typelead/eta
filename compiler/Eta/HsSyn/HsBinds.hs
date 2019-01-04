@@ -32,6 +32,7 @@ import Eta.Types.Type
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.BasicTypes
+import Eta.BasicTypes.JavaAnnotation
 import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Var
@@ -444,7 +445,7 @@ plusHsValBinds _ _
 getTypeSigNames :: HsValBinds a -> NameSet
 -- Get the names that have a user type sig
 getTypeSigNames (ValBindsOut _ sigs)
-  = mkNameSet [unLoc n | L _ (TypeSig names _ _) <- sigs, n <- names]
+  = mkNameSet [unLoc n | L _ (TypeSig names _ _ _) <- sigs, n <- names]
 getTypeSigNames _
   = panic "HsBinds.getTypeSigNames"
 
@@ -620,7 +621,7 @@ data Sig name
       --          'ApiAnnotation.AnnComma'
 
       -- For details on above see note [Api annotations] in ApiAnnotation
-    TypeSig [Located name] (LHsType name) (PostRn name [Name])
+    TypeSig [Located name] (LHsType name) (PostRn name [Name]) [JavaAnnotation name]
 
       -- | A pattern synonym type signature
       --
@@ -821,7 +822,7 @@ instance (OutputableBndr name) => Outputable (Sig name) where
     ppr sig = ppr_sig sig
 
 ppr_sig :: OutputableBndr name => Sig name -> SDoc
-ppr_sig (TypeSig vars ty _wcs)    = pprVarSig (map unLoc vars) (ppr ty)
+ppr_sig (TypeSig vars ty _wcs _anns) = pprVarSig (map unLoc vars) (ppr ty)
 ppr_sig (GenericSig vars ty)      = ptext (sLit "default") <+> pprVarSig (map unLoc vars) (ppr ty)
 ppr_sig (IdSig id)                = pprVarSig [id] (ppr (varType id))
 ppr_sig (FixSig fix_sig)          = ppr fix_sig

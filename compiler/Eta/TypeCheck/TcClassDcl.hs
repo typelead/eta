@@ -111,7 +111,7 @@ tcClassSigs clas sigs def_methods
        ; traceTc "tcClassSigs 2" (ppr clas)
        ; return (op_info, gen_dm_env) }
   where
-    vanilla_sigs = [L loc (nm,ty) | L loc (TypeSig    nm ty _) <- sigs]
+    vanilla_sigs = [L loc (nm,ty) | L loc (TypeSig    nm ty _ _) <- sigs]
     gen_sigs     = [L loc (nm,ty) | L loc (GenericSig nm ty) <- sigs]
     dm_bind_names :: [Name]     -- These ones have a value binding in the class decl
     dm_bind_names = [op | L _ (FunBind {fun_id = L _ op}) <- bagToList def_methods]
@@ -312,7 +312,7 @@ emptyHsSigs = emptyNameEnv
 
 mkHsSigFun :: [LSig Name] -> HsSigFun
 mkHsSigFun sigs = mkNameEnv [(n, hs_ty)
-                            | L _ (TypeSig ns hs_ty _) <- sigs
+                            | L _ (TypeSig ns hs_ty _ _) <- sigs
                             , L _ n <- ns ]
 
 lookupHsSig :: HsSigFun -> Name -> Maybe (LHsType Name)

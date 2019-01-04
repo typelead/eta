@@ -45,6 +45,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE NondecreasingIndentation #-}
+{-# LANGUAGE RecordPuns #-}
 {-# OPTIONS_GHC -XNoOverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
@@ -75,10 +76,10 @@ module Eta.Parser.Lexer (
    sccProfilingOn, hpcEnabled,
    addWarning,
    lexTokenStream,
-   addAnnotation,AddAnn,mkParensApiAnn
+   addAnnotation,AddAnn,mkParensApiAnn,
+   addJavaAnnotations, takeJavaAnnotations
   ) where
 
--- base
 import Control.Applicative
 import Control.Monad
 import Data.Bits
@@ -88,18 +89,14 @@ import Data.Maybe
 import Data.Ratio
 import Data.Word
 import qualified Eta.LanguageExtensions as LangExt
--- bytestring
 import Data.ByteString (ByteString)
 
--- containers
 import Data.Map (Map)
 import qualified Data.Map as Map
 
--- data/typeable
 import Data.Data
 import Data.Typeable
 
--- compiler/utils
 import Eta.Utils.Bag
 import Eta.Utils.Outputable
 import Eta.Utils.StringBuffer
@@ -107,17 +104,16 @@ import Eta.Utils.FastString
 import Eta.Utils.UniqFM
 import Eta.Utils.Util             ( readRational )
 
--- compiler/main
 import Eta.Main.ErrUtils
 import Eta.Main.DynFlags
 
--- compiler/basicTypes
 import Eta.BasicTypes.SrcLoc
+import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.BasicTypes
   ( InlineSpec(..), RuleMatchInfo(..), IntegralLit(..), FractionalLit(..), SourceText )
+import Eta.BasicTypes.JavaAnnotation
 
--- compiler/parser
 import Eta.Parser.Ctype
 
 import Eta.Parser.ApiAnnotation
@@ -1788,7 +1784,8 @@ data PState = PState {
         -- See note [Api annotations] in ApiAnnotation.hs
         annotations :: [(ApiAnnKey,[SrcSpan])],
         comment_q :: [Located AnnotationComment],
-        annotations_comments :: [(SrcSpan,[Located AnnotationComment])]
+        annotations_comments :: [(SrcSpan,[Located AnnotationComment])],
+        java_annotation_q :: [JavaAnnotation RdrName]
      }
         -- last_loc and last_len are used when generating error messages,
         -- and in pushCurrentContext only.  Sigh, if only Happy passed the
@@ -2748,6 +2745,13 @@ commentToAnnotation (L l (ITdocOptions s))      = L l (AnnDocOptions s)
 commentToAnnotation (L l (ITdocOptionsOld s))   = L l (AnnDocOptionsOld s)
 commentToAnnotation (L l (ITlineComment s))     = L l (AnnLineComment s)
 commentToAnnotation (L l (ITblockComment s))    = L l (AnnBlockComment s)
+
+addJavaAnnotations :: [JavaAnnotation RdrName] -> P ()
+addJavaAnnotations jas =
+  P $ \s -> POk s { java_annotation_q = jas ++ java_annotation_q s } ()
+
+takeJavaAnnotations :: P [JavaAnnotation RdrName]
+takeJavaAnnotations = P $ \s -> POk (s { java_annotation_q = [] }) (java_annotation_q s)
 
 -- ---------------------------------------------------------------------
 

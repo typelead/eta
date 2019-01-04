@@ -170,7 +170,7 @@ cvtDec (TH.FunD nm cls)
 cvtDec (TH.SigD nm typ)
   = do  { nm' <- vNameL nm
         ; ty' <- cvtType typ
-        ; returnJustL $ Hs.SigD (TypeSig [nm'] ty' PlaceHolder) }
+        ; returnJustL $ Hs.SigD (TypeSig [nm'] ty' PlaceHolder []) }
 
 cvtDec (TH.InfixD fx nm)
   -- Fixity signatures are allowed for variables, constructors, and types
@@ -207,7 +207,7 @@ cvtDec (DataD ctxt tc tvs ksig constrs derivs)
         ; ksig' <- cvtKind `traverse` ksig
         ; cons' <- mapM cvtConstr constrs
         ; derivs' <- cvtDerivs derivs
-        ; let defn = HsDataDefn { dd_ND = DataType, dd_cType = Nothing
+        ; let defn = HsDataDefn { dd_ND = DataType, dd_metaData = (Nothing, [])
                                 , dd_ctxt = ctxt'
                                 , dd_kindSig = ksig'
                                 , dd_cons = cons', dd_derivs = derivs' }
@@ -220,7 +220,7 @@ cvtDec (NewtypeD ctxt tc tvs ksig constr derivs)
         ; ksig' <- cvtKind `traverse` ksig
         ; con' <- cvtConstr constr
         ; derivs' <- cvtDerivs derivs
-        ; let defn = HsDataDefn { dd_ND = NewType, dd_cType = Nothing
+        ; let defn = HsDataDefn { dd_ND = NewType, dd_metaData = (Nothing, [])
                                 , dd_ctxt = ctxt'
                                 , dd_kindSig = ksig'
                                 , dd_cons = [con']
@@ -287,7 +287,7 @@ cvtDec (DataInstD ctxt tc tys ksig constrs derivs)
        ; ksig' <- cvtKind `traverse` ksig
        ; cons' <- mapM cvtConstr constrs
        ; derivs' <- cvtDerivs derivs
-       ; let defn = HsDataDefn { dd_ND = DataType, dd_cType = Nothing
+       ; let defn = HsDataDefn { dd_ND = DataType, dd_metaData = (Nothing, [])
                                , dd_ctxt = ctxt'
                                , dd_kindSig = ksig'
                                , dd_cons = cons', dd_derivs = derivs' }
@@ -302,7 +302,7 @@ cvtDec (NewtypeInstD ctxt tc tys ksig constr derivs)
        ; ksig' <- cvtKind `traverse` ksig
        ; con' <- cvtConstr constr
        ; derivs' <- cvtDerivs derivs
-       ; let defn = HsDataDefn { dd_ND = NewType, dd_cType = Nothing
+       ; let defn = HsDataDefn { dd_ND = NewType, dd_metaData = (Nothing, [])
                                , dd_ctxt = ctxt'
                                , dd_kindSig = ksig'
                                , dd_cons = [con'], dd_derivs = derivs' }
@@ -481,21 +481,20 @@ cvtConstr (NormalC c strtys)
   = do  { c'   <- cNameL c
         ; cxt' <- returnL []
         ; tys' <- mapM cvt_arg strtys
-        ; returnL $ mkSimpleConDecl c' noExistentials cxt' (PrefixCon tys') }
+        ; returnL $ mkSimpleConDecl c' noExistentials cxt' (PrefixCon tys') [] }
 
 cvtConstr (RecC c varstrtys)
   = do  { c'    <- cNameL c
         ; cxt'  <- returnL []
         ; args' <- mapM cvt_id_arg varstrtys
-        ; returnL $ mkSimpleConDecl c' noExistentials cxt'
-                                   (RecCon (noLoc args')) }
+        ; returnL $ mkSimpleConDecl c' noExistentials cxt' (RecCon (noLoc args')) [] }
 
 cvtConstr (InfixC st1 c st2)
   = do  { c' <- cNameL c
         ; cxt' <- returnL []
         ; st1' <- cvt_arg st1
         ; st2' <- cvt_arg st2
-        ; returnL $ mkSimpleConDecl c' noExistentials cxt' (InfixCon st1' st2') }
+        ; returnL $ mkSimpleConDecl c' noExistentials cxt' (InfixCon st1' st2') [] }
 
 cvtConstr (ForallC tvs ctxt con)
   = do  { tvs'  <- cvtTvs tvs
@@ -509,14 +508,14 @@ cvtConstr (GadtC c strtys ty)
         ; args    <- mapM cvt_arg strtys
         ; L _ ty' <- cvtType ty
         ; c_ty    <- mk_arr_apps args ty'
-        ; returnL $ mkGadtDecl c' c_ty}
+        ; returnL $ mkGadtDecl c' c_ty []}
 
 cvtConstr (RecGadtC c varstrtys ty)
   = do  { c'       <- mapM cNameL c
         ; ty'      <- cvtType ty
         ; rec_flds <- mapM cvt_id_arg varstrtys
         ; let rec_ty = noLoc (HsFunTy (noLoc $ HsRecTy rec_flds) ty')
-        ; returnL $ mkGadtDecl c' rec_ty }
+        ; returnL $ mkGadtDecl c' rec_ty [] }
 
 cvtSrcUnpackedness :: TH.SourceUnpackedness -> SrcUnpackedness
 cvtSrcUnpackedness NoSourceUnpackedness = NoSrcUnpack
@@ -541,8 +540,9 @@ cvt_id_arg (i, str, ty)
   = do  { i' <- vNameL i
         ; ty' <- cvt_arg (str,ty)
         ; return $ noLoc (ConDeclField { cd_fld_names = [i']
-                                       , cd_fld_type =  ty'
-                                       , cd_fld_doc = Nothing}) }
+                                       , cd_fld_type  =  ty'
+                                       , cd_fld_doc   = Nothing
+                                       , cd_fld_anns  = [] }) }
 
 cvtDerivs :: TH.Cxt -> CvtM (Maybe (Located [LHsType RdrName]))
 cvtDerivs cxt = do

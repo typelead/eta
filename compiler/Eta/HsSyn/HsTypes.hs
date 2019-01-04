@@ -67,6 +67,7 @@ import Eta.Types.Type
 import Eta.HsSyn.HsDoc
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.SrcLoc
+import Eta.BasicTypes.JavaAnnotation
 import Eta.Main.StaticFlags
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
@@ -526,7 +527,8 @@ type LConDeclField name = Located (ConDeclField name)
 data ConDeclField name  -- Record fields have Haddoc docs on them
   = ConDeclField { cd_fld_names :: [Located name],
                    cd_fld_type  :: LBangType name,
-                   cd_fld_doc   :: Maybe LHsDocString }
+                   cd_fld_doc   :: Maybe LHsDocString,
+                   cd_fld_anns  :: [JavaAnnotation name] }
       -- ^ - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnDcolon'
 
       -- For details on above see note [Api annotations] in ApiAnnotation

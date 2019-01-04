@@ -51,6 +51,7 @@ library
                        , Eta.BasicTypes.Demand
                        , Eta.BasicTypes.Id
                        , Eta.BasicTypes.IdInfo
+                       , Eta.BasicTypes.JavaAnnotation
                        , Eta.BasicTypes.Lexeme
                        , Eta.BasicTypes.Literal
                        , Eta.BasicTypes.MkId

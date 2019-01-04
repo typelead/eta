@@ -25,6 +25,7 @@
 module Eta.BasicTypes.RdrName (
         -- * The main type
         RdrName(..),    -- Constructors exported only to BinIface
+        LRdrName,
 
         -- ** Construction
         mkRdrUnqual, mkRdrQual,
@@ -135,6 +136,8 @@ data RdrName
         --
         -- Such a 'RdrName' can be created by using 'getRdrName' on a 'Name'
   deriving (Data, Typeable)
+
+type LRdrName = Located RdrName
 
 {-
 ************************************************************************
