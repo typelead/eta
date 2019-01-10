@@ -1,6 +1,6 @@
 -- (c) The University of Glasgow 2002-2006
 
-{-# LANGUAGE RankNTypes, CPP #-}
+{-# LANGUAGE RankNTypes, CPP, BangPatterns #-}
 
 module Eta.Iface.IfaceEnv (
         newGlobalBinder, newInteractiveBinder, newImplicitBinder,
@@ -254,7 +254,7 @@ newtype NameCacheUpdater = NCU { updateNameCache :: forall c. (NameCache -> (Nam
 -- | Return a function to atomically update the name cache.
 mkNameCacheUpdater :: TcRnIf a b NameCacheUpdater
 mkNameCacheUpdater = do
-  nc_var <- hsc_NC `fmap` getTopEnv
+  !nc_var <- hsc_NC `fmap` getTopEnv
   let update_nc f = do r <- atomicModifyIORef nc_var f
                        _ <- evaluate =<< readIORef nc_var
                        return r
