@@ -1062,6 +1062,8 @@ extractWildcards ty
             rdrName = nameRdrName name
         return ([], [L l rdrName], L l $ HsNamedWildcardTy rdrName)
       (HsNamedWildcardTy name)    -> return ([L l name], [], orig)
+      -- TODO: Is this correct?
+      HsSpliceTy (HsSpliced _ (HsSplicedTy ty)) _ -> go $ L noSrcSpan ty
       -- HsSpliceTy, HsRecTy, HsCoreTy, HsTyLit, HsWrapTy
       _                           -> return ([], [], orig)
       where

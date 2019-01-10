@@ -859,6 +859,10 @@ tcExpr (PArrSeq _ _) _
 ************************************************************************
 -}
 
+-- HsSpliced is an annotation produced by 'RnSplice.rnSpliceExpr'.
+-- Here we get rid of it and add the finalizers to the global environment.
+--
+-- See Note [Delaying modFinalizers in untyped splices] in RnSplice.
 tcExpr (HsSpliceE (HsSpliced mod_finalizers (HsSplicedExpr expr)))
        res_ty
   = do addModFinalizersWithLclEnv mod_finalizers

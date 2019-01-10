@@ -508,6 +508,14 @@ tc_hs_type (HsCoreTy ty) exp_kind
   = do { checkExpectedKind ty (typeKind ty) exp_kind
        ; return ty }
 
+-- HsSpliced is an annotation produced by 'RnSplice.rnSpliceType'.
+-- Here we get rid of it and add the finalizers to the global environment
+-- while capturing the local environment.
+--
+-- See Note [Delaying modFinalizers in untyped splices].
+tc_hs_type (HsSpliceTy (HsSpliced mod_finalizers (HsSplicedTy ty)) _) exp_kind
+  = do addModFinalizersWithLclEnv mod_finalizers
+       tc_hs_type ty exp_kind
 
 -- This should never happen; type splices are expanded by the renamer
 tc_hs_type ty@(HsSpliceTy {}) _exp_kind
