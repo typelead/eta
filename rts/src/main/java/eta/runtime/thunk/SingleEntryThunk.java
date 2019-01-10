@@ -21,10 +21,6 @@ public abstract class SingleEntryThunk extends Thunk {
         } finally {
             context.trampoline = trampoline;
         }
-
-        if (Runtime.shouldClearThunks()) {
-            clear();
-        }
         return result;
     }
 }

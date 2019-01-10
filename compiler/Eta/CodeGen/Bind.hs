@@ -22,6 +22,7 @@ import Eta.CodeGen.Closure
 import Eta.Debug
 import Eta.Utils.Util
 import Data.Maybe (catMaybes)
+import Data.Functor (($>))
 import Eta.Main.Constants
 import Codec.JVM
 import Control.Monad (forM, foldM, when)
@@ -44,6 +45,7 @@ closureCodeBody
                            -- closures in the group.
   -> CodeGen ([FieldType], RecIndexes)
 closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = do
+  let isThunk = arity == 0
   dflags <- getDynFlags
   traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
   let closureName = idNameText dflags id
@@ -82,11 +84,25 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
         | otherwise = mempty
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   when topLevel (defineSingletonInstance thisClass)
-  if arity == 0 then
+  if isThunk then
     -- TODO: Implement eager blackholing
     withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do
       emit $ emitStartLine
-      mapM_ bindFV (fvLocs False)
+      results <- forM (fvLocs False) $ \fvLoc@(nvId, cgLoc) -> do
+        let ft = locFt cgLoc
+        if isObjectFt ft
+        then do cgLoc' <- newTemp (isLocClosure cgLoc) ft
+                emit $ storeLoc cgLoc' (loadLoc cgLoc)
+                bindFV (nvId, cgLoc') $> True
+        else bindFV fvLoc $> False
+
+      when (any Prelude.id results) $ do
+        -- TODO: Perhaps we should store the indirectee in re-usable local variable?
+        --       Reconsider when local-variable optimization is thought out.
+        emit $ gload thisFt 0
+            <> indirecteeField
+            <> ginstanceof valueType
+            <> ifeq mempty (gload thisFt 0 <> indirecteeField <> greturn closureType)
       cgExpr body
   else do
     let mCallPattern = lfCallPattern lfInfo

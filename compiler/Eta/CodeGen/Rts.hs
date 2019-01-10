@@ -31,7 +31,7 @@ interp    = merge (rts "interpreter")
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType,
   frameType, conType, thunkType, rtsConfigType, exitCodeType,
   rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
-  hsResultType, stgTVarType, stgBCOType, stgWeakType :: FieldType
+  hsResultType, stgTVarType, stgBCOType, stgWeakType, valueType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -53,11 +53,12 @@ stgTVarType       = obj stgTVar
 hsResultType      = obj hsResult
 stgBCOType        = obj stgBCO
 stgWeakType       = obj stgWeak
+valueType         = obj stgValue
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
-  stgBCO, stgWeak, stablePtrTable :: Text
+  stgBCO, stgWeak, stablePtrTable, stgValue :: Text
 stgConstr     = stg "DataCon"
 stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
@@ -83,6 +84,7 @@ stgWeak       = stg "WeakPtr"
 rtsGroup      = rts "Runtime"
 hsResult      = rts "Runtime$StgResult"
 stablePtrTable = stg "StablePtrTable"
+stgValue      = stg "Value"
 
 memoryManager :: Text
 memoryManager = io "MemoryManager"
@@ -358,3 +360,5 @@ getClosureMethod int =
   <> invokestatic (mkMethodRef "eta/serv/Utils" "getClosure" [jint] (ret jobject))
   <> gconv jobject closureType
 
+indirecteeField :: Code
+indirecteeField = getfield (mkFieldRef stgThunk "indirectee" closureType)

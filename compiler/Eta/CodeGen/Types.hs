@@ -21,6 +21,7 @@ module Eta.CodeGen.Types
    storeDefault,
    locArgRep,
    locClass,
+   isLocClosure,
    mkRepLocDirect,
    mkLocDirect,
    mkStaticLoc,
@@ -96,6 +97,13 @@ instance Outputable CgLoc where
     = str "mask: ft:" <+> ppr ft <+> ppr cgLoc
   ppr (LocStablePtr int)
     = str "stableptr:" <+> ppr int
+
+isLocClosure :: CgLoc -> Bool
+isLocClosure loc = case loc of
+  LocLocal b _ _ -> b
+  LocField  b _ _ _ -> b
+  LocDirect b _ _   -> b
+  _ -> pprPanic "isLocClosure: bad CgLoc" (ppr loc)
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code

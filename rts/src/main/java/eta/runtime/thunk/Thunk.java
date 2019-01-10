@@ -59,9 +59,7 @@ public abstract class Thunk extends Closure {
 
     public final void updateWithIndirection(Closure ret) {
         setIndirection(ret);
-        if (Runtime.shouldClearThunks()) {
-            clear();
-        }
+        clear();
     }
 
     public final Closure updateCode(StgContext context, Closure ret) {

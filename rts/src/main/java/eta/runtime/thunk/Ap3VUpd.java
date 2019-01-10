@@ -2,6 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 
 public class Ap3VUpd extends UpdatableThunk {
     public Closure x1;
@@ -17,7 +18,12 @@ public class Ap3VUpd extends UpdatableThunk {
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return x1.apply2V(context, x2, x3);
+        final Closure x1 = this.x1;
+        final Closure x2 = this.x2;
+        final Closure x3 = this.x3;
+        final Closure ind = this.indirectee;
+        if (ind instanceof Value) return ind;
+        else return x1.apply2V(context, x2, x3);
     }
 
     @Override

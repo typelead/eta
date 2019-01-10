@@ -357,7 +357,7 @@ public class Runtime {
         // alex requires 400.
         // Note that we can further increase the value if we optimize
         // our local variables better, we should be able to increase this number later.
-        clearThunks = rto.getBoolean(CLEAR_THUNKS, false);
+        clearThunks = rto.getBoolean(CLEAR_THUNKS, true);
         keepCAFs = rto.getBoolean(KEEP_CAFS, false);
 
         debugScheduler = rto.getBoolean(DEBUG_SCHEDULER_PROPERTY, false);

@@ -3,6 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.DataCon;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 import eta.runtime.util.CompactReferenceSet;
 
 import static eta.runtime.RuntimeLogging.*;
@@ -91,6 +92,9 @@ public class SelectorThunk extends UpdatableThunk {
                     case OPTIMIZED:
                         this.x1 = v;
                         return;
+                    case CLEARED:
+                        this.x1 = t.indirectee;
+                        return;
                     default:
                         barf("optimizeChain: unexpected result: " + opt);
                 }
@@ -100,7 +104,10 @@ public class SelectorThunk extends UpdatableThunk {
 
     @Override
     public final Closure thunkEnter(final StgContext context) {
-        if (this.index >= 0) {
+        final Closure x1 = this.x1;
+        final Closure ind = this.indirectee;
+        if (ind instanceof Value) return ind;
+        else if (this.index >= 0) {
             return ((DataCon) x1.evaluate(context)).get(index).evaluateTail(context);
         } else {
             return x1.evaluateTail(context);

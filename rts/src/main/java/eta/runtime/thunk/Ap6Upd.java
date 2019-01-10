@@ -2,6 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 
 public class Ap6Upd extends UpdatableThunk {
     public Closure x1;
@@ -23,7 +24,15 @@ public class Ap6Upd extends UpdatableThunk {
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return x1.apply5(context, x2, x3, x4, x5, x6);
+        final Closure x1 = this.x1;
+        final Closure x2 = this.x2;
+        final Closure x3 = this.x3;
+        final Closure x4 = this.x4;
+        final Closure x5 = this.x5;
+        final Closure x6 = this.x6;
+        final Closure ind = this.indirectee;
+        if (ind instanceof Value) return ind;
+        else return x1.apply5(context, x2, x3, x4, x5, x6);
     }
 
     @Override
