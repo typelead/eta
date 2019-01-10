@@ -10,6 +10,7 @@ import java.io.IOException;
 import eta.runtime.Runtime;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
+import eta.runtime.thunk.SelectorThunk;
 
 import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.ArgumentStack.*;
@@ -27,6 +28,10 @@ public class StgContext {
 
     // Exception handling
     public Closure raise;
+
+    // Selector thunks
+    public SelectorThunkManager selectorManager =
+        new SelectorThunkManager(Runtime.getSelectorSetSize());
 
     /* Stack fields */
     public static final int R_LIMIT = 6;
@@ -96,6 +101,7 @@ public class StgContext {
         resetArgStack();
         resetTrampoline(0, false);
         if (t != null) t.reset();
+        selectorManager.reset();
     }
 
     public final void addPendingThunk(final Thunk ui) {
@@ -513,5 +519,9 @@ public class StgContext {
     public final void registerIO(final SelectableChannel channel, final int ops)
         throws IOException {
         myCapability.registerIO(currentTSO, channel, ops);
+    }
+
+    public final void registerSelectorThunk(SelectorThunk t) {
+        selectorManager.register(t);
     }
 }

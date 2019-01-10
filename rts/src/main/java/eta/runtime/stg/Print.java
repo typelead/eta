@@ -193,60 +193,64 @@ public class Print {
     public static boolean handleSpecialClosure(final DataCon c, final Class<?> clazz,
                                                final PrintState ps) {
         final StringBuilder sb = ps.sb;
-        if (Izh.isAssignableFrom(clazz)) {
-            sb.append(c.getN(1));
-        } else if (Szh.isAssignableFrom(clazz)) {
-            sb.append(c.getN(1));
-        } else if (Czh.isAssignableFrom(clazz)) {
-            sb.append('\'');
-            handleSpecialChar(c.getN(1), sb);
-            sb.append('\'');
-        } else if (Jzh.isAssignableFrom(clazz)) {
-            sb.append(((BigInteger)(c.getO(1))).toString());
-        } else if (ZC.isAssignableFrom(clazz)) {
-            final List<Closure> cs = new ArrayList<Closure>();
-            cs.add(c.getP(1));
-            boolean printFull = false;
-            Closure d = c.getP(2);
-            for (;;) {
-                if (ZMZN.isInstance(d)) {
-                    printFull = true;
-                    break;
-                } else if (ZC.isInstance(d)) {
-                    final DataCon e = (DataCon) d;
-                    cs.add(e.getP(1));
-                    d = e.getP(2);
-                } else if (d instanceof Thunk) {
-                    final Closure e = ((Thunk) d).indirectee;
-                    if (e instanceof Value) {
-                        d = e;
+        try {
+            if (Izh.isAssignableFrom(clazz)) {
+                sb.append(unIzh.getInt(c));
+            } else if (Szh.isAssignableFrom(clazz)) {
+                sb.append(unSzh.getInt(c));
+            } else if (Czh.isAssignableFrom(clazz)) {
+                sb.append('\'');
+                handleSpecialChar(unCzh.getInt(c), sb);
+                sb.append('\'');
+            } else if (Jzh.isAssignableFrom(clazz)) {
+                sb.append(((BigInteger)unJzh.get(c)).toString());
+            } else if (ZC.isAssignableFrom(clazz)) {
+                final List<Closure> cs = new ArrayList<Closure>();
+                cs.add(c.get(1));
+                boolean printFull = false;
+                Closure d = c.get(2);
+                for (;;) {
+                    if (ZMZN.isInstance(d)) {
+                        printFull = true;
+                        break;
+                    } else if (ZC.isInstance(d)) {
+                        final DataCon e = (DataCon) d;
+                        cs.add(e.get(1));
+                        d = e.get(2);
+                    } else if (d instanceof Thunk) {
+                        final Closure e = ((Thunk) d).indirectee;
+                        if (e instanceof Value) {
+                            d = e;
+                        } else {
+                            break;
+                        }
                     } else {
                         break;
                     }
-                } else {
-                    break;
                 }
-            }
-            if (printFull) {
-                ps.insertMapping(c);
-                String str = allChar(cs);
-                if (str != null) {
-                    sb.append(str);
-                } else {
-                    sb.append('[');
-                    ps.push("]");
-                    int i = cs.size();
-                    final ListIterator<Closure> it = cs.listIterator(cs.size());
-                    while (it.hasPrevious() && i > 1) {
+                if (printFull) {
+                    ps.insertMapping(c);
+                    String str = allChar(cs);
+                    if (str != null) {
+                        sb.append(str);
+                    } else {
+                        sb.append('[');
+                        ps.push("]");
+                        int i = cs.size();
+                        final ListIterator<Closure> it = cs.listIterator(cs.size());
+                        while (it.hasPrevious() && i > 1) {
+                            ps.push(it.previous());
+                            ps.push(", ");
+                            i--;
+                        }
                         ps.push(it.previous());
-                        ps.push(", ");
-                        i--;
                     }
-                    ps.push(it.previous());
                 }
+                return printFull;
+            } else {
+                return false;
             }
-            return printFull;
-        } else {
+        } catch (IllegalAccessException iae) {
             return false;
         }
         return true;
@@ -269,7 +273,11 @@ public class Print {
             c = ((Thunk) c).indirectee;
         }
         if (Czh.isInstance(c)) {
-            handleSpecialChar(((DataCon) c).getN(1), sb);
+            try {
+                handleSpecialChar(unCzh.getInt(c), sb);
+            } catch (IllegalAccessException iae) {
+                return false;
+            }
             return true;
         } else {
             return false;

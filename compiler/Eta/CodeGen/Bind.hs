@@ -323,7 +323,8 @@ mkRhsClosure binder _ [NonVoid theFv] updateFlag [] expr recIds
   , theFv == scrutinee
   , let indexedReps = zip [1..] [(p, rep) | p <- params, let rep = idArgRep p, isNonV rep]
   , Just (index, (_, rep)) <- find (\(_, (p, _)) -> p == selectee) indexedReps
-  = let lfInfo = mkSelectorLFInfo binder index rep (isUpdatable updateFlag)
+  , isP rep
+  = let lfInfo = mkSelectorLFInfo binder index (isUpdatable updateFlag)
     in cgRhsStdThunk binder lfInfo [StgVarArg theFv] recIds
   where strip = snd . stripStgTicksTop (not . tickishIsCode)
 
@@ -372,7 +373,8 @@ cgRhsStdThunk :: Id
               -> CodeGen ( CgIdInfo
                          , CodeGen (Code, RecIndexes, FieldType) )
 cgRhsStdThunk binder lfInfo payload recIds = do
-  let (ft, genThunk) = genStdThunk lfInfo
+  loadContext <- getContextLoc
+  let (ft, genThunk) = genStdThunk loadContext lfInfo
   (idInfo, cgLoc) <- rhsGenIdInfo binder lfInfo ft
   traceCg $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
   return (idInfo, genCode cgLoc genThunk ft)

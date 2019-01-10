@@ -173,9 +173,15 @@ mkApFun tailCall arity fts = applyFun
 apUpdName :: Int -> Text
 apUpdName n = thunk $ T.concat ["Ap",  T.pack $ show n, "Upd"]
 
-selectThunkName :: Bool -> Text -> Text
-selectThunkName updatable repText = thunk $ T.concat ["Selector", repText, updText]
-  where updText = if updatable then "Upd" else "NoUpd"
+selectorThunk :: Text
+selectorThunk = thunk "SelectorThunk"
+
+selectorThunkType :: FieldType
+selectorThunkType = obj selectorThunk
+
+selectorThunkCreate :: Code
+selectorThunkCreate = invokestatic $
+  mkMethodRef selectorThunk "create" [contextType, jint, closureType] (ret selectorThunkType)
 
 constrField :: Int -> Text
 constrField = T.cons 'x' . T.pack . show

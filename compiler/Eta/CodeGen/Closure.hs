@@ -208,9 +208,9 @@ mkApLFInfo id updateFlag arity
   = LFThunk NotTopLevel (arity == 0)
            (isUpdatable updateFlag) (ApThunk arity) (maybeFunction (idType id))
 
-mkSelectorLFInfo :: Id -> Int -> ArgRep -> Bool -> LambdaFormInfo
-mkSelectorLFInfo id pos rep updatable
-  = LFThunk NotTopLevel False updatable (SelectorThunk pos rep)
+mkSelectorLFInfo :: Id -> Int -> Bool -> LambdaFormInfo
+mkSelectorLFInfo id pos updatable
+  = LFThunk NotTopLevel False updatable (SelectorThunk pos)
         (maybeFunction (idType id))
 
 lneIdInfo :: Id -> Label -> Int -> CgLoc -> [CgLoc] -> CgIdInfo
@@ -226,18 +226,15 @@ getDataConTag = dataConTag
 mkLFLetNoEscape :: LambdaFormInfo
 mkLFLetNoEscape = LFLetNoEscape
 
-genStdThunk :: LambdaFormInfo -> (FieldType, Code -> Code)
-genStdThunk (LFThunk _ _ updatable stdForm _)
-  | SelectorThunk pos rep <- stdForm
-  = let selClass = selectThunkName updatable $ T.pack (show rep)
-        ft = obj selClass
-    in ( ft
-       , \loads ->
-           new ft
-        <> dup ft
+genStdThunk :: Code -> LambdaFormInfo -> (FieldType, Code -> Code)
+genStdThunk loadContext (LFThunk _ _ _updatable stdForm _)
+  | SelectorThunk pos <- stdForm
+  = ( selectorThunkType
+    , \loads ->
+           loadContext
         <> iconst jint (fromIntegral pos)
         <> loads
-        <> invokespecial (mkMethodRef selClass "<init>" [jint, closureType] void) )
+        <> selectorThunkCreate )
   | ApThunk n <- stdForm
   = let ft = obj apUpdClass
         fields = replicate n closureType
@@ -249,4 +246,4 @@ genStdThunk (LFThunk _ _ updatable stdForm _)
         <> loads
         <> invokespecial (mkMethodRef apUpdClass "<init>" fields void) )
   | otherwise = panic "genStdThunk: Thunk is not in standard form!"
-genStdThunk _ = error $ "genStdThunk: bad genStdThunk"
+genStdThunk _ _ = error $ "genStdThunk: bad genStdThunk"

@@ -36,7 +36,7 @@ import Data.Monoid
 import Data.Maybe
 import Control.Monad hiding (void)
 
-import Data.Text (Text, pack, append)
+import Data.Text (Text, append)
 
 codeGen :: HscEnv -> Module -> ModLocation
         -> [TyCon] -> [StgBinding] -> HpcInfo
@@ -326,7 +326,7 @@ cgDataCon typeClass dataCon = do
                        indexedFields
 
 
-           (ps, os, ns, fs, ls, ds) = go indexedFields [] [] [] [] [] []
+           (ps, _os, _ns, _fs, _ls, _ds) = go indexedFields [] [] [] [] [] []
 
            go [] ps os ns fs ls ds = (ps, os, ns, fs, ls, ds)
            go ((i, ft):ifs) ps os ns fs ls ds =
@@ -351,7 +351,7 @@ cgDataCon typeClass dataCon = do
                         <> defaultValue ft)
               <> greturn ft
              where ft = argRepFt rep
-                   method = append "get" (pack $ show rep)
+                   method = "get"
 
            indexedFields :: [(Int, FieldType)]
            indexedFields = indexList fields
@@ -366,11 +366,6 @@ cgDataCon typeClass dataCon = do
          defineFields fieldDefs
          defineTagMethod
          defineGetRep P ps
-         defineGetRep O os
-         defineGetRep N ns
-         defineGetRep F fs
-         defineGetRep L ls
-         defineGetRep D ds
          defineMethod $ mkConstructorDef thisClass typeClass fields initCode
        return ()
   where conTag = fromIntegral $ getDataConTag dataCon

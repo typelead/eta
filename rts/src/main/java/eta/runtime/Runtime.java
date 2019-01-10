@@ -159,6 +159,21 @@ public class Runtime {
         Runtime.tailCallThreshold = tailCallThreshold;
     }
 
+    /* Parameter: selectorSetSize (int)
+        Buffer size for selector thunks
+     */
+    private static int selectorSetSize;
+
+    public static final String SELECTOR_SET_SIZE = "eta.rts.selectorSetSize";
+
+    public static int getSelectorSetSize() {
+        return selectorSetSize;
+    }
+
+    public static void setSelectorSetSize(int selectorSetSize) {
+        Runtime.selectorSetSize = selectorSetSize;
+    }
+
     /* Parameter: clearThunks (boolean)
        Clear thunks of their free variables once they are evaluated. */
     private static boolean clearThunks;
@@ -300,6 +315,14 @@ public class Runtime {
         return debugStrings;
     }
 
+    private static boolean debugSelectors;
+
+    public static final String DEBUG_SELECTORS_PROPERTY = "eta.debug.selectors";
+
+    public static boolean debugSelectors() {
+        return debugSelectors;
+    }
+
     private static boolean debugToFile;
 
     public static final String DEBUG_TOFILE_PROPERTY = "eta.debug.toFile";
@@ -328,6 +351,7 @@ public class Runtime {
         minWorkerCapabilityIdleTime = rto.getInt(MIN_WORKER_CAPABILITY_IDLE_TIME, 1000);
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
+        selectorSetSize = rto.getInt(SELECTOR_SET_SIZE, 128);
         tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 400);
         // happy requires 650.
         // alex requires 400.
@@ -350,6 +374,7 @@ public class Runtime {
         debugIOVerbose = rto.getBoolean(DEBUG_IOVERBOSE_PROPERTY, false);
         debugPAPs = rto.getBoolean(DEBUG_PAPS_PROPERTY, false);
         debugStrings = rto.getBoolean(DEBUG_STRINGS_PROPERTY, false);
+        debugSelectors = rto.getBoolean(DEBUG_SELECTORS_PROPERTY, false);
         debugToFile = rto.getBoolean(DEBUG_TOFILE_PROPERTY, false);
 
         printFullArrays = rto.getBoolean(PRINT_FULLARRAYS_PROPERTY, false);

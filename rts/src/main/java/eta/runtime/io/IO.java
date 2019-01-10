@@ -11,7 +11,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Ap2Upd;
-import eta.runtime.thunk.SelectorPUpd;
+import eta.runtime.thunk.SelectorThunk;
 
 public class IO {
 
@@ -44,8 +44,8 @@ public class IO {
 
     public static Closure atomicModifyMutVar(StgContext context, MutVar mv, Closure f) {
         Ap2Upd z = new Ap2Upd(f, null);
-        SelectorPUpd y = new SelectorPUpd(1, z);
-        SelectorPUpd r = new SelectorPUpd(2, z);
+        SelectorThunk y = SelectorThunk.create(context, 1, z);
+        SelectorThunk r = SelectorThunk.create(context, 2, z);
         do {
             Closure x = mv.value;
             z.x2 = x;

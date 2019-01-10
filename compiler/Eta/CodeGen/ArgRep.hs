@@ -4,6 +4,7 @@ module Eta.CodeGen.ArgRep
    toArgRep,
    jrepType,
    isNonV,
+   isP,
    idArgRep,
    idPrimRep,
    primRepFieldType_maybe,
@@ -66,6 +67,10 @@ toArgRep (ArrayRep  _)     = O
 isNonV :: ArgRep -> Bool
 isNonV V = False
 isNonV _ = True
+
+isP :: ArgRep -> Bool
+isP P = True
+isP _ = False
 
 idArgRep :: Id -> ArgRep
 idArgRep = toArgRep . idPrimRep

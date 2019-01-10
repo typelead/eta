@@ -2,7 +2,6 @@ package eta.runtime;
 
 import java.io.*;
 
-import eta.runtime.Runtime;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
@@ -113,6 +112,10 @@ public class RuntimeLogging {
 
     public static void debugStrings(String msg) {
         debugGeneric("Strings", msg);
+    }
+
+    public static void debugSelectors(String msg) {
+        debugGeneric("SelectorThunks", msg);
     }
 
     public static void debugGeneric(String type, String msg) {

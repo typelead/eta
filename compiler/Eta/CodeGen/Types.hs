@@ -243,10 +243,6 @@ data StandardFormInfo
         --           con a1,..,an -> ak
         -- and the constructor is from a single-constr type.
       Int -- Field position
-      ArgRep -- Field type
-        --WordOff         -- 0-origin offset of ak within the "goods" of
-                        -- constructor (Recall that the a1,...,an may be laid
-                        -- out in the heap in a non-obvious order.)
 
   | ApThunk
         -- An ApThunk is of form

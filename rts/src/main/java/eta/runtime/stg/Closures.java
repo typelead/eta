@@ -1,5 +1,6 @@
 package eta.runtime.stg;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
@@ -49,9 +50,13 @@ public class Closures {
     public static Class<?> ZC;
     public static Class<?> ZMZN;
     public static Class<?> Czh;
+    public static Field unCzh;
     public static Class<?> Izh;
+    public static Field unIzh;
     public static Class<?> Szh;
+    public static Field unSzh;
     public static Class<?> Jzh;
+    public static Field unJzh;
 
     static {
         try {
@@ -77,12 +82,16 @@ public class Closures {
                                             Closure.class, Closure.class);
             trivialExtendsInstance = loadTrivialExtendsInstance($fClass_Object);
             
-            ZC   = Class.forName("ghc_prim.ghc.types.datacons.ZC");
-            ZMZN = Class.forName("ghc_prim.ghc.types.datacons.ZMZN");
-            Czh  = Class.forName("ghc_prim.ghc.types.datacons.Czh");
-            Izh  = Class.forName("ghc_prim.ghc.types.datacons.Izh");
-            Szh  = Class.forName("integer.ghc.integer.type.datacons.Szh");
-            Jzh  = Class.forName("integer.ghc.integer.type.datacons.Jzh");
+            ZC    = Class.forName("ghc_prim.ghc.types.datacons.ZC");
+            ZMZN  = Class.forName("ghc_prim.ghc.types.datacons.ZMZN");
+            Czh   = Class.forName("ghc_prim.ghc.types.datacons.Czh");
+            unCzh = Czh.getField("x1");
+            Izh   = Class.forName("ghc_prim.ghc.types.datacons.Izh");
+            unIzh = Izh.getField("x1");
+            Szh   = Class.forName("integer.ghc.integer.type.datacons.Szh");
+            unSzh = Szh.getField("x1");
+            Jzh   = Class.forName("integer.ghc.integer.type.datacons.Jzh");
+            unJzh = Jzh.getField("x1");
 
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");

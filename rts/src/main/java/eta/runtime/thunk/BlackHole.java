@@ -12,7 +12,4 @@ public abstract class BlackHole extends Closure {
         barf("BlackHole object " + this + " entered.");
         return null;
     }
-
-    @Override
-    public final Closure getEvaluated() { return null; }
 }
