@@ -84,11 +84,17 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
         | otherwise = mempty
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   when topLevel (defineSingletonInstance thisClass)
-  if isThunk then
+  if isThunk then do
+    let fvlocs = fvLocs False
+        objectFields = filter (isObjectFt . locFt) $ map snd fvlocs
+    when (not hasStdLayout) $
+      withMethod [Public, Final] "clear" [] void $ do
+        emit $ fold (map (\cgLoc -> storeLoc cgLoc (aconst_null (locFt cgLoc))) objectFields)
+            <> vreturn
     -- TODO: Implement eager blackholing
     withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do
       emit $ emitStartLine
-      results <- forM (fvLocs False) $ \fvLoc@(nvId, cgLoc) -> do
+      results <- forM fvlocs $ \fvLoc@(nvId, cgLoc) -> do
         let ft = locFt cgLoc
         if isObjectFt ft
         then do cgLoc' <- newTemp (isLocClosure cgLoc) ft

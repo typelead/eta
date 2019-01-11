@@ -250,12 +250,12 @@ public abstract class Thunk extends Closure {
     /* Clears out the free variables of a thunk using reflection to free up the
        strong references of an evaluated thunk. */
     public void clear() {
-        Field[] fields = Thunks.lookupFields(getClass());
-        for (Field f: fields) {
-            try {
+        try {
+            Field[] fields = Thunks.lookupFields(getClass());
+            for (Field f: fields) {
                 f.set(this, null);
-            } catch (IllegalAccessException e) {}
-        }
+            }
+        } catch (IllegalAccessException e) {}
     }
 
     protected boolean handleException(StgContext context, java.lang.Exception e) {

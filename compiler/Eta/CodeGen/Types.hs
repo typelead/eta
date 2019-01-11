@@ -157,6 +157,10 @@ locFt loc = pprPanic "locFt" $ ppr loc
 storeLoc :: CgLoc -> Code -> Code
 storeLoc (LocLocal _ ft n) code = code <> gstore ft n
 storeLoc (LocMask _ loc) code = storeLoc loc code
+storeLoc (LocField _ ft clClass fieldName) code =
+     gload (obj clClass) 0
+  <> code
+  <> putfield (mkFieldRef clClass fieldName ft)
 storeLoc loc _ = pprPanic "storeLoc" $ ppr loc
 
 storeDefault :: CgLoc -> Code
