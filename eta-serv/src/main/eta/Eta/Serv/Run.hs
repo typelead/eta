@@ -238,9 +238,8 @@ runModFinalizerRefs Pipe{..} rstate qrefs = do
   mbLeftovers <- readIORef pipeLeftovers
   let !serialized = toByteArray (LB.toStrict (encode mbLeftovers))
   qstateref <- localRef rstate
-  qs <- mapM (unsafeCoerce# localRef) qrefs
-  IO $ \s -> case runModFinalizerRefs# serialized (unsafeCoerce# qstateref) qs s of
+  IO $ \s -> case runModFinalizerRefs# serialized (unsafeCoerce# qstateref) qrefs s of
                (# s', x #) -> (# s', unsafeCoerce# x #)
 
 foreign import prim "eta.serv.Utils.runModFinalizerRefs" runModFinalizerRefs# ::
-  JByteArray -> Any -> [Object] -> State# s -> (# State# s, Any #)
+  JByteArray -> Any -> [RemoteRef ()] -> State# s -> (# State# s, Any #)

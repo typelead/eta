@@ -647,11 +647,9 @@ runQResult
   -> SrcSpan
   -> ForeignHValue {- TH.Q a -}
   -> TcM b
-runQResult show_th f runQ expr_span hval
+runQResult _show_th f runQ expr_span hval
   = do { th_result <- runQ hval
-       ; traceTc "Got TH result:" (text (show_th th_result))
        ; return (f expr_span th_result) }
-
 
 -----------------
 runMeta :: (MetaHook TcM -> LHsExpr Id -> TcM hs_syn)
@@ -1020,6 +1018,7 @@ runRemoteTH
   -> TcM ()
 runRemoteTH iserv recovers = do
   THMsg msg <- liftIO $ readIServ iserv getTHMessage
+  traceTc ("runRemoteTH: Received " ++ debugTHMessage msg) empty
   case msg of
     RunTHDone -> return ()
     StartRecover -> do -- Note [TH recover with -fexternal-interpreter]

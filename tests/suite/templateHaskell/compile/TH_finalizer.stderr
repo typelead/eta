@@ -1,0 +1,3 @@
+
+tests/suite/templateHaskell/compile/TH_finalizer.hs:1:1: warning:
+    Just True

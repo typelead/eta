@@ -171,28 +171,31 @@ public class REPLClassLoader extends URLClassLoader {
     private static Class<?> CzhClass;
     private static Constructor CzhConstructor;
     private static Constructor ZCConstructor;
+    private static Class<?> W64zhClass;
+    private static Constructor W64zhConstructor;
     private static Object ZMZNSingleton;
 
     public static void lazyInit() {
         if (closureClass == null) {
             try {
-                runtimeClass   = replClassLoader.loadClass("eta.runtime.Runtime");
-                closureClass   = replClassLoader.loadClass("eta.runtime.stg.Closure");
-                closuresClass  = replClassLoader.loadClass("eta.runtime.stg.Closures");
-                ZCClass        = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZC");
-                ZMZNClass      = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZMZN");
-                ZCx1Field      = ZCClass.getField("x1");
-                ZCx2Field      = ZCClass.getField("x2");
-                applyMethod    = closuresClass.getMethod("apply", closureClass, closureClass);
-                evalIOMethod   = runtimeClass.getMethod("evalIO", closureClass);
-                evaluateMethod = runtimeClass.getMethod("evaluate", closureClass);
-                CzhClass       = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.Czh");
-                Czhx1Field     = CzhClass.getField("x1");
-                CzhConstructor = CzhClass.getConstructor(Integer.TYPE);
-                ZCConstructor  = ZCClass.getConstructor(closureClass, closureClass);
-                ZCConstructor  = ZCClass.getConstructor(closureClass, closureClass);
-                ZMZNSingleton  = replClassLoader.loadClass("ghc_prim.ghc.Types")
-                                                .getMethod("DZMZN").invoke(null);
+                runtimeClass     = replClassLoader.loadClass("eta.runtime.Runtime");
+                closureClass     = replClassLoader.loadClass("eta.runtime.stg.Closure");
+                closuresClass    = replClassLoader.loadClass("eta.runtime.stg.Closures");
+                ZCClass          = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZC");
+                ZMZNClass        = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZMZN");
+                ZCx1Field        = ZCClass.getField("x1");
+                ZCx2Field        = ZCClass.getField("x2");
+                applyMethod      = closuresClass.getMethod("apply", closureClass, closureClass);
+                evalIOMethod     = runtimeClass.getMethod("evalIO", closureClass);
+                evaluateMethod   = runtimeClass.getMethod("evaluate", closureClass);
+                CzhClass         = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.Czh");
+                Czhx1Field       = CzhClass.getField("x1");
+                CzhConstructor   = CzhClass.getConstructor(Integer.TYPE);
+                ZCConstructor    = ZCClass.getConstructor(closureClass, closureClass);
+                W64zhClass       = replClassLoader.loadClass("base.ghc.word.datacons.W64zh");
+                W64zhConstructor = W64zhClass.getConstructor(long.class);
+                ZMZNSingleton    = replClassLoader.loadClass("ghc_prim.ghc.Types")
+                                                  .getMethod("DZMZN").invoke(null);
             } catch (Exception e) {
                 throw new RuntimeException("Failed during Eta REPL initialization", e);
             }
@@ -341,14 +344,14 @@ public class REPLClassLoader extends URLClassLoader {
     }
 
     public static void runModFinalizerRefs(byte[] serialized, Object qstate,
-                                           List<Object> qactions) {
+                                           List<Long> qactions) {
         lazyInitTH();
         try {
             Object serialized_ = jbyteArrayConstructor.newInstance(serialized);
-            ListIterator<Object> it = qactions.listIterator(qactions.size());
+            ListIterator<Long> it = qactions.listIterator(qactions.size());
             Object qs = ZMZNSingleton;
             while (it.hasPrevious()) {
-                qs = ZCConstructor.newInstance(it.previous(), qs);
+                qs = ZCConstructor.newInstance(W64zhConstructor.newInstance(it.previous()), qs);
             }
             evalIOInternal(apply3Method.invoke(null,
                                                runModFinalizerRefsMethod.invoke(null),

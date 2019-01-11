@@ -18,7 +18,7 @@ module Eta.REPL.Message
   , fromSerializableException
   , THResultType(..)
   , ResumeContext(..)
-  , getMessage, putMessage
+  , getMessage, putMessage, debugMessage
   , Pipe(..), remoteCall, readPipe, writePipe
   ) where
 
@@ -278,6 +278,11 @@ putMessage m = case m of
   SetClassInfoPath a          -> putWord8 14 >> put a
   GetClassInfo a              -> putWord8 15 >> put a
 
+debugMessage :: Message a -> String
+debugMessage m = case m of
+  LoadClasses a _ -> "LoadClasses " ++ show a
+  _               -> show m
+
 -- -----------------------------------------------------------------------------
 -- Reading/writing messages
 
@@ -329,9 +334,9 @@ getBin h get leftover = go leftover (runGetIncremental get)
    go (Just leftover) (Partial fun) = do
      go Nothing (fun (Just leftover))
    go Nothing (Partial fun) = do
-     debug "before hGetSome"
+     -- debug "before hGetSome"
      b <- B.hGetSome h (32*1024)
-     debug $ "hGetSome: " ++ show (B.length b)
+     -- debug $ "hGetSome: " ++ show (B.length b)
      if B.null b
         then return Nothing
         else go Nothing (fun (Just b))

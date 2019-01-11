@@ -15,7 +15,7 @@ serv hook pipe@Pipe{..} _restore = loop
  where
   loop = do
     Msg msg <- readPipe pipe getMessage >>= hook
-    debug ("eta-serv: " ++ show msg)
+    debug ("eta-serv: " ++ debugMessage msg)
     case msg of
       Shutdown -> exitSuccess
       RunTH st q ty loc -> runTH pipe st q ty loc >> loop

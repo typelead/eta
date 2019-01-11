@@ -2,7 +2,7 @@
              TupleSections, GADTs, InstanceSigs, ScopedTypeVariables #-}
 module Language.Eta.Meta.Server
   (THMessage(..), THMsg(..), QState(..), THResult(..)
-  , getTHMessage, putTHMessage, remoteTHCall
+  , getTHMessage, putTHMessage, remoteTHCall, debugTHMessage
 #ifdef ETA_VERSION
   , startTH, runTH, runModFinalizerRefs
 #endif
@@ -154,6 +154,9 @@ putTHMessage m = case m of
   -- AddForeignFilePath lang a   -> putWord8 19 >> put lang >> put a
   AddCorePlugin a             -> putWord8 20 >> put a
 
+debugTHMessage :: THMessage a -> String
+debugTHMessage m = show m
+
 -- | The monad in which we run TH computations on the server
 newtype GHCiQ a = GHCiQ { runGHCiQ :: QState -> IO (a, QState) }
 
@@ -246,7 +249,7 @@ ghcCmd m = GHCiQ $ \s -> do
   r <- remoteTHCall (qsPipe s) m
   case r of
     THException str -> throwIO (GHCiQException s str)
-    THComplete res -> return (res, s)
+    THComplete  res -> return  (res, s)
 
 remoteTHCall :: Binary a => Pipe -> THMessage a -> IO a
 remoteTHCall pipe msg = do
@@ -267,12 +270,14 @@ startTH = newIORef (initQState (error "startTH: no pipe"))
 --
 -- The references must be created on the caller process.
 runModFinalizerRefs :: JByteArray -> IORef QState
-                    -> [TH.Q ()]
+                    -> [RemoteRef ()]
                     -> IO ()
-runModFinalizerRefs leftovers' qstateref qs = do
+runModFinalizerRefs leftovers' qstateref qs' = do
   serialized <- fromByteArray leftovers'
   let leftovers = decode (LB.fromStrict serialized)
   pipe <- mkPipe leftovers
+  qs   <- unsafeCoerce (mapM localRef qs') :: IO [TH.Q ()]
+  mapM_ freeRemoteRef qs'
   wrapRunTH pipe $ do
     qstate <- readIORef qstateref
     _ <- runGHCiQ (TH.runQ $ sequence_ qs) qstate { qsPipe = pipe }

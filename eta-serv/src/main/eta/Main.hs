@@ -29,7 +29,7 @@ main = do
     []     -> return False
     _      -> dieWithUsage
   when verbose $ setVerbose
-  debug "eta-serv listening on stdin and writing to stdout."
+  debug "eta-serv: listening on stdin and writing to stdout."
   hSetEncoding stdin  latin1
   hSetEncoding stdout latin1
   lo_ref <- newIORef Nothing

@@ -1,0 +1,9 @@
+name: THfinalizer
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+executable TH_finalizer2
+    main-is:       TH_finalizer2.hs
+    build-depends: base, template-haskell
+    other-modules: TH_finalizer2M

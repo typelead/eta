@@ -21,6 +21,7 @@ import ghc_prim.ghc.types.datacons.Ozh;
 import ghc_prim.ghc.types.datacons.ZC;
 import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.tycons.ZMZN;
+import base.ghc.word.datacons.W64zh;
 
 public class Utils {
 
@@ -70,10 +71,10 @@ public class Utils {
 
     public static Closure runModFinalizerRefs(StgContext context, Closure serialized,
                                               Closure qstate, Closure qactions) {
-        List<Object> actions = new LinkedList<Object>();
+        List<Long> actions = new LinkedList<Long>();
         while (qactions instanceof ZC) {
             ZC next = (ZC) qactions;
-            actions.add(unwrap(next.x1));
+            actions.add(unwrapW64(next.x1));
             qactions = next.x2;
         }
         REPLClassLoader.runModFinalizerRefs
@@ -117,6 +118,10 @@ public class Utils {
 
     public static Object unwrap(Closure c) {
         return ((Ozh) c).x1;
+    }
+
+    public static long unwrapW64(Closure c) {
+        return ((W64zh) c).x1;
     }
 
     public static Closure wrap(Object o) {
