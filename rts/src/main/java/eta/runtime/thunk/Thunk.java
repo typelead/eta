@@ -247,16 +247,9 @@ public abstract class Thunk extends Closure {
         revertibleCAFList.clear();
     }
 
-    /* Clears out the free variables of a thunk using reflection to free up the
-       strong references of an evaluated thunk. */
-    public void clear() {
-        try {
-            Field[] fields = Thunks.lookupFields(getClass());
-            for (Field f: fields) {
-                f.set(this, null);
-            }
-        } catch (IllegalAccessException e) {}
-    }
+    /* Clears out the free variables of a thunk. The code generator will generate the clearing
+       code for all the thunks. */
+    public void clear() {}
 
     protected boolean handleException(StgContext context, java.lang.Exception e) {
         StgException thrw = handleExceptionSimple(context, e);

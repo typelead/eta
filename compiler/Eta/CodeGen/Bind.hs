@@ -87,7 +87,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
   if isThunk then do
     let fvlocs = fvLocs False
         objectFields = filter (isObjectFt . locFt) $ map snd fvlocs
-    when (not hasStdLayout) $
+    when (not hasStdLayout && length objectFields > 0 && lfUpdatable lfInfo) $
       withMethod [Public, Final] "clear" [] void $ do
         emit $ fold (map (\cgLoc -> storeLoc cgLoc (aconst_null (locFt cgLoc))) objectFields)
             <> vreturn

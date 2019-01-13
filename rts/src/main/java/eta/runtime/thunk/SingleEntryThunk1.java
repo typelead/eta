@@ -8,9 +8,4 @@ public abstract class SingleEntryThunk1 extends SingleEntryThunk {
     public SingleEntryThunk1(Closure x1) {
         this.x1 = x1;
     }
-
-    @Override
-    public final void clear() {
-        this.x1 = null;
-    }
 }

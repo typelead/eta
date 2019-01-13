@@ -14,12 +14,4 @@ public abstract class SingleEntryThunk4 extends SingleEntryThunk {
         this.x3 = x3;
         this.x4 = x4;
     }
-
-    @Override
-    public final void clear() {
-        this.x1 = null;
-        this.x2 = null;
-        this.x3 = null;
-        this.x4 = null;
-    }
 }

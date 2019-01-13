@@ -49,9 +49,6 @@ public class CAF extends Thunk {
         return indirectee.enter(context);
     }
 
-    @Override
-    public final void clear() {}
-
     /* Initializing CAFs */
     public final boolean claim(TSO tso) {
         if (tryLock()) {
