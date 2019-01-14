@@ -85,7 +85,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   when topLevel (defineSingletonInstance thisClass)
   if isThunk then do
-    let fvlocs = fvLocs False
+    let fvlocs = fvLocs' -- Note we do NOT want a self-reference to get cleared!
         objectFields = filter (isObjectFt . locFt) $ map snd fvlocs
     when (not hasStdLayout && length objectFields > 0 && lfUpdatable lfInfo) $
       withMethod [Public, Final] "clear" [] void $ do
@@ -101,7 +101,8 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                 emit $ storeLoc cgLoc' (loadLoc cgLoc)
                 bindFV (nvId, cgLoc') $> True
         else bindFV fvLoc $> False
-
+      -- The loop above ignores the self-binder so we handle it here
+      when binderIsFV $ bindFV (head (fvLocs False))
       when (any Prelude.id results) $ do
         -- TODO: Perhaps we should store the indirectee in re-usable local variable?
         --       Reconsider when local-variable optimization is thought out.
