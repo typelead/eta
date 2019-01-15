@@ -858,14 +858,25 @@ genMethodParam argType argFt
   | isObjectFt argFt = ReferenceParameter $ genClassMethodParam argType argFt
   | otherwise        = PrimitiveParameter $ baseType argFt
 
+fieldTypeToParam :: FieldType -> [TypeParameter TypeVariable] -> ReferenceParameter TypeVariable
+fieldTypeToParam ft params = case ft of
+  ObjectType c  -> GenericReferenceParameter c params []
+  ArrayType ft' -> ArrayReferenceParameter (go ft')
+  _             -> panic "fieldTypeToParam: Not object type"
+  where go ft = case ft of
+          ObjectType c  -> ReferenceParameter $ GenericReferenceParameter c [] []
+          ArrayType ft' -> ReferenceParameter $ ArrayReferenceParameter (go ft')
+          _             -> PrimitiveParameter $ baseType ft
+
 genClassMethodParam :: Type -> FieldType -> ReferenceParameter TypeVariable
 genClassMethodParam argType argFt
   | Just tyVar <- getTyVar_maybe argType
   = VariableReferenceParameter $ sigTyVarText tyVar
   | Just (_, tyArgs)      <- splitTyConApp_maybe argType
   , isObjectFt argFt
-  = GenericReferenceParameter (IClassName (getFtClass argFt)) (map genTypeParam tyArgs) []
-  | otherwise = pprPanic "genClassMethodParam: Not a valid argument." (ppr argType <+> ppr (show argFt))
+  = fieldTypeToParam argFt (map genTypeParam tyArgs)
+  | otherwise = pprPanic "genClassMethodParam: Not a valid argument."
+                  (ppr argType <+> ppr (show argFt))
 
 getArgFt :: ExtendsInfo -> Type -> FieldType
 getArgFt extendsInfo ty
