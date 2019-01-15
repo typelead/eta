@@ -452,35 +452,52 @@ public class Utils {
         return Files.readAttributes(p, BasicFileAttributes.class);
     }
 
-    public static Map<Object, Integer> fileLocks = new HashMap<Object, Integer>();
-
-    public static synchronized boolean lockFile(Object key, boolean forWriting) {
-        Integer readers = fileLocks.get(key);
-        if (readers == null) {
-            int readersInt = forWriting? -1 : 1;
-            fileLocks.put(key, readersInt);
-        } else {
-            if (forWriting || readers < 0) return false;
-            fileLocks.put(key, readers + 1);
+    public static Object fileKey(final BasicFileAttributes attrs, final Path p) {
+        Object key = attrs.fileKey();
+        if (key == null) {
+            /* Windows doesn't have fileKey, so we do the best we can. */
+            try {
+                key = p.toRealPath().normalize();
+            } catch (IOException io) {
+                key = p.toAbsolutePath().normalize();
+            }
         }
-        return true;
+        return key;
     }
 
-    public static synchronized boolean unlockFile(Object key) {
-        Integer readers = fileLocks.get(key);
-        if (readers == null) return false;
-        int newReaders = 0;
-        if (readers < 0) {
-            newReaders = readers + 1;
-        } else {
-            newReaders = readers - 1;
+    public static final Map<Object, Integer> fileLocks = new HashMap<Object, Integer>();
+
+    public static  boolean lockFile(final Object key, final boolean forWriting) {
+        synchronized (fileLocks) {
+            final Integer readers = fileLocks.get(key);
+            if (readers == null) {
+                final int readersInt = forWriting? -1 : 1;
+                fileLocks.put(key, readersInt);
+            } else {
+                if (forWriting || readers < 0) return false;
+                fileLocks.put(key, readers + 1);
+            }
+            return true;
         }
-        if (newReaders == 0) {
-            fileLocks.remove(key);
-        } else {
-            fileLocks.put(key, newReaders);
+    }
+
+    public static boolean unlockFile(final Object key) {
+        synchronized (fileLocks) {
+            final Integer readers = fileLocks.get(key);
+            if (readers == null) return false;
+            int newReaders = 0;
+            if (readers < 0) {
+                newReaders = readers + 1;
+            } else {
+                newReaders = readers - 1;
+            }
+            if (newReaders == 0) {
+                fileLocks.remove(key);
+            } else {
+                fileLocks.put(key, newReaders);
+            }
+            return true;
         }
-        return true;
     }
 
     public static void setNonBlockingFD(Channel c, boolean nonblocking) throws IOException {

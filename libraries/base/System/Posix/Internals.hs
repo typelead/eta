@@ -98,7 +98,7 @@ fdStat :: Path -> IO (IODeviceType, Object)
 fdStat path = do
     attrs   <- c_fstat path
     ty      <- statGetType attrs
-    fileKey <- st_fileKey attrs
+    fileKey <- st_fileKey attrs path
     return (ty, fileKey)
 
 fdType :: Path -> IO IODeviceType
@@ -533,8 +533,8 @@ foreign import java unsafe "@interface isOther"
 foreign import java unsafe "@interface size"
   st_size    :: BasicFileAttributes -> IO Int64
 
-foreign import java unsafe "@interface fileKey"
-  st_fileKey :: BasicFileAttributes -> IO Object
+foreign import java unsafe "@static eta.base.Utils.fileKey"
+  st_fileKey :: BasicFileAttributes -> Path -> IO Object
 
 -- foreign import ccall unsafe "HsBase.h __hscore_echo"
 const_echo :: CInt
