@@ -827,7 +827,7 @@ typePrimRepMany ty
 
 mkObjectRep :: Text -> PrimRep
 mkObjectRep text
-  | T.takeEnd 2 text == "[]" = ArrayRep (checkPrimitiveType (T.dropEnd 2 text))
+  | T.takeEnd 2 text == "[]" = ArrayRep (mkObjectRep (T.dropEnd 2 text))
   | otherwise = checkPrimitiveType text
   where checkPrimitiveType "boolean" = BoolRep
         checkPrimitiveType "byte"    = ByteRep
