@@ -178,7 +178,7 @@ Let’s try to wrap the [java.util.function.Function](https://docs.oracle.com/ja
 
 
 
-The import would look like so:
+The import would be like this:
 
 
 
@@ -189,6 +189,27 @@ data Function t r = Function (@java.util.function.Function t r)
 foreign import java unsafe "@wrapper apply"
   mkFunction :: (t <: Object, r <: Object)
              => (t -> Java (Function t r) r) -> Function t r
+```
+
+### Example wrapping a interface with several methods
+
+When the interface or abstract class has various abstract methods we must implement all of them with the wrapper.
+
+To wrap this java interface:
+
+```java
+public interface SomeInterface {
+       String method1(int i);
+       double method2(int i, int j);
+}
+```
+
+We should implement this eta wrapper:
+
+```eta
+foreign import java unsafe "@wrapper method1,method2" :: (Int -> SomeInterface JString)        -- method1
+                                                      -> (Int -> Int -> SomeInterface JDouble) -- method2
+                                                      -> SomeInterface
 ```
 
 ## Next Section
