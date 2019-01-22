@@ -86,6 +86,20 @@ foreign import java unsafe "@static java.io.File.createTempFile"
   createTempFile2 :: String -> String -> File
 ```
 
+### Example importing a static method with no arguments (use the same type of signature for instance methods with no parameters)
+
+``` eta
+import Java
+
+foreign import java unsafe "@static java.lang.System.currentTimeMillis"
+  currentTimeMillis :: IO Int64
+  
+main :: IO ()
+main = do
+  now <- currentTimeMillis
+  print now
+```
+
 ## Importing Constructors
 
 Let’s import the `File(String)` [constructor](https://docs.oracle.com/javase/7/docs/api/java/io/File.html#File(java.lang.String)) from the [java.io.File](https://docs.oracle.com/javase/7/docs/api/java/io/File.html) class.
