@@ -48,20 +48,38 @@ The following table lists the exported types and their element types.
 | `float[]`     |   `JFloatArray`    |      `Float` |
 | `double[]`    |   `JDoubleArray`   |     `Double` |
 
+### Example of use with a JByteArray
+
+```eta
+import Java
+
+main :: IO ()
+main = java $ do
+  arr <- arrayFromList integers :: Java a JByteArray
+  elems <- withObject arr $ mapM aget [0..9]
+  io $ print elems
+  withObject arr $ mapM_ (\i -> aset i (fromIntegral i * 2)) [0..9]
+  arrList <- arr <.> arrayToList
+  io $ print arrList
+  where integers = [1..10] :: [Byte]
+```
+
+Outputs:  
+[1,2,3,4,5,6,7,8,9,10]  
+[0,2,4,6,8,10,12,14,16,18]
+
 ## Object Arrays
 
 Object arrays must be explicitly declared as JWTs and must have an instance of the JArray typeclass defined for them.
 
 The `Java.Array` has one pre-defined object array: `JStringArray` which corresponds to `String[]` in Java and has `JString` as the element type.
 
-
-
 ### Example
 
 ```eta
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-import Java
+import Java hiding (JInteger)
 
 data JInteger = JInteger @java.lang.Integer
   deriving (Class, Show)
@@ -88,5 +106,10 @@ main = java $ do
   
 ```
 
+Outputs:  
+[JInteger 1,JInteger 2,JInteger 3,JInteger 4,JInteger 5,JInteger 6,JInteger 7,JInteger 8,JInteger 9,JInteger 10]  
+[JInteger 0,JInteger 2,JInteger 4,JInteger 6,JInteger 8,JInteger 10,JInteger 12,JInteger 14,JInteger 16,JInteger 18]
+
 ## Next Section
+
 We will now proceed with handling Java Subclasses.
