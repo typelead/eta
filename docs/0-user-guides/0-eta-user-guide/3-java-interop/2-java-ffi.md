@@ -86,14 +86,18 @@ foreign import java unsafe "@static java.io.File.createTempFile"
   createTempFile2 :: String -> String -> File
 ```
 
-### Example importing a static method with no arguments (use the same type of signature for instance methods with no parameters)
+### Example
 
-``` eta
+The example below demonstrates importing a static method with no arguments.
+
+Note that it is similar to the type signature for instance methods with no parameters.
+
+```eta
 import Java
 
 foreign import java unsafe "@static java.lang.System.currentTimeMillis"
   currentTimeMillis :: IO Int64
-  
+
 main :: IO ()
 main = do
   now <- currentTimeMillis

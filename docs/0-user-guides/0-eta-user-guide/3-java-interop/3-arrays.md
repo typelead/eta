@@ -48,25 +48,35 @@ The following table lists the exported types and their element types.
 | `float[]`     |   `JFloatArray`    |      `Float` |
 | `double[]`    |   `JDoubleArray`   |     `Double` |
 
-### Example of use with a JByteArray
+### Example
+
+This example demonstrates usage with `JByteArray`.
 
 ```eta
+{-# LANGUAGE ScopedTypeVariables #-}
 import Java
+import Control.Monad (forM_)
 
 main :: IO ()
 main = java $ do
-  arr <- arrayFromList integers :: Java a JByteArray
-  elems <- withObject arr $ mapM aget [0..9]
+  let integers = [1..10] :: [Byte]
+
+  (arr :: JByteArray) <- arrayFromList integers
+  elems <- arr <.> mapM aget [0..9]
   io $ print elems
-  withObject arr $ mapM_ (\i -> aset i (fromIntegral i * 2)) [0..9]
+
+  arr <.> forM_ [0..9] (\i ->
+            aset i (fromIntegral i * 2))
   arrList <- arr <.> arrayToList
   io $ print arrList
-  where integers = [1..10] :: [Byte]
 ```
 
-Outputs:  
-[1,2,3,4,5,6,7,8,9,10]  
+### Output
+
+```
+[1,2,3,4,5,6,7,8,9,10]
 [0,2,4,6,8,10,12,14,16,18]
+```
 
 ## Object Arrays
 
@@ -77,9 +87,9 @@ The `Java.Array` has one pre-defined object array: `JStringArray` which correspo
 ### Example
 
 ```eta
-{-# LANGUAGE MultiParamTypeClasses #-}
-
+{-# LANGUAGE MultiParamTypeClasses, ScopedTypeVariables #-}
 import Java hiding (JInteger)
+import Control.Monad (forM_)
 
 data JInteger = JInteger @java.lang.Integer
   deriving (Class, Show)
@@ -96,19 +106,24 @@ instance JArray JInteger JIntegerArray
 
 main :: IO ()
 main = java $ do
+  let integers = map toJInteger [1..10]
+
   arr <- arrayFromList integers
-  elems <- withObject arr $ mapM aget [0..9]
+  elems <- arr <.> mapM aget [0..9]
   io $ print elems
-  withObject arr $ mapM_ (\i -> aset i (toJInteger (i * 2))) [0..9]
+
+  arr <.> forM_ [0..9] (\i ->
+            aset i (toJInteger (i * 2)))
   arrList <- arr <.> arrayToList
   io $ print arrList
-  where integers = map toJInteger [1..10]
-  
 ```
 
-Outputs:  
-[JInteger 1,JInteger 2,JInteger 3,JInteger 4,JInteger 5,JInteger 6,JInteger 7,JInteger 8,JInteger 9,JInteger 10]  
+### Outputs
+
+```
+[JInteger 1,JInteger 2,JInteger 3,JInteger 4,JInteger 5,JInteger 6,JInteger 7,JInteger 8,JInteger 9,JInteger 10]
 [JInteger 0,JInteger 2,JInteger 4,JInteger 6,JInteger 8,JInteger 10,JInteger 12,JInteger 14,JInteger 16,JInteger 18]
+```
 
 ## Next Section
 

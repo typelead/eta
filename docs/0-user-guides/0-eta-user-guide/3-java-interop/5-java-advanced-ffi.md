@@ -176,11 +176,7 @@ Note that this can be applied for abstract classes as well - just use a `@wrappe
 
 Let’s try to wrap the [java.util.function.Function](https://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html) interface in Java 8. The method we want to implement on the Eta side has signature `R apply(T t)`.
 
-
-
 The import would be like this:
-
-
 
 ```eta
 data Function t r = Function (@java.util.function.Function t r)
@@ -191,7 +187,9 @@ foreign import java unsafe "@wrapper apply"
              => (t -> Java (Function t r) r) -> Function t r
 ```
 
-### Example wrapping a interface with several methods
+### Example
+
+This example demonstrates how to wrap an interface with several methods.
 
 When the interface or abstract class has various abstract methods we must implement all of them with the wrapper.
 
@@ -207,9 +205,10 @@ public interface SomeInterface {
 We should implement this eta wrapper:
 
 ```eta
-foreign import java unsafe "@wrapper method1,method2" :: (Int -> SomeInterface JString)        -- method1
-                                                      -> (Int -> Int -> SomeInterface JDouble) -- method2
-                                                      -> SomeInterface
+foreign import java unsafe "@wrapper method1,method2"
+  :: (Int -> Java SomeInterface JString)        -- Abstract/Interface Method 1
+  -> (Int -> Int -> Java SomeInterface JDouble) -- Abstract/Interface Method 2
+  -> SomeInterface
 ```
 
 ## Next Section
