@@ -67,7 +67,7 @@ import Eta.Types.Type
 import Eta.HsSyn.HsDoc
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.SrcLoc
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 import Eta.Main.StaticFlags
 import Eta.Utils.Outputable
 import Eta.Utils.FastString

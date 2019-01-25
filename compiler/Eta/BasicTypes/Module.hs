@@ -83,6 +83,7 @@ module Eta.BasicTypes.Module
         dphParUnitId,
         mainUnitId,
         thisGhcUnitId,
+        javaUnitId, javaUnitFs,
         isHoleModule,
         interactiveUnitId, isInteractiveModule,
         wiredInUnitIds,
@@ -1081,7 +1082,7 @@ parseModSubst = Parse.between (Parse.char '[') (Parse.char ']')
 integerUnitId, primUnitId,
   baseUnitId, rtsUnitId,
   thUnitId, dphSeqUnitId, dphParUnitId,
-  mainUnitId, thisGhcUnitId, etaMetaId, interactiveUnitId  :: UnitId
+  mainUnitId, thisGhcUnitId, etaMetaId, interactiveUnitId, javaUnitId :: UnitId
 primUnitId        = fsToUnitId (fsLit "ghc-prim")
 integerUnitId     = fsToUnitId (fsLit "integer")
 baseUnitId        = fsToUnitId (fsLit "base")
@@ -1097,6 +1098,13 @@ interactiveUnitId = fsToUnitId (fsLit "interactive")
 -- package Id if you don't specify a package name.  We don't add this prefix
 -- to symbol names, since there can be only one main package per program.
 mainUnitId      = fsToUnitId (fsLit "main")
+
+-- | This is the package string for direct Java imports.
+javaUnitFs :: FastString
+javaUnitFs = fsLit "@java"
+
+-- | This is the package string for direct Java imports.
+javaUnitId = fsToUnitId javaUnitFs
 
 -- | This is a fake package id used to provide identities to any un-implemented
 -- signatures.  The set of hole identities is global over an entire compilation.

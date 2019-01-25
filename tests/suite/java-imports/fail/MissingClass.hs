@@ -1,3 +1,3 @@
 module MissingClass where
 
-import java java.lang.Math1
+import java "java.lang.Math1"

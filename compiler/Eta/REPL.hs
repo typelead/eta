@@ -273,18 +273,16 @@ setClassInfoPath hsc_env cp = do
   when (not (null cp)) $
     iservCmd hsc_env (SetClassInfoPath cp)
 
-getClassInfo :: HscEnv -> [FilePath] -> IO ([String], ClassIndex)
+getClassInfo :: HscEnv -> [FilePath] -> IO [String]
 getClassInfo hsc_env cp = do
     cp <- findInClassIndex hsc_env cp
     if null cp
-    then do
-      idx <- getClassIndex hsc_env
-      return ([], idx)
+    then return []
     else do
       jresult <- iservCmd hsc_env (GetClassInfo cp)
       let (notFounds, classInfos) = handleJResult jresult
-      classIndex <- addToClassIndex hsc_env classInfos
-      return (notFounds, classIndex)
+      addToClassIndex hsc_env classInfos
+      return notFounds
 
 handleJResult :: JResult ([String], [PreClassInfo]) -> ([String], [PreClassInfo])
 handleJResult (JDone x) = x

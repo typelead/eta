@@ -83,7 +83,7 @@ import Eta.Prelude.TysPrim          ( jobjectPrimTyConName )
 import Eta.Prelude.ForeignCall
 import Eta.BasicTypes.OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 import Eta.Prelude.PrelNames        ( forall_tv_RDR, allNameStrings )
 import Eta.Main.DynFlags
 import Eta.BasicTypes.SrcLoc

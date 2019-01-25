@@ -93,7 +93,7 @@ import Eta.Types.Coercion
 import Eta.Prelude.ForeignCall
 import Eta.HsSyn.PlaceHolder ( PostTc,PostRn,PlaceHolder(..),DataId )
 import Eta.BasicTypes.NameSet
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 
 -- others:
 import Eta.Types.InstEnv

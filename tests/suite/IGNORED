@@ -6,6 +6,7 @@ T4912
 T6018
 T7541
 InstanceMethod
+StaticMethod
 TcTypeNatSimple
 TcTypeSymbolSimple
 tcfail150

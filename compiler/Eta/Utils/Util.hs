@@ -115,6 +115,7 @@ module Eta.Utils.Util (
         scanM,
         expectJust,
         safeHead,
+        headOr,
         safeLast,
         mkClasspath
     ) where
@@ -1219,6 +1220,10 @@ scanM f q (x:xs) =
 safeHead :: [a] -> Maybe a
 safeHead (x:_) = Just x
 safeHead _     = Nothing
+
+headOr :: [a] -> a -> a
+headOr (x:_)  _ = x
+headOr []     x = x
 
 safeLast :: [a] -> Maybe a
 safeLast xs = if null xs then Nothing else Just $ last xs

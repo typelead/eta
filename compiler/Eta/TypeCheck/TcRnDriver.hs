@@ -98,7 +98,7 @@ import Eta.Types.Type
 import Eta.Types.Class
 import Eta.Types.CoAxiom
 import Eta.Main.Annotations
-import Data.List ( sortBy, partition )
+import Data.List ( sortBy )
 import Data.Ord
 #ifdef ETA_REPL
 import Eta.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
@@ -176,7 +176,7 @@ tcRnModuleTcRnM hsc_env hsc_src
                 (HsParsedModule {
                    hpm_module =
                       (L loc (HsModule maybe_mod export_ies
-                                       import_decls local_decls1 mod_deprec
+                                       import_decls local_decls mod_deprec
                                        maybe_doc_hdr)),
                    hpm_src_files = src_files
                 })
@@ -214,16 +214,14 @@ tcRnModuleTcRnM hsc_env hsc_src
                           ++ map mkImport (raw_sig_imports ++ raw_req_imports) } ;
 
            -- OK now finally rename the imports
-        (tcg_env, local_decls2) <- {-# SCC "tcRnImports" #-}
-                   tcRnImports hsc_env all_imports ;
+        tcg_env <- {-# SCC "tcRnImports" #-} tcRnImports hsc_env all_imports ;
 
           -- If the whole module is warned about or deprecated
           -- (via mod_deprec) record that in tcg_warns. If we do thereby add
           -- a WarnAll, it will override any subseqent depracations added to tcg_warns
-        let { local_decls = local_decls2 ++ local_decls1
-            ; tcg_env1 = case mod_deprec of
-                         Just (L _ txt) -> tcg_env { tcg_warns = WarnAll txt }
-                         Nothing        -> tcg_env
+        let { tcg_env1 = case mod_deprec of
+                           Just (L _ txt) -> tcg_env { tcg_warns = WarnAll txt }
+                           Nothing        -> tcg_env
             } ;
 
         setGblEnv tcg_env1 $ do {
@@ -298,17 +296,12 @@ implicitPreludeWarn
 ************************************************************************
 -}
 
-tcRnImports :: HscEnv -> [LImportDecl RdrName] -> TcM (TcGblEnv, [LHsDecl RdrName])
-tcRnImports hsc_env import_decls0
-  = do  { let { (java_import_decls, import_decls) =
-                  partition (ideclIsJava . unLoc) import_decls0 } ;
-        ; (rdr_env0, foreign_binds) <- rnJavaImports hsc_env java_import_decls
-        ; failIfErrsM
-        ; (rn_imports, rdr_env1, imports, hpc_info) <- rnImports import_decls
+tcRnImports :: HscEnv -> [LImportDecl RdrName] -> TcM TcGblEnv
+tcRnImports hsc_env import_decls
+  = do  { (rn_imports, rdr_env, imports, hpc_info) <- rnImports import_decls
 
         ; this_mod <- getModule
-        ; let { rdr_env = rdr_env0 `plusGlobalRdrEnv` rdr_env1
-              ; dep_mods :: ModuleNameEnv (ModuleName, IsBootInterface)
+        ; let { dep_mods :: ModuleNameEnv (ModuleName, IsBootInterface)
               ; dep_mods = imp_dep_mods imports
 
                 -- We want instance declarations from all home-package
@@ -365,8 +358,7 @@ tcRnImports hsc_env import_decls0
                              $ imports }
         ; checkFamInstConsistency (imp_finsts imports) dir_imp_mods ;
 
-        ; gbl_env <- getGblEnv
-        ; return (gbl_env, foreign_binds) } }
+        ; getGblEnv } }
 
 {-
 ************************************************************************
@@ -1863,8 +1855,7 @@ tcRnImportDecls :: HscEnv
 -- decls.  In contract tcRnImports *extends* the TcGblEnv.
 tcRnImportDecls hsc_env import_decls
  =  runTcInteractive hsc_env $
-    do { (gbl_env, _) <- updGblEnv zap_rdr_env $ tcRnImports hsc_env import_decls
-         -- TODO: Figure out how to handle java imports in REPL
+    do { gbl_env <- updGblEnv zap_rdr_env $ tcRnImports hsc_env import_decls
        ; return (tcg_rdr_env gbl_env) }
   where
     zap_rdr_env gbl_env = gbl_env { tcg_rdr_env = emptyGlobalRdrEnv }

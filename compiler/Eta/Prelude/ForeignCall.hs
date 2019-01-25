@@ -15,9 +15,12 @@ module Eta.Prelude.ForeignCall (
         CCallTarget(..), isDynamicTarget,
         CCallConv(..), defaultCCallConv, ccallConvToInt, ccallConvAttribute,
 
+        JavaCallSpec(..), JavaTarget(..), MethodKind(..),
+
         Header(..), CType(..),
     ) where
 
+import Codec.JVM.Types
 import Eta.Utils.FastString
 import Eta.Utils.Binary
 import Eta.Utils.Outputable
@@ -35,7 +38,9 @@ import Data.Data
 ************************************************************************
 -}
 
-newtype ForeignCall = CCall CCallSpec
+data ForeignCall = CCall CCallSpec
+  --                 TODO: Disabled ot avoid cascade of changes
+  --               | JavaCall JavaCallSpec
   deriving Eq
   {-! derive: Binary !-}
 
@@ -45,7 +50,8 @@ isSafeForeignCall (CCall (CCallSpec _ _ safe)) = playSafe safe
 -- We may need more clues to distinguish foreign calls
 -- but this simple printer will do for now
 instance Outputable ForeignCall where
-  ppr (CCall cc)  = ppr cc
+  ppr (CCall cc)    = ppr cc
+  -- ppr (JavaCall jj) = ppr jj
 
 data Safety
   = PlaySafe            -- Might invoke Haskell GC, or do a call back, or
@@ -79,6 +85,34 @@ playSafe PlayRisky = False
 playInterruptible :: Safety -> Bool
 playInterruptible PlayInterruptible = True
 playInterruptible _ = False
+
+{-
+************************************************************************
+*                                                                      *
+\subsubsection{Calling Java}
+*                                                                      *
+************************************************************************
+-}
+
+data JavaCallSpec =
+  JavaCallSpec { jcsHasObject  :: Bool
+               , jcsClassName  :: FastString
+               , jcsCallTarget :: JavaTarget }
+
+data JavaTarget =
+    MethodTarget { mcsName      :: FastString
+                 , mcsKind      :: MethodKind
+                 , mcsArgTypes  :: [FieldType]
+                 , mcsResType   :: Maybe FieldType }
+  | FieldTarget  { fcsName   :: FastString
+                 , fcsStatic :: Bool
+                 , fcsGet    :: Bool
+                 , fcsType   :: FieldType }
+  deriving( Eq )
+
+data MethodKind = ConstructorMethod | InstanceMethod | StaticMethod | InterfaceMethod
+  deriving Eq
+
 
 {-
 ************************************************************************

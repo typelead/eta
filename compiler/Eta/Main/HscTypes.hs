@@ -136,7 +136,8 @@ module Eta.Main.HscTypes (
 
         Reinterpret(..),
         CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
-        addToClassIndex, lookupClassIndex
+        addToClassIndex, lookupClassIndex, CachedClassInfo
+
     ) where
 
 #include "HsVersions.h"
@@ -3203,11 +3204,10 @@ findInClassIndex hsc_env classes = do
   withMVar var $ \(ClassIndex index) ->
     return $ filter (not . flip M.member index) classes
 
-addToClassIndex :: HscEnv -> [PreClassInfo] -> IO ClassIndex
+addToClassIndex :: HscEnv -> [PreClassInfo] -> IO ()
 addToClassIndex hsc_env classInfos = do
   let var = hsc_classIndex hsc_env
-  modifyMVar var $ \(ClassIndex idx) -> do
-    let a = ClassIndex $ M.union idx
-              (M.fromList [ (ciName classInfo, toCachedClassInfo classInfo)
-                          | classInfo <- classInfos ])
-    return (a, a)
+  modifyMVar_ var $ \(ClassIndex idx) ->
+    return $ ClassIndex $ M.union idx $
+               M.fromList [ (ciName classInfo, toCachedClassInfo classInfo)
+                          | classInfo <- classInfos ]

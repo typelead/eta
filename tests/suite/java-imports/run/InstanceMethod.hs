@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds, FlexibleContexts #-}
 import Java
-import java java.nio.ByteBuffer
+import java "java.nio.ByteBuffer"
 
 main :: IO ()
 main = java $ do

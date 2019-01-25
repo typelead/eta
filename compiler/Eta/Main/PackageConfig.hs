@@ -26,6 +26,7 @@ module Eta.Main.PackageConfig (
         sourcePackageIdString,
         packageNameString,
         pprPackageConfig,
+        javaPackageConfig
     ) where
 
 #include "HsVersions.h"
@@ -150,3 +151,8 @@ definitePackageConfigId p =
     case packageConfigId p of
         DefiniteUnitId def_uid -> Just def_uid
         _ -> Nothing
+
+javaPackageConfig :: PackageConfig
+javaPackageConfig = defaultPackageConfig
+  { unitId      = toInstalledUnitId javaUnitId
+  , componentId = ComponentId (unitIdFS javaUnitId) }

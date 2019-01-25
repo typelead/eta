@@ -112,7 +112,7 @@ import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.BasicTypes
   ( InlineSpec(..), RuleMatchInfo(..), IntegralLit(..), FractionalLit(..), SourceText )
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 
 import Eta.Parser.Ctype
 
@@ -299,7 +299,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 -- generate a matching '}' token.
 <layout_left>  ()                       { do_layout_left }
 
-<0,option_prags,java_import> \n         { begin bol }
+<0,option_prags> \n         { begin bol }
 
 "{-#" $whitechar* $pragmachar+ / { known_pragma linePrags }
                                 { dispatch_pragmas linePrags }
@@ -341,13 +341,13 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   "-- #"                           { multiline_doc_comment }
 }
 
-<0,java_import> {
+<0> {
   -- In the "0" mode we ignore these pragmas
   "{-#"  $whitechar* $pragmachar+ / { known_pragma fileHeaderPrags }
                      { nested_comment lexToken }
 }
 
-<0,java_import> {
+<0> {
   "-- #" .* { lineCommentToken }
 }
 
@@ -360,7 +360,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 
 -- Haddock comments
 
-<0,option_prags,java_import> {
+<0,option_prags> {
   "-- " $docsym      / { ifExtension haddockEnabled } { multiline_doc_comment }
   "{-" \ ? $docsym   / { ifExtension haddockEnabled } { nested_doc_comment }
 }
@@ -425,7 +425,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
          { token ITcubxparen }
 }
 
-<0,option_prags,java_import> {
+<0,option_prags> {
   \(                                    { special IToparen }
   \)                                    { special ITcparen }
   \[                                    { special ITobrack }
@@ -438,7 +438,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   \}                                    { close_brace }
 }
 
-<0,option_prags,java_import> {
+<0,option_prags> {
   @qvarid                       { idtoken qvarid }
   @qconid                       { idtoken qconid }
   @varid                        { varid }
@@ -454,15 +454,11 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 
 -- ToDo: - move `var` and (sym) into lexical syntax?
 --       - remove backquote from $special?
-<0,java_import> {
+<0> {
   @qvarsym                                         { idtoken qvarsym }
   @qconsym                                         { idtoken qconsym }
   @varsym                                          { varsym }
   @consym                                          { consym }
-}
-
-<java_import> {
-  @javaid { javaIdToken }
 }
 
 -- For the normal boxed literals we need to be careful
@@ -722,7 +718,6 @@ data Token
 
   -- Java annotations
   | ITjavaannot FastString
-  | ITjavaid FastString
 
   deriving Show
 
@@ -1157,14 +1152,6 @@ varid span buf len =
                    return ITcase
       maybe_layout keyword
       return $ L span keyword
-    Just (ITjava, _) -> do
-      lastTk  <- getLastTk
-      lastLoc <- getPrevLoc
-      case lastTk of
-        Just e@ITimport
-          | srcSpanStartCol lastLoc == 1 -> pushLexState java_import
-        _             -> return ()
-      return $ L span ITjava
     Just (ITstatic, _) -> do
       flags <- getDynFlags
       if xopt LangExt.StaticPointers flags
@@ -1279,10 +1266,6 @@ do_bol span _str _len = do
             e@EQ | gen_semic -> do
                 traceLexer ("layout: inserting ';' " ++ show e) $ do
                 _ <- popLexState
-                l <- getLexState
-                when (l == java_import) $ do
-                  _ <- popLexState
-                  return ()
                 return (L span ITsemi)
             _ -> do
                 _ <- popLexState
@@ -1749,7 +1732,6 @@ data PState = PState {
         buffer     :: StringBuffer,
         dflags     :: DynFlags,
         messages   :: Messages,
-        prev_loc   :: RealSrcSpan,
         last_tk    :: Maybe Token,
         last_loc   :: RealSrcSpan, -- pos of previous token
         last_len   :: !Int,        -- len of previous token
@@ -1876,12 +1858,6 @@ setLastTk tk = P $ \s -> POk s { last_tk = Just tk } ()
 
 getLastTk :: P (Maybe Token)
 getLastTk = P $ \s@(PState { last_tk = last_tk }) -> POk s last_tk
-
-setPrevLoc :: RealSrcSpan -> P ()
-setPrevLoc span = P $ \s -> POk s { prev_loc = span } ()
-
-getPrevLoc :: P RealSrcSpan
-getPrevLoc = P $ \s@(PState { prev_loc = prev_loc }) -> POk s prev_loc
 
 data AlexInput = AI RealSrcLoc StringBuffer
 
@@ -2164,7 +2140,6 @@ mkPState flags buf loc =
       buffer        = buf,
       dflags        = flags,
       messages      = emptyMessages,
-      prev_loc      = mkRealSrcSpan loc loc,
       last_tk       = Nothing,
       last_loc      = mkRealSrcSpan loc loc,
       last_len      = 0,
@@ -2578,7 +2553,6 @@ lexToken = do
           ITblockComment _ -> return lt
           lt' -> do
             setLastTk lt'
-            setPrevLoc span
             return lt
 
 reportLexError :: RealSrcLoc -> RealSrcLoc -> StringBuffer -> [Char] -> P a
@@ -2773,10 +2747,5 @@ isDocComment _ = False
 javaAnnotationToken :: Action
 javaAnnotationToken span buf len =
   return $ L span $ ITjavaannot fs
-  where !fs = lexemeToFastString buf len
-
-javaIdToken :: Action
-javaIdToken span buf len =
-  return $ L span $ ITjavaid fs
   where !fs = lexemeToFastString buf len
 }

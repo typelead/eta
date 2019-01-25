@@ -13,6 +13,7 @@ module Eta.Iface.MkIface (
         mkIface,        -- Build a ModIface from a ModGuts,
                         -- including computing version information
 
+        mkIface_,
         mkIfaceTc,
 
         writeIfaceFile, -- Write the interface file

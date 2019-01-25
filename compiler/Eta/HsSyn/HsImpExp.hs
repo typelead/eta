@@ -12,10 +12,10 @@ module Eta.HsSyn.HsImpExp where
 
 import Eta.BasicTypes.Module      ( ModuleName )
 import Eta.HsSyn.HsDoc            ( HsDocString )
-import Eta.HsSyn.HsTypes
 import Eta.HsSyn.PlaceHolder      ( DataId )
 import Eta.BasicTypes.OccName     ( HasOccName(..), isTcOcc, isSymOcc )
 import Eta.BasicTypes.BasicTypes  ( SourceText )
+import Eta.BasicTypes.Interop
 
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
@@ -56,13 +56,14 @@ data ImportDecl name
       ideclHiding    :: Maybe (Bool, Located [LIE name])
                                             -- ^ (True => hiding, names)
     }
-    | ImportJavaDecl {
-        ideclClassName :: Located FastString, -- ^ Module name.
-        ideclName      :: Located ModuleName, -- ^ Module name.
-        ideclAsModule  :: Located (Maybe ModuleName),   -- ^ as Module
-        ideclImport    :: Maybe (Located (Bool, Located [Located (JavaImport name)]))
+  | ImportJavaDecl {
+      ideclClassName :: Located FastString, -- ^ Module name.
+      ideclName      :: Located ModuleName, -- ^ Module name.
+      ideclQualified :: Bool,               -- ^ True => qualified
+      ideclAsModule  :: Located (Maybe ModuleName),   -- ^ as Module
+      ideclImport    :: Maybe (Located (Bool, Located [LJavaImport name]))
                                               -- ^ (True => hiding, names)
-      }
+    }
      -- ^
      --  'ApiAnnotation.AnnKeywordId's
      --
@@ -240,25 +241,15 @@ instance (HasOccName name, OutputableBndr name) => Outputable (IE name) where
     ppr (IEDoc doc)             = ppr doc
     ppr (IEDocNamed string)     = text ("<IEDocNamed: " ++ string ++ ">")
 
+type LJavaImport name = Located (JavaImport name)
 
 data JavaImport name =
-    JIInnerClass  { javaImportJavaName   :: Located FastString
-                  , javaImportEtaName    :: Located name
-                  , javaImportAs         :: Bool
-                  , javaImportSubImports :: Located [Located (JavaImport name)] }
-  | JIClassMember { javaImportJavaName   :: Located FastString
-                  , javaImportEtaName    :: Located name
-                  , javaImportAs         :: Bool
-                  , javaImportTypeSig    :: Maybe (LHsType name) }
-
-
+  JavaImport { javaImportName   :: Located FastString
+             , javaImportAnnots :: [JavaAnnotation name] }
   deriving (Typeable)
 deriving instance (DataId name) => Data (JavaImport name)
 
-mkSimpleMemberImport :: Located FastString -> (FastString -> name) -> JavaImport name
-mkSimpleMemberImport fs f =
-  JIClassMember { javaImportJavaName = fs
-                , javaImportEtaName = fmap f fs
-                , javaImportAs = False
-                , javaImportTypeSig = Nothing }
-
+mkSimpleMemberImport :: Located FastString -> JavaImport name
+mkSimpleMemberImport fs =
+  JavaImport { javaImportName   = fs
+             , javaImportAnnots = [] }

@@ -74,7 +74,7 @@ import Eta.BasicTypes.DataCon          ( DataCon, dataConName )
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.BasicTypes
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 
 -- compiler/types
 import Eta.Types.Type             ( funTyCon )
@@ -428,7 +428,6 @@ for some background.
  DOCSECTION     { L _ (ITdocSection _ _) }
 
  JAVAANNOT      { L _ (ITjavaannot _) }
- JAVAID         { L _ (ITjavaid _) }
 
 -- Template Haskell
 '[|'            { L _ ITopenExpQuote  }
@@ -766,12 +765,13 @@ importdecl :: { LImportDecl RdrName }
                              , ideclHiding = unLoc $8 })
                    ((mj AnnImport $1 : (fst $ fst $2) ++ fst $3 ++ fst $4
                                     ++ fst $5 ++ fst $7)) }
-        | 'import' 'java' javaid maybeas maybejavaimpspec
-                { sL (comb4 $1 $3 (snd $4) (maybeLoc "parse java import" $5)) $
-                  ImportJavaDecl { ideclClassName = $3
-                                 , ideclName = fmap mkModuleNameFS $3
-                                 , ideclAsModule = snd $4
-                                 , ideclImport = $5 } }
+        | 'import' 'java' optqualified STRING maybeas maybejavaimpspec
+                { sL (comb4 $1 $4 (snd $5) (maybeLoc "parse java import" $6)) $
+                  ImportJavaDecl { ideclClassName = sL1 $4 (getSTRING $4)
+                                 , ideclName = sL1 $4 $ mkModuleNameFS $ getSTRING $4
+                                 , ideclQualified = snd $3
+                                 , ideclAsModule = snd $5
+                                 , ideclImport = $6 } }
 
 maybe_src :: { (([AddAnn],Maybe SourceText),IsBootInterface) }
         : '{-# SOURCE' '#-}'        { (([mo $1,mc $2],Just (getSOURCE_PRAGs $1))
@@ -808,36 +808,22 @@ impspec :: { Located (Bool, Located [LIE RdrName]) }
                                                       sLL $1 $> $ fromOL $3))
                                                [mj AnnHiding $1,mop $2,mcp $4] }
 
-maybejavaimpspec :: { Maybe (Located (Bool, Located [Located (JavaImport RdrName)])) }
+maybejavaimpspec :: { Maybe (Located (Bool, Located [LJavaImport RdrName])) }
        : javaimpspec              { Just $1 }
        | {- empty -}              { Nothing }
 
-javaimpspec :: { Located (Bool, Located [Located (JavaImport RdrName)]) }
+javaimpspec :: { Located (Bool, Located [LJavaImport RdrName]) }
        :  '(' javaimplist ')'              { sLL $1 $3 (True, $2) }
        |  'hiding' '(' javaidlist ')'      { sLL $1 $4 (False, sLL $2 $4 $3) }
 
-javaimplist :: { Located [Located (JavaImport RdrName)] }
+javaimplist :: { Located [LJavaImport RdrName] }
         : javaimp ',' javaimplist { sL (comb3 $1 $2 $3) ($1 : unLoc $3) }
         | javaimp { sL1 $1 [$1] }
         | '..' { sL1 $1 [] }
 
-javaimp :: { Located (JavaImport RdrName) }
-        : javaid maybe_jeta_type javaimpspec { sLL $1 $3 $
-            JIInnerClass { javaImportJavaName = $1
-                         , javaImportEtaName =
-                             fromMaybe (sL1 $1 $ mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
-                         , javaImportAs = isJust $2
-                         , javaImportSubImports = snd $ unLoc $3 }
-             }
-        | javaid maybe_jeta_name opt_sig {
-            sL (comb3 $1 (maybeLoc "javaimp member1" $2)
-                         (maybeLoc "javaimp member2" $ snd $3)) $
-            JIClassMember { javaImportJavaName = $1
-                          , javaImportEtaName =
-                              fromMaybe (sL1 $1 $ mkVarUnqual (unLoc $1)) $2
-                          , javaImportAs = isJust $2
-                          , javaImportTypeSig = snd $3 }
-                          }
+javaimp :: { LJavaImport RdrName }
+        : maybe_java_annots STRING
+          { sL1 $2 $ JavaImport { javaImportName = sL1 $2 (getSTRING $2), javaImportAnnots = $1 } }
 
 maybe_jeta_name :: { Maybe (Located RdrName) }
                 : 'as' var  { Just $2 }
@@ -847,21 +833,11 @@ maybe_jeta_type :: { Maybe (Located RdrName) }
                 : 'as' con  { Just $2 }
                 | {- empty -} { Nothing }
 
-javaidlist :: { [Located (JavaImport RdrName)] }
-           : javaid ',' javaidlist {
-             (sLL $1 (maybeLoc "javaidlist" (safeLast $3))
-             $ mkSimpleMemberImport $1 mkVarUnqual) : $3 }
-           | javaid { [sL1 $1 $ mkSimpleMemberImport $1 mkVarUnqual] }
+javaidlist :: { [LJavaImport RdrName] }
+           : STRING ',' javaidlist {
+              sL1 $1 (mkSimpleMemberImport (sL1 $1 (getSTRING $1))) : $3 }
+           | STRING { [sL1 $1 $ mkSimpleMemberImport (sL1 $1 (getSTRING $1))] }
            | {- empty -} { [] }
-
-javaid :: { Located FastString }
-       : VARID { sL1 $1 (getVARID $1) }
-       | CONID { sL1 $1 (getCONID $1) }
-       | JAVAID { sL1 $1 (getJAVAID $1) }
-       | QCONID { let (fs1, fs2) = getQCONID $1
-                  in sL1 $1 (appendFS fs1 (consFS '.' fs2)) }
-       | QVARID { let (fs1, fs2) = getQVARID $1
-                  in sL1 $1 (appendFS fs1 (consFS '.' fs2)) }
 
 -----------------------------------------------------------------------------
 -- Fixity Declarations
@@ -1221,9 +1197,9 @@ java_annot :: { JavaAnnotation RdrName }
 
 top_annot_exp :: { Located RdrName -> LAnnExpr RdrName }
   : '{' abinds '}'    { sLL $1 $3 . flip AnnRecord $2 }
-  | '(' annot_exp ')' { sLL $1 $3 . flip AnnApply (Just $2) }
-  | annot_exp1        { sL1 $1    . flip AnnApply (Just $1) }
-  | {- empty -}       { sL0       . flip AnnApply Nothing }
+  | '(' annot_exp ')' { sLL $1 $3 . flip AnnApply  $2 }
+  | annot_exp1        { sL1 $1    . flip AnnApply  $1 }
+  | {- empty -}       { sL0       . flip AnnRecord [] }
 
 abinds  :: { [(LString, LAnnExpr RdrName)] }
         : abinds1      { $1 }
@@ -3234,7 +3210,6 @@ getQCONID        (L _ (ITqconid   x)) = x
 getQVARSYM       (L _ (ITqvarsym  x)) = x
 getQCONSYM       (L _ (ITqconsym  x)) = x
 getJAVAANNOT     (L _ (ITjavaannot  x)) = x
-getJAVAID        (L _ (ITjavaid  x)) = x
 getPREFIXQVARSYM (L _ (ITprefixqvarsym  x)) = x
 getPREFIXQCONSYM (L _ (ITprefixqconsym  x)) = x
 getIPDUPVARID    (L _ (ITdupipvarid   x)) = x

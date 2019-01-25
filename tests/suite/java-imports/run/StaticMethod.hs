@@ -1,5 +1,5 @@
 import Java
-import java java.lang.Math
+import java "java.lang.Math"
 
 main :: IO ()
 main =

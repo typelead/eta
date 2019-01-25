@@ -35,6 +35,8 @@ module Eta.Iface.LoadIface (
 import {-# SOURCE #-}   Eta.Iface.TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceInst,
                                  tcIfaceFamInst, tcIfaceVectInfo, tcIfaceAnnotations )
 
+import {-# SOURCE #-}   Eta.Iface.MkJavaIface ( mkJavaIface )
+
 import Eta.Main.DynFlags
 import Eta.Iface.IfaceSyn
 import Eta.Iface.IfaceEnv
@@ -864,34 +866,40 @@ findAndReadIface doc_str mod wanted_mod_with_insts hi_boot_file
        -- Check for GHC.Prim, and return its static interface
        -- TODO: make this check a function
        if mod `installedModuleEq` gHC_PRIM
-           then do
-               iface <- getHooked ghcPrimIfaceHook ghcPrimIface
-               return (Succeeded (iface,
-                                   "<built in interface for GHC.Prim>"))
-           else do
+       then do iface <- getHooked ghcPrimIfaceHook ghcPrimIface
+               return (Succeeded (iface, "<built in interface for GHC.Prim>"))
+       else do
+         dflags <- getDynFlags
+         -- Look for the file
+         hsc_env <- getTopEnv
+         mb_found <- liftIO (findExactModule hsc_env mod)
+         case mb_found of
+             InstalledFound loc mod
+               | installedModuleUnitId mod `installedUnitIdEq` javaUnitId -> do
+
+                 -- Direct java interop
+                 classIdx <- liftIO $ getClassIndex hsc_env
+                 let mod_name = moduleNameString (installedModuleName mod)
+                 javaIface <- mkJavaIface classIdx mod_name
+                 return (Succeeded (javaIface, mod_name))
+
+               | otherwise -> do
+
+                 -- Found file, so read it
+                 let file_path = addBootSuffix_maybe hi_boot_file
+                                                     (ml_hi_file loc)
+
+                 -- See Note [Home module load error]
+                 if installedModuleUnitId mod `installedUnitIdEq` thisPackage dflags &&
+                     not (isOneShot (ghcMode dflags))
+                     then return (Failed (homeModError mod loc))
+                     else do r <- read_file file_path
+                             checkBuildDynamicToo r
+                             return r
+             err -> do
+               traceIf (ptext (sLit "...not found"))
                dflags <- getDynFlags
-               -- Look for the file
-               hsc_env <- getTopEnv
-               mb_found <- liftIO (findExactModule hsc_env mod)
-               case mb_found of
-                   InstalledFound loc mod -> do
-
-                       -- Found file, so read it
-                       let file_path = addBootSuffix_maybe hi_boot_file
-                                                           (ml_hi_file loc)
-
-                       -- See Note [Home module load error]
-                       if installedModuleUnitId mod `installedUnitIdEq` thisPackage dflags &&
-                          not (isOneShot (ghcMode dflags))
-                           then return (Failed (homeModError mod loc))
-                           else do r <- read_file file_path
-                                   checkBuildDynamicToo r
-                                   return r
-                   err -> do
-                       traceIf (ptext (sLit "...not found"))
-                       dflags <- getDynFlags
-                       return (Failed (cannotFindInterface dflags
-                                           (installedModuleName mod) err))
+               return (Failed (cannotFindInterface dflags (installedModuleName mod) err))
     where read_file file_path = do
               traceIf (ptext (sLit "readIFace") <+> text file_path)
               dflags <- getDynFlags

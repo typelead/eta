@@ -7,7 +7,7 @@
 {-# LANGUAGE NondecreasingIndentation, CPP, GeneralizedNewtypeDeriving #-}
 
 module Eta.Rename.RnNames (
-        rnImports, rnJavaImports, getLocalNonValBinders,
+        rnImports, getLocalNonValBinders,
         rnExports, extendGlobalRdrEnvRn,
         gresFromAvails,
         calculateAvails,
@@ -27,10 +27,9 @@ import Eta.Rename.RnEnv
 import Eta.Rename.RnHsDoc          ( rnHsDoc )
 import Eta.Iface.LoadIface        ( loadSrcInterface )
 import Eta.TypeCheck.TcRnMonad
-import Eta.Prelude.ForeignCall
 import Eta.Prelude.PrelNames
-import Eta.Prelude.TysWiredIn
 import Eta.BasicTypes.Module
+import Eta.BasicTypes.Interop
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.Id
 import Eta.Types.Type
@@ -50,15 +49,10 @@ import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
-import Control.Monad.State.Strict
--- import Control.Monad.State.Class
-import Control.Arrow (second)
 import Data.Map         ( Map )
 import qualified Data.Map as Map
-import Data.List        ( partition, (\\), find )
-import Data.Set (Set)
+import Data.List        ( partition, (\\), find, foldl' )
 import qualified Data.Set as Set
-import qualified Data.Char as C
 import System.FilePath  ((</>))
 import System.IO
 
@@ -157,17 +151,36 @@ with yes we have gone with no for now.
 rnImports :: [LImportDecl RdrName]
           -> RnM ([LImportDecl Name], GlobalRdrEnv, ImportAvails, AnyHpcUsage)
 rnImports imports = do
+    hsc_env <- getTopEnv
     tcg_env <- getGblEnv
     -- NB: want an identity module here, because it's OK for a signature
     -- module to import from its implementor
     let this_mod = tcg_mod tcg_env
-    let (source, ordinary) = partition is_source_import imports
-        is_source_import d = ideclIsSource (unLoc d)
-    stuff1 <- mapAndReportM (rnImportDecl this_mod) ordinary
-    stuff2 <- mapAndReportM (rnImportDecl this_mod) source
-    -- Safe Haskell: See Note [Tracking Trust Transitively]
-    let (decls, rdr_env, imp_avails, hpc_usage) = combine (stuff1 ++ stuff2)
-    return (decls, rdr_env, imp_avails, hpc_usage)
+        (source, ordinary) = partition (ideclIsSource . unLoc) imports
+        javaImports = filter (ideclIsJava . unLoc) ordinary
+        classImps = map (\imp -> let lclsName = ideclClassName (unLoc imp)
+                                 in (unpackFS (unLoc lclsName), getLoc lclsName)) javaImports
+        classes = map fst classImps
+
+    notFounds <- if null classes
+                 then return Nothing
+                 else liftIO $ fmap Just $ getClassInfo hsc_env
+                        (map (unpackFS . unLoc . ideclClassName . unLoc) javaImports)
+    case notFounds of
+      Just notFounds -> do
+        forM_ notFounds $ \notFound ->
+            case lookup notFound classImps of
+            Just loc -> addErrAt loc $ text $ "Unable to find class in the classpath."
+            Nothing  -> addErr $ text $ "Class '" ++ notFound ++ "' was a transitive dependency"
+                    ++ " of one of your java imports and was not found on the classpath."
+        return ([], emptyGlobalRdrEnv, emptyImportAvails, False)
+      Nothing -> do
+        clsIndex <- liftIO $ getClassIndex hsc_env
+        stuff1 <- mapAndReportM (rnImportDecl this_mod clsIndex) ordinary
+        stuff2 <- mapAndReportM (rnImportDecl this_mod clsIndex) source
+        -- Safe Haskell: See Note [Tracking Trust Transitively]
+        let (decls, rdr_env, imp_avails, hpc_usage) = combine (stuff1 ++ stuff2)
+        return (decls, rdr_env, imp_avails, hpc_usage)
 
   where
     combine :: [(LImportDecl Name,  GlobalRdrEnv, ImportAvails, AnyHpcUsage)]
@@ -181,12 +194,21 @@ rnImports imports = do
           imp_avails1 `plusImportAvails` imp_avails2,
           hpc_usage1 || hpc_usage2 )
 
-rnImportDecl  :: Module -> LImportDecl RdrName
+rnImportDecl  :: Module -> ClassIndex -> LImportDecl RdrName
               -> RnM (LImportDecl Name, GlobalRdrEnv, ImportAvails, AnyHpcUsage)
-rnImportDecl _this_mod
-             (L _loc _decl@(ImportJavaDecl {}))
-  = panic "rnImportDecl: ImportJavaDecl needs to be handled"
-rnImportDecl this_mod
+rnImportDecl _this_mod clsIndex
+             (L loc _decl@(ImportJavaDecl { ideclClassName = L _ clsName
+                                          , ideclAsModule  = _as_mod
+                                          , ideclImport    = idecl_imp }))
+  = setSrcSpan loc $ do
+      let clsInfo = fromJust (lookupClassIndex (unpackFS clsName) clsIndex)
+      (_impSpecs, hash_mod_name) <- validateJavaImportSpecs clsInfo idecl_imp
+      let doc = text "directly imported from Java"
+      _iface <- loadSrcInterface doc hash_mod_name False (Just javaUnitFs)
+      return (error "renamed import", emptyGlobalRdrEnv, error "importAvails",
+              error "AnyHpcUsage")
+
+rnImportDecl this_mod _clsIndex
              (L loc decl@(ImportDecl { ideclName = loc_imp_mod_name, ideclPkgQual = mb_pkg
                                      , ideclSource = want_boot, ideclSafe = mod_safe
                                      , ideclQualified = qual_only, ideclImplicit = implicit
@@ -399,6 +421,101 @@ warnRedundantSourceImport mod_name
   = ptext (sLit "Unnecessary {-# SOURCE #-} in the import of module")
           <+> quotes (ppr mod_name)
 
+validateJavaImportSpecs
+  :: CachedClassInfo
+  -> Maybe (Located (Bool, Located [LJavaImport RdrName]))
+  -> RnM (JavaImportSpec, ModuleName)
+validateJavaImportSpecs clsInfo ideclImp
+  = case ideclImp of
+      Just rest ->
+        case unLoc rest of
+          (False, L _ impSpecs) -> do
+            let methods  = unCachedMap $ ciMethods clsInfo
+                fields   = unCachedMap $ ciFields  clsInfo
+                indexedMethods = Map.fromList $ zip (Map.keys methods) [0..]
+                indexedFields  = Map.fromList $ zip (Map.keys fields) [0..]
+            impSpec <- validateImportSpec (unpackFS clsName) indexedMethods
+                         indexedFields impSpecs
+            let code = encodeJavaImportSpec impSpec
+                modName
+                  | nullFS code = clsName
+                  | otherwise   = clsName `appendFS` (consFS ':' code)
+            return (impSpec, mkModuleNameFS modName)
+          _ -> defReturn
+      _ -> defReturn
+  where defReturn = return (mempty, mkModuleNameFS clsName)
+        clsName = mkFastString $ ciName clsInfo
+
+{- * Verify that all annotations are known and are used properly
+     - @IO, @ST, @Java, @Pure - Only of these can be used.
+     - @Nullable
+     - @Field
+   * Verify that all Java identifiers that exist actually correspond to their
+     appropriate specs.
+   * Verify that there are no duplicate specs for a particular Java identifier.
+-}
+validateImportSpec :: String -> Map String Int -> Map String Int -> [LJavaImport RdrName]
+                   -> RnM JavaImportSpec
+validateImportSpec clsName methodIndex fieldIndex imports = do
+  (methods, fields) <- foldM validateAnnotations (mempty, mempty) imports
+  return $ JavaImportSpec { jisMethods = Map.elems methods
+                          , jisFields  = Map.elems fields }
+  where validateAnnotations (methods, fields)
+                            (L loc (JavaImport { javaImportName, javaImportAnnots })) =
+          setSrcSpan loc $ do
+            let (effs, nulls, fs, paramErrs, unknownErrs) = foldl'
+                    (\(effs, nulls, fields, paramErrs, unknownErrs)
+                      (JavaAnnotation { jaExpr = L loc (AnnRecord (L _ conid) rest) }) ->
+                        let name = occNameString (rdrNameOcc conid)
+                            addEff eff = (eff : effs, nulls, fields, paramErrs', unknownErrs)
+                            paramErrs'
+                              | null rest = paramErrs
+                              | otherwise = loc : paramErrs
+                        in case name of
+                             "IO"       -> addEff IOEffect
+                             "ST"       -> addEff STEffect
+                             "Java"     -> addEff JavaEffect
+                             "Pure"     -> addEff NoEffect
+                             "Nullable" -> (effs, True : nulls, fields, paramErrs', unknownErrs)
+                             "Field"    -> (effs, nulls, True : fields, paramErrs', unknownErrs)
+                             _          -> (effs, nulls, fields, paramErrs', loc : unknownErrs))
+                    ([], [], [], [], []) javaImportAnnots
+                effect   = headOr effs   JavaEffect
+                nullable = headOr nulls  False
+                isField  = headOr fs     False
+            forM_ unknownErrs $ \unknownErr ->
+                addErrAt unknownErr $ text "Unknown direct java import annotation"
+            forM_ paramErrs $ \paramErr ->
+                addErrAt paramErr $
+                  text "Direct java import annotation should not take any parameters."
+            checkErr (length effs  == 1) $ text "Please specify exactly one effect"
+            checkErr (length nulls == 1) $ text "Please use the @Nullable annotation once."
+            checkErr (length fs    == 1) $ text "Please use the @Field annotation once."
+            let name = unpackFS $ unLoc javaImportName
+                (index, members, entity)
+                  | isField   = (fieldIndex, fields, "field")
+                  | otherwise = (methodIndex, methods, "method")
+            case Map.lookup name index of
+               Just idx
+                 | name `Map.member` members -> do
+                   addErrAt loc $ text $
+                     "Duplicate import for '" ++ entity ++ "' named '" ++ name ++ "'"
+                   return (methods, fields)
+                 | otherwise -> do
+                   let impSpec = GenImportSpec { isIndex    = idx
+                                               , isEffect   = effect
+                                               , isNullable = nullable }
+                       (methods', fields')
+                         | isField   = (methods, Map.insert name impSpec fields)
+                         | otherwise = (Map.insert name impSpec methods, fields)
+                   return (methods', fields')
+               Nothing -> do
+                 addErrAt loc $ text $
+                   "Java class '" ++ clsName ++ "' does not have a " ++ entity ++
+                   " named '" ++ name ++ "'"
+                 return (methods, fields)
+
+{-
 rnJavaImports :: HscEnv -> [LImportDecl RdrName]
               -> RnM (GlobalRdrEnv, [LHsDecl RdrName])
 rnJavaImports hsc_env java_imps = do
@@ -629,6 +746,7 @@ getFilteredConstraints = do
   let (glbls, rest) = Map.partitionWithKey (\k _ -> k `Set.member` tvsGlobal) tvsConstraints
       glbls' = Map.filterWithKey (\k _ -> k `Set.member` tvsRepresentational) glbls
   return $ glbls' `Map.union` rest
+-}
 
 {-
 ************************************************************************

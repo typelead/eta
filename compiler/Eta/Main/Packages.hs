@@ -1472,7 +1472,7 @@ mkPackageState dflags dbs preload0 = do
   -- package arguments we need to key against the old versions.
   --
   (pkgs2, wired_map) <- findWiredInPackages dflags prec_map pkgs1 vis_map2
-  let pkg_db = extendPackageConfigMap emptyPackageConfigMap pkgs2
+  let pkg_db = extendPackageConfigMap emptyPackageConfigMap (javaPackageConfig:pkgs2)
 
   -- Update the visibility map, so we treat wired packages as visible.
   let vis_map = updateVisibilityMap wired_map vis_map2

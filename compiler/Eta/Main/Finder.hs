@@ -4,7 +4,7 @@
 \section[Finder]{Module Finder}
 -}
 
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, MultiWayIf #-}
 
 module Eta.Main.Finder (
     flushFinderCaches,
@@ -231,6 +231,9 @@ homeSearchCache hsc_env mod_name do_this = do
 findExposedPackageModule :: HscEnv -> ModuleName -> Maybe FastString
                          -> IO FindResult
 findExposedPackageModule hsc_env mod_name mb_pkg
+  | mb_pkg == Just javaUnitFs
+  = return $ Found (error "@java ModLocation") (mkModule javaUnitId mod_name)
+  | otherwise
   = findLookupResult hsc_env
   $ lookupModuleWithSuggestions
         (hsc_dflags hsc_env) mod_name mb_pkg
@@ -350,34 +353,38 @@ findPackageModule_ hsc_env mod pkg_conf =
   ASSERT2( installedModuleUnitId mod == installedPackageConfigId pkg_conf, ppr (installedModuleUnitId mod) <+> ppr (installedPackageConfigId pkg_conf) )
   modLocationCache hsc_env mod $
 
-  -- special case for GHC.Prim; we won't find it in the filesystem.
-  if mod `installedModuleEq` gHC_PRIM
-        then return (InstalledFound (error "GHC.Prim ModLocation") mod)
-        else
+  if | mod `installedModuleEq` gHC_PRIM ->
+       -- special case for GHC.Prim; we won't find it in the filesystem.
+       return (InstalledFound (error "GHC.Prim ModLocation") mod)
+     | installedModuleUnitId mod `installedUnitIdEq` javaUnitId ->
+       -- special case for any module in the @java package:
+       --   these are generated on the fly.
+       return (InstalledFound (error "@java ModLocation") mod)
+     | otherwise -> do
 
-  let
-     dflags = hsc_dflags hsc_env
-     tag = buildTag dflags
+       let dflags = hsc_dflags hsc_env
+
+           tag = buildTag dflags
 
            -- hi-suffix for packages depends on the build tag.
-     package_hisuf | null tag  = "hi"
-                   | otherwise = tag ++ "_hi"
+           package_hisuf | null tag  = "hi"
+                         | otherwise = tag ++ "_hi"
 
-     mk_hi_loc = mkHiOnlyModLocation dflags package_hisuf
+           mk_hi_loc = mkHiOnlyModLocation dflags package_hisuf
 
-     import_dirs = importDirs pkg_conf
-      -- we never look for a .hi-boot file in an external package;
-      -- .hi-boot files only make sense for the home package.
-  in
-  case import_dirs of
-    [one] | MkDepend <- ghcMode dflags -> do
-          -- there's only one place that this .hi file can be, so
-          -- don't bother looking for it.
-          let basename = moduleNameSlashes (installedModuleName mod)
-          loc <- mk_hi_loc one basename
-          return (InstalledFound loc mod)
-    _otherwise ->
-          searchPathExts import_dirs mod [(package_hisuf, mk_hi_loc)]
+           import_dirs = importDirs pkg_conf
+           -- we never look for a .hi-boot file in an external package;
+           -- .hi-boot files only make sense for the home package.
+
+       case import_dirs of
+           [one] | MkDepend <- ghcMode dflags -> do
+             -- there's only one place that this .hi file can be, so
+             -- don't bother looking for it.
+             let basename = moduleNameSlashes (installedModuleName mod)
+             loc <- mk_hi_loc one basename
+             return (InstalledFound loc mod)
+           _otherwise ->
+             searchPathExts import_dirs mod [(package_hisuf, mk_hi_loc)]
 
 -- -----------------------------------------------------------------------------
 -- General path searching

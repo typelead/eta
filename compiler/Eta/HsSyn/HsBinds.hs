@@ -32,7 +32,7 @@ import Eta.Types.Type
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.BasicTypes
-import Eta.BasicTypes.JavaAnnotation
+import Eta.BasicTypes.Interop
 import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Var
