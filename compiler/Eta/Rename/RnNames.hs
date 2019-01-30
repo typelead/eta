@@ -19,7 +19,6 @@ module Eta.Rename.RnNames (
     ) where
 
 import Eta.REPL
-import Eta.REPL.ClassInfo
 import Eta.Main.DynFlags
 import Eta.HsSyn.HsSyn
 import Eta.TypeCheck.TcEnv            ( isBrackStage )

@@ -30,12 +30,12 @@ Note that this configuration will apply to **all** projects in your Gradle build
 
 ```groovy
 eta {
-  version = '0.8.6b2'
+  version = '0.8.6b4'
   etlasVersion = '1.5.0.0'
 }
 ```
 
-This will tell Gradle to install **Etlas v1.5.0.0** and **Eta v0.8.6b2** and build the project using those executables.
+This will tell Gradle to install **Etlas v1.5.0.0** and **Eta v0.8.6b4** and build the project using those executables.
 
 **NOTE**: You can only use the `eta` extension block in the root project. If you have a single `build.gradle` file in your project with no subfolders containing `build.gradle` files, you are building the root project.
 

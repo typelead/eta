@@ -16,6 +16,7 @@ where
 import Data.Data
 import Data.Bits
 import Data.Char
+import Data.List (sortOn)
 
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.FastString
@@ -50,13 +51,15 @@ encodeJavaImportSpec :: JavaImportSpec -> FastString
 encodeJavaImportSpec JavaImportSpec { jisMethods, jisFields }
   | numMethods + numFields == 0 = nilFS
   | otherwise =
-    mkFastString $ putImportSpecs jisMethods
+    mkFastString $ putImportSpecs sortedMethods
                 ++ if numFields > 0
-                   then putImportSpecs jisFields
+                   then putImportSpecs sortedFields
                    else []
 
-  where numMethods = length jisMethods
-        numFields  = length jisFields
+  where sortedMethods = sortOn isIndex jisMethods
+        sortedFields  = sortOn isIndex jisFields
+        numMethods = length sortedMethods
+        numFields  = length sortedFields
         toChar i
           | i >= 0xD800 && i <= 0xDFFF = chr $ (i - 0xD800) + 0x80000
           | otherwise = chr i
@@ -87,8 +90,8 @@ type FieldImportSpec = GenImportSpec
 
 data GenImportSpec =
   GenImportSpec { isIndex    :: Int
-             , isEffect   :: Effect
-             , isNullable :: Bool }
+                , isEffect   :: Effect
+                , isNullable :: Bool }
   deriving (Eq, Ord)
 
 data Effect = NoEffect | IOEffect | STEffect | JavaEffect

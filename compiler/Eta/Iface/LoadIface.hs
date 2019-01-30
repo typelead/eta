@@ -878,9 +878,8 @@ findAndReadIface doc_str mod wanted_mod_with_insts hi_boot_file
                | installedModuleUnitId mod `installedUnitIdEq` javaUnitId -> do
 
                  -- Direct java interop
-                 classIdx <- liftIO $ getClassIndex hsc_env
                  let mod_name = moduleNameString (installedModuleName mod)
-                 javaIface <- mkJavaIface classIdx mod_name
+                 javaIface <- mkJavaIface mod_name
                  return (Succeeded (javaIface, mod_name))
 
                | otherwise -> do

@@ -31,7 +31,7 @@ This is typically used for production builds and ensures build reproducibility.
 
 ```groovy
 eta {
-  version = '0.8.6b2'
+  version = '0.8.6b4'
 }
 ```
 
@@ -117,35 +117,35 @@ eta {
 
 ```groovy
 eta {
-  version = '0.8.6b2'
+  version = '0.8.6b4'
   etlasVersion = '1.5.0.0'
 }
 ```
 
-The plugin will download and cache **Eta v0.8.6b2** and **Etlas v1.5.0.0**.
+The plugin will download and cache **Eta v0.8.6b4** and **Etlas v1.5.0.0**.
 
 ### Example 2
 
 ```groovy
 eta {
-  version = '0.8.6b2'
+  version = '0.8.6b4'
   etlasVersion = '1.5.0.0'
   preInstallDependencies = true
 }
 ```
 
-The plugin will download and cache **Eta v0.8.6b2** and **Etlas v1.5.0.0**. Moreover, it will install all the dependencies of your projects before executing any tasks.
+The plugin will download and cache **Eta v0.8.6b4** and **Etlas v1.5.0.0**. Moreover, it will install all the dependencies of your projects before executing any tasks.
 
 ### Example 3
 
 ```groovy
 eta {
-  version = '0.8.6b2'
+  version = '0.8.6b4'
   useSystemEtlas = true
 }
 ```
 
-The plugin will download and cache **Eta v0.8.6b2** and use the Etlas it can find on the `PATH`.
+The plugin will download and cache **Eta v0.8.6b4** and use the Etlas it can find on the `PATH`.
 
 ### Example 4
 

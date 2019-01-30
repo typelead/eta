@@ -136,7 +136,7 @@ module Eta.Main.HscTypes (
 
         Reinterpret(..),
         CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
-        addToClassIndex, lookupClassIndex, CachedClassInfo
+        addToClassIndex, lookupClassIndex, CachedClassInfo, ClassInfo(..),
 
     ) where
 
