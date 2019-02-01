@@ -179,9 +179,9 @@ loadLoc (LocStablePtr int) = getClosureMethod int
 loadLoc loc = pprPanic "loadLoc" $ ppr loc
 
 loadStaticMethod :: CgLoc -> [FieldType] -> Maybe Code
-loadStaticMethod (LocStatic _ft modClass clName) fts =
-  Just $ invokestatic $ mkMethodRef modClass (closure clName) (contextType:fts)
-           (ret closureType)
+loadStaticMethod (LocStatic _ modClass clName) fts =
+  Just $ invokestatic $ mkMethodRef (qualifiedName modClass clName) "call"
+           (contextType:fts) (ret closureType)
 loadStaticMethod _loc _fts = Nothing
 
 locClass :: CgLoc -> Maybe Text

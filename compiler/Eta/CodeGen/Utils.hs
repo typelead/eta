@@ -8,10 +8,12 @@ import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.DataCon (DataCon)
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Literal
+import Eta.StgSyn.StgSyn
 import Codec.JVM
 import Codec.JVM.Encoding
 import Data.Char (ord)
 import Control.Arrow(first)
+import Control.Monad(guard)
 import Eta.CodeGen.Name
 import Eta.CodeGen.Rts
 import Eta.Debug
@@ -80,6 +82,15 @@ cgLit (MachStr s)           = (jlong, genCode)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
+
+simpleStringLiteral :: GenStgArg occ -> Maybe Text
+simpleStringLiteral (StgLitArg (MachStr bs)) = do
+  string <- unsafeDupablePerformIO $
+     catch (fmap Just $ evaluate $ decodeUtf8 bs)
+           (\(_ :: SomeException) -> return Nothing)
+  guard (BL.length (encodeModifiedUtf8 string) < 65535)
+  return string
+simpleStringLiteral _ = Nothing
 
 litToInt :: Literal -> Int
 litToInt (MachInt i)  = fromInteger i

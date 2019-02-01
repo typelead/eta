@@ -9,7 +9,7 @@ main_transformedString[_]
 x1[_] 'H'
 x1[_] 'e'
 x1[_] 'l'
-(: 'H' (: 'E' (: 'L' (sat$4[_] 2 (unpack$2[1] [] main20[2] 4544L)))))
+(: 'H' (: 'E' (: 'L' (sat$4[_] 2 (unpack$2[1] [] main20[2] 28672L)))))
 x1[_] 'l'
 x1[_] 'o'
 x1[_] ' '

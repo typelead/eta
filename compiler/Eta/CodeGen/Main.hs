@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, LambdaCase #-}
+{-# LANGUAGE OverloadedStrings, LambdaCase, MultiWayIf #-}
 module Eta.CodeGen.Main where
 
 import Eta.BasicTypes.Module
@@ -11,8 +11,9 @@ import Eta.Main.DynFlags
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.DataCon
+import Eta.BasicTypes.Unique
 import Eta.Utils.Digraph
-import Eta.Prelude.PrelNames (rOOT_MAIN)
+import Eta.Prelude.PrelNames (rOOT_MAIN, unpackCStringIdKey, unpackCStringUtf8IdKey)
 
 import Eta.Utils.Util
 
@@ -34,6 +35,7 @@ import Codec.JVM
 import Data.Foldable
 import Data.Monoid
 import Data.Maybe
+import Data.Functor (($>))
 import Control.Monad hiding (void)
 
 import Data.Text (Text, append)
@@ -197,44 +199,50 @@ cgTopRhsClosure :: DynFlags
                 -> StgExpr
                 -> (CgIdInfo, CodeGen (Maybe RecInfo))
 cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
-  = (cgIdInfo, genCode)
+  = (cgIdInfo, genCode $> Nothing)
   where cgIdInfo = mkCgIdInfo dflags id (Just clType) lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
         (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
-        clType
-          | StgApp _ [] <- body, null args, isNonRec recflag
-          = indStaticType
-          | otherwise = obj clClass
-        genCode
-          | StgApp f [] <- body, null args, isNonRec recflag
-          = do cgInfo <- getCgIdInfo f
-               defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
-               let field = mkFieldRef modClass qClName closureType
-                   loadCode = idInfoLoadCode cgInfo
-                   initField =
-                       [
-                         new indStaticType
-                       , dup indStaticType
-                       , loadCode
-                       , invokespecial $ mkMethodRef stgIndStatic "<init>" [closureType] void
-                       , putstatic field
-                       ]
-               defineMethod $ initCodeTemplate True modClass qClName field
-                              (fold initField)
-               return Nothing
-          | otherwise = do
-            let arity = length args
-            (_, CgState { cgClassName }) <- forkClosureBody $
+        clFt = obj clClass
+        (clType, genCode)
+          | null args, isNonRec recflag = rest
+          | otherwise = (clFt, genCodeDefault)
+          where rest
+                  | StgApp f [] <- body =
+                    templateGenCode stgIndStatic [closureType] $ idInfoLoadCode <$> getCgIdInfo f
+                  | StgApp unpack [arg] <- body
+                  ,    unpack `hasKey` unpackCStringIdKey
+                    || unpack `hasKey` unpackCStringUtf8IdKey
+                  , Just string <- simpleStringLiteral arg =
+                    templateGenCode stringCAF [jstring] $ return (sconst string)
+                  | otherwise = (clFt, genCodeDefault)
+
+        templateGenCode cls initFts initCode =
+          (ft,
+           do defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
+              loadCode <- initCode
+              let field = mkFieldRef modClass qClName closureType
+                  initField =
+                    [ new ft
+                    , dup ft
+                    , loadCode
+                    , invokespecial $ mkMethodRef cls "<init>" initFts void
+                    , putstatic field ]
+              defineMethod $ initCodeTemplate True modClass qClName field (fold initField))
+          where ft = obj cls
+
+        genCodeDefault = do
+          let arity = length args
+          (_, CgState { cgClassName }) <- forkClosureBody $
               closureCodeBody True id lfInfo
                               (nonVoidIds args) mFunRecIds arity body [] False []
 
-            let ft = obj cgClassName
-            defineMethod $
+          let ft = obj cgClassName
+          defineMethod $
               mkMethodDef modClass [Public, Static] qClName [] (ret closureType) $
                   getstatic (mkFieldRef cgClassName singletonInstanceName ft)
                <> greturn ft
-            return Nothing
 
 -- Simplifies the code if the mod is associated to the Id
 externaliseId :: Id -> CodeGen Id

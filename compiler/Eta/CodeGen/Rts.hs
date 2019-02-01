@@ -362,3 +362,6 @@ getClosureMethod int =
 
 indirecteeField :: Code
 indirecteeField = getfield (mkFieldRef stgThunk "indirectee" closureType)
+
+stringCAF :: Text
+stringCAF = "eta/base/StringCAF"

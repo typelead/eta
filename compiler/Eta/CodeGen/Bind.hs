@@ -128,7 +128,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
          let argLocs = argLocsFrom False 1 args
              argFts  = map locFt argLocs
              callStaticMethod =
-                  invokestatic (mkMethodRef modClass closureName (contextType:argFts)
+                  invokestatic (mkMethodRef thisClass "call" (contextType:argFts)
                                  (ret closureType))
                -- TODO: Make the return type fine-grained
                <> greturn closureType
@@ -150,7 +150,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                    <> fold (map loadLoc argLocs')
                    <> callStaticMethod
            _ -> return ()
-         withModClass $ withMethod [Public, Static] closureName (contextType:argFts) (ret closureType) $ do
+         withMethod [Public, Static] "call" (contextType:argFts) (ret closureType) $ do
            loadContext <- getContextLoc
            case mFunRecIds of
              Just (n, funRecIds)
