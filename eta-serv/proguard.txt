@@ -1,6 +1,5 @@
 -dontoptimize
 -dontobfuscate
--libraryjars <java.home>/lib/rt.jar
 
 # -repackageclasses 'eta.repl'
 # -allowaccessmodification
