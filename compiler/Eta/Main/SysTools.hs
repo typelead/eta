@@ -63,7 +63,6 @@ import Eta.Utils.Exception
 import qualified Eta.Utils.Exception as Exception
 
 import Data.IORef
-import Data.Maybe
 import System.Exit
 import System.Environment
 import System.FilePath
@@ -76,7 +75,6 @@ import Text.ParserCombinators.ReadP hiding (char)
 import qualified Text.ParserCombinators.ReadP as R
 import System.Process
 import Control.Concurrent
-import Control.Applicative
 import Eta.Utils.FastString
 import Eta.BasicTypes.SrcLoc           ( SrcLoc, mkSrcLoc, noSrcSpan, mkSrcSpan )
 
@@ -341,8 +339,11 @@ runJavac dflags args = do
       classPath = if null classPathsAll
                   then []
                   else ["-cp", classPathFolded ]
-      allArgs = ["-verbose"] ++ args0 ++ classPath
-                ++ ["-source", "1.7", "-target", "1.7"] ++ opts ++ args
+      allArgs = ["-verbose", "-J-Duser.country=US", "-J-Duser.language=en"]
+             {- The locale settings are to ensure that we can parse the javac verbose
+                output regardless of the locale. -}
+             ++ args0 ++ classPath
+             ++ ["-source", "1.7", "-target", "1.7"] ++ opts ++ args
   (exitCode, _stdout, stderr) <-
     readProcessEnvWithExitCode prog allArgs  []
 
@@ -352,21 +353,12 @@ runJavac dflags args = do
   where (pkgs, _) = break (== thisPkg)
                       [rtsUnitId, primUnitId, integerUnitId, baseUnitId]
         thisPkg = thisPackage dflags
-        getClassFile str = do
-          str' <- breakSubstring "RegularFileObject[" str
-              <|> breakSubstring "SimpleFileObject[" str
-              <|> breakSubstring "DirectoryFileObject[" str
-          return $ replaceColons $ init . init $ str'
-        getClassOutputs str = catMaybes
-                            . map getClassFile
-                            . filter ( ".class]]" `isInfixOf` )
-                            . filter (\s -> "RegularFileObject["   `isInfixOf ` s
-                                         || "SimpleFileObject["    `isInfixOf` s
-                                         || "DirectoryFileObject[" `isInfixOf` s)
+        getClassOutputs str = map getClassFile
+                            . filter ("[wrote" `isPrefixOf`)
                             $ lines str
-        breakSubstring str1 str2 = do
-            startStr <- headMaybe $ filter (isSuffixOf str1) $ inits str2
-            stripPrefix startStr str2
+        getClassFile str =
+          replaceColons $ reverse $ takeWhile (/= '[')
+                        $ dropWhile (/= 's') $ reverse $ drop 7 str
         replaceColons path = joinDrive drive $
           map (\c -> if c == ':' then pathSeparator else c) rest
           where (drive, rest) = splitDrive path

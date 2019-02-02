@@ -6,7 +6,6 @@ buildscript {
 
 plugins {
     id 'com.typelead.eta' version '0.8.0'
-    id 'com.github.johnrengelman.shadow' version '2.0.3'
 }
 
 eta {
@@ -35,10 +34,6 @@ jar {
   }
 }
 
-shadowJar {
-  zip64 = true
-}
-
 import proguard.gradle.ProGuardTask
 
 task proJar(type: ProGuardTask) {
@@ -50,6 +45,7 @@ task proJar(type: ProGuardTask) {
     } else {
       libraryjars "${System.properties['java.home']}/lib/rt.jar"
     }
-    injars shadowJar.outputs
+    injars(filter: '!META-INF/MANIFEST.MF', files(sourceSets.main.compileClasspath))
+    injars jar.outputs
     outjars 'build/eta-serv.jar'
 }
