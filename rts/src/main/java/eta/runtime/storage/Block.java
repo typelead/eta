@@ -1,6 +1,7 @@
 package eta.runtime.storage;
 
 import java.util.List;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import eta.runtime.stg.Capability;
@@ -93,7 +94,7 @@ public class Block {
     }
 
     public final ByteBuffer getBoundedBuffer(long address) {
-        return (ByteBuffer) buffer.duplicate().position((int)(address - startAddress));
+        return (ByteBuffer) ((Buffer) buffer.duplicate()).position((int)(address - startAddress));
     }
 
     public final int allocatedSize(long address) {
@@ -181,7 +182,7 @@ public class Block {
                 buffer.get(bytes);
                 span.bytes = bytes;
             } else {
-                buffer.position(buffer.position() + numBytes);
+                ((Buffer)buffer).position(buffer.position() + numBytes);
             }
         }
         return new BlockStats(startAddress, owner.getId(), buffer.isDirect(), spans);

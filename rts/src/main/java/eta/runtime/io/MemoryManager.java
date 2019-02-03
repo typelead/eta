@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import java.io.UnsupportedEncodingException;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import eta.runtime.Runtime;
@@ -270,8 +271,8 @@ public class MemoryManager {
 
     public static ByteBuffer getBoundedBuffer(long ptr, int offset, int length) {
         ByteBuffer buf = getBoundedBuffer(ptr);
-        buf.position(buf.position() + offset);
-        buf.limit(buf.position() + length);
+        ((Buffer)buf).position(buf.position() + offset);
+        ((Buffer)buf).limit(buf.position() + length);
         return buf;
     }
 
@@ -295,9 +296,9 @@ public class MemoryManager {
                                            , int n) {
         if (src == dest)
             return dest;
-        src.position(src.position() + srcOffset);
-        src.limit(src.position() + n);
-        dest.position(dest.position() + destOffset);
+        ((Buffer)src).position(src.position() + srcOffset);
+        ((Buffer)src).limit(src.position() + n);
+        ((Buffer)dest).position(dest.position() + destOffset);
         dest.put(src);
         return dest;
     }
@@ -366,9 +367,9 @@ public class MemoryManager {
         ByteBuffer src  = getBoundedBuffer(srcAddress);
         ByteBuffer dest = getBoundedBuffer(destAddress);
         ByteBuffer copy = ByteBuffer.allocate(size);
-        src.limit(src.position() + size);
+        ((Buffer)src).limit(src.position() + size);
         copy.put(src);
-        copy.flip();
+        ((Buffer)copy).flip();
         dest.put(copy);
         return dest;
     }
@@ -408,7 +409,7 @@ public class MemoryManager {
         if (idx == -1)
             return emptyBuffer;
         else
-            return (ByteBuffer) b.position(b.position() - 1);
+            return (ByteBuffer) ((Buffer)b).position(b.position() - 1);
     }
 
     public static ByteBuffer chr(ByteBuffer b, int c, int n) {

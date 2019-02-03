@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
 import java.nio.ByteOrder;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -244,7 +245,7 @@ public class Utils {
         final boolean nonBlocking = isNonBlocking(fd);
         final WritableByteChannel wc = (WritableByteChannel) fd;
         final ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        buffer.limit(buffer.position() + count);
+        ((Buffer)buffer).limit(buffer.position() + count);
         final int written = wc.write(buffer);
         if (Runtime.debugIO()) {
             debugIO("c_write: " + fd + " return: " + written);
@@ -264,7 +265,7 @@ public class Utils {
         final ReadableByteChannel rc = (ReadableByteChannel) fd;
         final ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
         int position = buffer.position();
-        buffer.limit(position + count);
+        ((Buffer)buffer).limit(position + count);
         int size = rc.read(buffer);
         if (size == 0 && nonBlocking) {
             size = -1;
@@ -277,7 +278,7 @@ public class Utils {
         }
         if (Runtime.debugIOVerbose() && size > 0) {
             byte[] input = new byte[size];
-            buffer.position(position);
+            ((Buffer)buffer).position(position);
             buffer.get(input);
             debugIO("c_read: " + Arrays.toString(input));
         }
@@ -396,7 +397,7 @@ public class Utils {
 
     public static void c_MD5Update(MessageDigest md, long address, int len) {
         ByteBuffer contents = MemoryManager.getBoundedBuffer(address);
-        contents.limit(contents.position() + len);
+        ((Buffer)contents).limit(contents.position() + len);
         md.update(contents);
     }
 

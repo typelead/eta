@@ -2,6 +2,7 @@ package eta.runtime.io;
 
 import static eta.runtime.io.MemoryManager.*;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.*;
 
@@ -30,15 +31,15 @@ public class MemoryManagerTest {
         b1=buffer(repeat(10,1));
         b2=buffer(repeat(10,2));
         copyByteBuffer(b1,b2,5);
-        b1.flip();b2.flip();
+        ((Buffer)b1).flip();((Buffer)b2).flip();
         assertThat("If you copy some bytes, they should be equal",
                    b2,is(b1));            
 
         b1=buffer(repeat(10,1));
         b2=buffer(repeat(8,2));
         copyByteBuffer(b1,5,b2,2,5);
-        b2.position(2).limit(7);
-        b1.position(5).limit(10);
+        ((Buffer)b2).position(2).limit(7);
+        ((Buffer)b1).position(5).limit(10);
         assertThat("If you copy some bytes with offset, they should be equal",
                    b2,is(b1));
     }
@@ -51,7 +52,7 @@ public class MemoryManagerTest {
         assertThat("The returned buffer is the original",
                    b1,is(sameInstance(res)));
         assertTrue("The buffer is equal after copy",
-                   b1.clear().equals(copy));
+                   ((Buffer)b1).clear().equals(copy));
     }
 
     @Test
@@ -67,8 +68,8 @@ public class MemoryManagerTest {
                    b1,is(cpyB1));
         assertThat("Position and limit of dest does NOT change",
                    b2,is(cpyB2));
-        b2.position(2).limit(7);
-        b1.position(5).limit(10);
+        ((Buffer)b2).position(2).limit(7);
+        ((Buffer)b1).position(5).limit(10);
         assertThat("If you copy some bytes with offset duplicating buffers, "+
                    "they should be equal",
                    b2,is(b1));

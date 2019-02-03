@@ -2,6 +2,7 @@ package eta.base;
 
 import java.util.Arrays;
 import java.io.UnsupportedEncodingException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -133,7 +134,7 @@ public class HSIConv {
         int limit      = MemoryManager.getInt(leftAddress);
         long memAddr   = MemoryManager.getLong(bufptrAddress);
         ByteBuffer buf = MemoryManager.getBoundedBuffer(memAddr);
-        buf.limit(buf.position() + limit);
+        ((Buffer)buf).limit(buf.position() + limit);
         byte[] contents = new byte[limit];
         buf.duplicate().get(contents);
         debug("initBuffer: address = " + memAddr +
@@ -155,7 +156,7 @@ public class HSIConv {
 
             for (;;) {
                 int inInitPos = inbuf.position();
-                buf16.clear();
+                ((Buffer)buf16).clear();
 
                 CoderResult decRes =  dec.decode(inbuf, buf16, true);
                
@@ -170,7 +171,7 @@ public class HSIConv {
                         charsWritten = -EILSEQ;
                     break;
                 }
-                buf16.flip();
+                ((Buffer)buf16).flip();
 
                 CoderResult encRes = enc.encode(buf16,outbuf,true);
                 if (encRes.isUnderflow()) {
@@ -182,7 +183,7 @@ public class HSIConv {
                         error("Error encoding: "+encRes);
                         charsWritten = -EILSEQ;
                     }
-                    inbuf.position(inInitPos);
+                    ((Buffer)inbuf).position(inInitPos);
                     break;
                 }
                 if (decRes.isUnderflow() || !inbuf.hasRemaining())
