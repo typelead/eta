@@ -3,7 +3,6 @@ package eta.runtime;
 import java.io.*;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
 import eta.runtime.exception.RuntimeInternalError;
 

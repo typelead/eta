@@ -1,4 +1,7 @@
-apply plugin: 'java-library'
+plugins {
+  id 'java-library'
+  id 'com.diffplug.gradle.spotless' version '3.17.0'
+}
 
 ext {
     jdkLevel = 1.7
@@ -24,3 +27,8 @@ tasks.withType(JavaCompile) {
     options.forkOptions.executable = 'javac'
 }
 
+spotless {
+  java {
+    removeUnusedImports()
+  }
+}

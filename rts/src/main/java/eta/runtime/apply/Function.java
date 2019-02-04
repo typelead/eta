@@ -1,6 +1,5 @@
 package eta.runtime.apply;
 
-import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;

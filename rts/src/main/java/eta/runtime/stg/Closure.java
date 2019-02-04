@@ -2,10 +2,6 @@ package eta.runtime.stg;
 
 import java.io.Serializable;
 
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.TSO;
-import eta.runtime.stg.TSO;
-import eta.runtime.thunk.Thunk;
 
 import static eta.runtime.RuntimeLogging.barf;
 

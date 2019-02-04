@@ -2,13 +2,10 @@ package eta.runtime.exception;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.ListIterator;
 
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;

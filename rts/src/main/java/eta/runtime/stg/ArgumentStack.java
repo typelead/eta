@@ -1,8 +1,6 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
-import java.util.Deque;
-import java.util.Map;
 
 import static eta.runtime.stg.Print.*;
 

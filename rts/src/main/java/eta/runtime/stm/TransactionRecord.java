@@ -4,16 +4,13 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Queue;
 import java.util.LinkedHashMap;
 
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 
-import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stm.TransactionRecord.State.*;
 
 public class TransactionRecord extends Value implements Iterable<TransactionEntry> {

@@ -7,7 +7,6 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.exception.Exception;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
-import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
     public final TSO source;

@@ -17,8 +17,6 @@ import eta.runtime.thunk.Ap1VUpd;
 import eta.runtime.thunk.Ap2VUpd;
 import eta.runtime.thunk.Ap3VUpd;
 import eta.runtime.thunk.Ap4VUpd;
-import eta.runtime.exception.EtaException;
-import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.stg.TSO.WhatNext.*;
 
 /* - Utilies for working with Closures from the Java side.

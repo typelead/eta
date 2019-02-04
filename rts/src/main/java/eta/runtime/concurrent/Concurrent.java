@@ -1,11 +1,9 @@
 package eta.runtime.concurrent;
 
 import java.io.IOException;
-import java.util.Set;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Iterator;
-import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -14,16 +12,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.CancelledKeyException;
-import eta.runtime.util.MPSCReferenceQueue;
-import eta.runtime.util.MPSCLongQueue;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;

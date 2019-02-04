@@ -1,7 +1,5 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
 
 public class UpdateInfo {
     public Thunk updatee;

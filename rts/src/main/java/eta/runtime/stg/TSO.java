@@ -1,13 +1,7 @@
 package eta.runtime.stg;
 
-import java.util.Stack;
-import java.util.Deque;
 import java.util.Queue;
-import java.util.ArrayDeque;
-import java.util.List;
 import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,7 +15,6 @@ import eta.runtime.thunk.BlackHole;
 import eta.runtime.thunk.UpdateInfoStack;
 import eta.runtime.thunk.BlockingQueue;
 import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.RuntimeLogging.debugBelch;
 import static eta.runtime.stg.TSO.WhatNext.*;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
 

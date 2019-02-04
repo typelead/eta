@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.*;
 
 import static java.util.Arrays.*;
-import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;

@@ -11,11 +11,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
 import eta.runtime.io.Array;
 import eta.runtime.concurrent.Concurrent;
-import static eta.runtime.RuntimeLogging.barf;
 
 public final class WeakPtr extends Value {
     public WeakReference<Closure> key;

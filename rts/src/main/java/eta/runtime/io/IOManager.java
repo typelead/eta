@@ -6,7 +6,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.CancelledKeyException;
 import java.util.concurrent.locks.LockSupport;
-import java.rmi.NotBoundException;
 
 import eta.runtime.Runtime;
 import eta.runtime.stg.TSO;

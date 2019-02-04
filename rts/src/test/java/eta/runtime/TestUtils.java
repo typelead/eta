@@ -1,6 +1,5 @@
 package eta.runtime;
 
-import java.util.Arrays;
 import org.junit.Assert;
 
 public class TestUtils {

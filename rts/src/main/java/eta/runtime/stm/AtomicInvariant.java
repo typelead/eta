@@ -1,7 +1,5 @@
 package eta.runtime.stm;
 
-import java.util.Stack;
-import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.Closure;

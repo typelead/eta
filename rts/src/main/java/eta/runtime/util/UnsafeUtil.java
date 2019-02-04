@@ -6,11 +6,6 @@ import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stm.TVar;
-import eta.runtime.thunk.Thunk;
-import eta.runtime.io.MutVar;
-import eta.runtime.concurrent.MVar;
 
 public class UnsafeUtil {
 

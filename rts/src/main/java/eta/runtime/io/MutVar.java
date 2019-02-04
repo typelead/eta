@@ -3,7 +3,6 @@ package eta.runtime.io;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;

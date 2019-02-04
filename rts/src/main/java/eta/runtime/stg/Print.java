@@ -20,8 +20,6 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.DataCon;
 import eta.runtime.apply.Function;
 import eta.runtime.apply.PAP;
 import eta.runtime.thunk.Thunk;

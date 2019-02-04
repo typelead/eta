@@ -1,16 +1,10 @@
 package eta.runtime.stg;
 
-import java.util.List;
 import java.util.LinkedList;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Queue;
-import java.util.Set;
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
@@ -18,7 +12,6 @@ import java.lang.ref.WeakReference;
 import eta.runtime.util.MPSCReferenceQueue;
 
 import eta.runtime.Runtime;
-import eta.runtime.io.IO;
 import eta.runtime.io.IOManager;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.concurrent.Concurrent;
@@ -37,7 +30,6 @@ import eta.runtime.storage.LocalHeap;
 import eta.runtime.thunk.BlockingQueue;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
-import eta.runtime.thunk.WhiteHole;
 import eta.runtime.util.MPSCLongQueue;
 import eta.runtime.util.Consumer;
 import static eta.runtime.stg.TSO.*;

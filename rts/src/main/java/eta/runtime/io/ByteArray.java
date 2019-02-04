@@ -1,17 +1,10 @@
 package eta.runtime.io;
 
 import java.util.Arrays;
-import java.util.TreeMap;
-import java.util.Map;
 import java.nio.ByteBuffer;
-import java.lang.ref.WeakReference;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.TSO;
-import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Value;
-import static eta.runtime.RuntimeLogging.barf;
 
 public final class ByteArray extends Value {
 

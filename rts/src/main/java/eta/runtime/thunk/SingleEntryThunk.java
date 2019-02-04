@@ -1,6 +1,5 @@
 package eta.runtime.thunk;
 
-import eta.runtime.Runtime;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 

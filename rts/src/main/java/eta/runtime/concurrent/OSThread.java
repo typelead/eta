@@ -1,7 +1,6 @@
 package eta.runtime.concurrent;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Capability;
 
 public class OSThread extends Thread {
 

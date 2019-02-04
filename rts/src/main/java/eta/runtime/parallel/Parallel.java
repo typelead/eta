@@ -8,7 +8,6 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugScheduler;
 
 public class Parallel {

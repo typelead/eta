@@ -1,27 +1,22 @@
 package eta.runtime.thunk;
 
-import java.lang.reflect.Field;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
-import eta.runtime.message.MessageBlackHole;
-import eta.runtime.exception.Exception;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 import eta.runtime.exception.TrampolineBounceException;
 import eta.runtime.exception.Raise;
 import eta.runtime.exception.StgException;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
-import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public abstract class Thunk extends Closure {

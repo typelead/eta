@@ -1,7 +1,6 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.nio.channels.SelectableChannel;

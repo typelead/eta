@@ -2,7 +2,6 @@ package eta.runtime.stm;
 
 import java.util.Queue;
 import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;

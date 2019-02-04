@@ -1,11 +1,7 @@
 package eta.runtime.apply;
 
-import java.util.Map;
-import java.util.Deque;
 
-import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
-import eta.runtime.stg.Closure;
 
 import static eta.runtime.stg.Print.*;
 

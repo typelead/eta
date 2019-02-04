@@ -4,7 +4,6 @@ import java.lang.ref.WeakReference;
 import eta.runtime.util.CompactReferenceSet;
 
 import eta.runtime.Runtime;
-import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.SelectorThunk;
 
 import static eta.runtime.RuntimeLogging.*;

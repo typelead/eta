@@ -5,10 +5,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.nio.ByteBuffer;
 
 import eta.runtime.Runtime;
-import eta.runtime.stg.Closure;
 import static eta.runtime.RuntimeLogging.*;
 
 public class StablePtrTable {

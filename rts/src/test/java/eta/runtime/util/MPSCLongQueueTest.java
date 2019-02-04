@@ -1,6 +1,5 @@
 package eta.runtime.util;
 
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Map;
 import java.util.HashMap;
