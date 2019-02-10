@@ -632,7 +632,7 @@ public class Utils {
         return FileChannel.open(fChan.toPath(), fOpts);
     }
 
-    public static final int pathSeparatorChar = File.pathSeparatorChar;
+    public static final int dirSeparatorChar = File.separatorChar;
 
     public static void puts(String msg) {
         System.out.println(msg);

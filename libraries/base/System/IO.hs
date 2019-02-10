@@ -514,8 +514,8 @@ openTempFile' loc tmp_dir template binary mode = findTempName
         combine a b
                   | null b = a
                   | null a = b
-                  | last a == pathSeparator = a ++ b
-                  | otherwise = a ++ [pathSeparator] ++ b
+                  | last a == dirSeparator = a ++ b
+                  | otherwise = a ++ [dirSeparator] ++ b
 
 -- int rand(void) from <stdlib.h>, limited by RAND_MAX (small value, 32768)
 foreign import java unsafe "@static eta.base.Utils.c_rand"
@@ -541,11 +541,11 @@ openNewFile filepath binary mode = do
   fd <- c_open f oflags mode
   return (NewFileCreated (superCast fd))
 
-foreign import java "@static @field eta.base.Utils.pathSeparatorChar"
-  pathSeparator' :: Int
+foreign import java "@static @field eta.base.Utils.dirSeparatorChar"
+  dirSeparator' :: Int
 
-pathSeparator :: Char
-pathSeparator = unsafeChr pathSeparator'
+dirSeparator :: Char
+dirSeparator = unsafeChr dirSeparator'
 
 -- $locking
 -- Implementations should enforce as far as possible, at least locally to the
