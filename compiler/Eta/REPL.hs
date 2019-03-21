@@ -234,12 +234,15 @@ evalStringToIOString hsc_env fhv str = do
 loadClasses :: HscEnv -> [(String, String, ByteString)] -> IO ()
 loadClasses hsc_env classes = when (not (null classes)) $ do
   dumpClassesIfSet hsc_env classes
-  let components = stronglyConnCompFromEdgedVertices [ ((a, c), a, [b]) | (a, b, c) <- classes]
+  let dflags = hsc_dflags hsc_env
+      components = stronglyConnCompFromEdgedVertices [ ((a, c), a, [b]) | (a, b, c) <- classes]
       f (AcyclicSCC c) = c
       f (CyclicSCC cs) = panic $ "loadClasses: Found impossible set of cyclic classes: "
                               ++ show (map (\(a,_) -> a) cs)
       classes' = map f components
-  iservCmd hsc_env (LoadClasses (map fst classes') (map snd classes'))
+      classesNames = map fst classes'
+  debugTraceMsg dflags 3 $ text ( "Loading classes: " ++ (show classesNames))
+  iservCmd hsc_env (LoadClasses classesNames (map snd classes'))
 
 dumpClassesIfSet :: HscEnv -> [(String, String, ByteString)] -> IO ()
 dumpClassesIfSet hsc_env classes =
@@ -260,16 +263,19 @@ resetClasses :: HscEnv -> IO ()
 resetClasses hsc_env = iservCmd hsc_env ResetClasses
 
 addDynamicClassPath :: HscEnv -> [FilePath] -> IO ()
-addDynamicClassPath hsc_env cp =
+addDynamicClassPath hsc_env cp = do
+  debugTraceMsg (hsc_dflags hsc_env) 3 $ text ( "Adding dynamic classpath: " ++ (show cp) )
   iservCmd hsc_env (AddDynamicClassPath cp)
 
 addModuleClassPath :: HscEnv -> [FilePath] -> IO ()
 addModuleClassPath hsc_env cp = do
+  debugTraceMsg (hsc_dflags hsc_env) 3 $ text ( "Adding module classpath: " ++ (show cp) )
   when (not (null cp)) $
     iservCmd hsc_env (AddModuleClassPath cp)
 
 setClassInfoPath :: HscEnv -> [FilePath] -> IO ()
 setClassInfoPath hsc_env cp = do
+  debugTraceMsg (hsc_dflags hsc_env) 3 $ text ( "Setting class info path: " ++ (show cp) )
   when (not (null cp)) $
     iservCmd hsc_env (SetClassInfoPath cp)
 
