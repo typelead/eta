@@ -41,6 +41,7 @@ import Eta.Utils.JAR
 import Eta.Utils.PprColor
 import Eta.Utils.Util
 import Codec.JVM
+import Eta.REPL ( addModuleClassPath )
 import Eta.REPL.Linker
 import Eta.Main.FileCleanup
 import Eta.Main.PipelineMonad
@@ -219,6 +220,8 @@ compileOne' m_tc_result mHscMessage
                     hm_details = details,
                     hm_iface = iface,
                     hm_linkable = maybe_old_linkable }
+            when (hsc_lang == HscInterpreted) $
+              addModuleClassPath hsc_env (concatMap linkableObjs (maybeToList maybe_old_linkable))
             return hmi
         -- We finished type checking.  (mb_old_hash is the hash of
         -- the interface that existed on disk; it's possible we had
