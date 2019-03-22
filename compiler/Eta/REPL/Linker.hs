@@ -189,7 +189,9 @@ linkExpr hsc_env clsName clsMethod classes
   = do {
      -- Initialise the linker (if it's not been done already)
    ; initDynLinker hsc_env
-
+   ; debugTraceMsg (hsc_dflags hsc_env) 3 $
+       text ( "Linking expression: className=" ++ clsName
+              ++ ", method=" ++ clsMethod )
      -- Take lock for the actual work.
    ; modifyPLS $ \pls -> do {
        ; loadClasses hsc_env $ forceClasses classes
@@ -214,7 +216,8 @@ linkModules :: HscEnv -> ModuleName -> IO ()
 linkModules hsc_env root_module = do {
     -- Initialise the linker (if it's not been done already)
   ; initDynLinker hsc_env
-
+  ; debugTraceMsg (hsc_dflags hsc_env) 3 $
+      ( text "Linking modules with root: " <+> ppr root_module )
     -- Take lock for the actual work.
   ; modifyPLS $ \pls -> do {
       ; let root_module' = last_root_module pls
@@ -286,7 +289,8 @@ unload_wkr hsc_env keep_linkables pls@PersistentLinkerState{..} = do
   -- we're unloading some code.  -feta-repl-leak-check with the tests in
   -- tests/suite/repl can detect space leaks here.
 
-  let !modules_retained = mkModuleSet $ map linkableModule
+  let dflags = hsc_dflags hsc_env
+      !modules_retained = mkModuleSet $ map linkableModule
                                       $ filter (not . isObjectLinkable) keep_linkables
       newModuleEnv' = listToUFM [ (moduleName (linkableModule jar), classpath)
                                 | jar <- keep_linkables,
@@ -306,6 +310,9 @@ unload_wkr hsc_env keep_linkables pls@PersistentLinkerState{..} = do
       !new_pls = pls { closure_env = closure_env'
                      , home_modules_env = newModuleEnv' }
 
+  debugTraceMsg dflags 3 $ text "Unload old objects"
+  debugTraceMsg dflags 3
+    ( text "Keeping linkables: " <+> (ppr keep_linkables) )
   -- TODO: Reload class linkables as well via linkClasses?
 
   resetClasses hsc_env
