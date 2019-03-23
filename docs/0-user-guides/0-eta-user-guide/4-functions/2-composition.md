@@ -40,7 +40,7 @@ We can now rewrite the example using the existing functions, using the currying 
 f = add 1 . multiply 2
 ```
 
-Note that you should read composition pipelines from left-to-right.
+Note that you should read composition pipelines from right-to-left.
 
 ## Next Section
 
