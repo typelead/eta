@@ -1727,7 +1727,8 @@ loadModule' files = do
   let (filenames, phases) = unzip files
   exp_filenames <- mapM expandPath filenames
   let files' = zip exp_filenames phases
-  targets <- mapM (uncurry GHC.guessTarget) files'
+      (haskellFiles, otherFiles) = partitionByHaskellish files 
+  targets <- mapM (uncurry GHC.guessTarget) haskellFiles
 
   -- NOTE: we used to do the dependency anal first, so that if it
   -- fails we didn't throw away the current set of modules.  This would
@@ -1746,6 +1747,10 @@ loadModule' files = do
   -- unload first
   _ <- GHC.abandonAll
   lift discardActiveBreakPoints
+
+  let dflags' = foldr addJarInputs dflags o_files
+  _ <- GHC.setSessionDynFlags dflags'
+  
   GHC.setTargets []
   _ <- GHC.load LoadAllTargets
 
