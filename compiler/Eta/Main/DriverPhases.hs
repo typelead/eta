@@ -36,7 +36,9 @@ module Eta.Main.DriverPhases (
    isJavaClassishFilename,
    isDynLibFilename,
    isHaskellUserSrcFilename,
-   isSourceFilename
+   isSourceFilename,
+
+   partitionByHaskellish
  ) where
 
 #include "HsVersions.h"
@@ -46,6 +48,7 @@ import Eta.Utils.Outputable
 import Eta.Utils.Platform
 import System.FilePath
 import Eta.Utils.Binary
+import Eta.Utils.Utils (looksLikeModuleName)
 
 -----------------------------------------------------------------------------
 -- Phases
@@ -341,3 +344,11 @@ isHaskellSigFilename     f = isHaskellSigSuffix     (drop 1 $ takeExtension f)
 isObjectFilename, isDynLibFilename :: Platform -> FilePath -> Bool
 isObjectFilename platform f = isObjectSuffix platform (drop 1 $ takeExtension f)
 isDynLibFilename platform f = isDynLibSuffix platform (drop 1 $ takeExtension f)
+
+partitionByHaskellish :: [(Filepath,Maybe Phase)]
+                      -> ([(Filepath,Maybe Phase)],[(Filepath,Maybe Phase)])
+partitionByHaskellish srcs = partition haskellish srcs
+  where haskellish (f,Nothing) =
+          looksLikeModuleName f || isHaskellUserSrcFilename f || '.' `notElem` f
+        haskellish (_,Just phase) =
+          phase `notElem` [ As True, As False, Cc, Cobjc, Cobjcpp, CmmCpp, Cmm, StopLn ]

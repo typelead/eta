@@ -644,11 +644,7 @@ doMake srcs  = do
     ok_flag <- GHC.load LoadAllTargets
     when (failed ok_flag) (liftIO $ exitWith (ExitFailure 1))
     return ()
-  where (hs_srcs, non_hs_srcs) = partition haskellish srcs
-        haskellish (f,Nothing) =
-          looksLikeModuleName f || isHaskellUserSrcFilename f || '.' `notElem` f
-        haskellish (_,Just phase) =
-          phase `notElem` [ As True, As False, Cc, Cobjc, Cobjcpp, CmmCpp, Cmm, StopLn ]
+  where (hs_srcs, non_hs_srcs) = partitionByHaskellish srcs
 
 
 -- ---------------------------------------------------------------------------
