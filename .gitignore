@@ -21,3 +21,4 @@ binaries/
 .gradle
 testing
 /dist-newstyle/
+.vscode/
