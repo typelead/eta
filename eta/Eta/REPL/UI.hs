@@ -49,6 +49,7 @@ import qualified Eta.Main.GHC as GHC
 import Eta.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
              getModuleGraph, handleSourceError )
+import Eta.Main.DriverPhases ( partitionByHaskellish )
 import Eta.HsSyn.HsImpExp
 import Eta.HsSyn.HsSyn
 import Eta.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
@@ -1727,7 +1728,7 @@ loadModule' files = do
   let (filenames, phases) = unzip files
   exp_filenames <- mapM expandPath filenames
   let files' = zip exp_filenames phases
-      (haskellFiles, otherFiles) = partitionByHaskellish files 
+      (haskellFiles, otherFiles) = partitionByHaskellish files'
   targets <- mapM (uncurry GHC.guessTarget) haskellFiles
 
   -- NOTE: we used to do the dependency anal first, so that if it
@@ -1748,7 +1749,7 @@ loadModule' files = do
   _ <- GHC.abandonAll
   lift discardActiveBreakPoints
 
-  let dflags' = foldr addJarInputs dflags o_files
+  let dflags' = foldr addJarInputs dflags (map fst otherFiles)
   _ <- GHC.setSessionDynFlags dflags'
   
   GHC.setTargets []

@@ -48,8 +48,8 @@ import Eta.Utils.Outputable
 import Eta.Utils.Platform
 import System.FilePath
 import Eta.Utils.Binary
-import Eta.Utils.Utils (looksLikeModuleName)
-
+import Eta.Utils.Util (looksLikeModuleName)
+import Data.List (partition)
 -----------------------------------------------------------------------------
 -- Phases
 
@@ -345,8 +345,8 @@ isObjectFilename, isDynLibFilename :: Platform -> FilePath -> Bool
 isObjectFilename platform f = isObjectSuffix platform (drop 1 $ takeExtension f)
 isDynLibFilename platform f = isDynLibSuffix platform (drop 1 $ takeExtension f)
 
-partitionByHaskellish :: [(Filepath,Maybe Phase)]
-                      -> ([(Filepath,Maybe Phase)],[(Filepath,Maybe Phase)])
+partitionByHaskellish :: [(FilePath,Maybe Phase)]
+                      -> ([(FilePath,Maybe Phase)],[(FilePath,Maybe Phase)])
 partitionByHaskellish srcs = partition haskellish srcs
   where haskellish (f,Nothing) =
           looksLikeModuleName f || isHaskellUserSrcFilename f || '.' `notElem` f
