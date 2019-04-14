@@ -1741,6 +1741,11 @@ loadModule' files = do
   -- Grab references to the currently loaded modules so that we can
   -- see if they leak.
   let !dflags = hsc_dflags hsc_env
+
+  liftIO $ debugTraceMsg dflags 3 $ 
+    text (   "loadModule': haskellFiles=" ++ (show haskellFiles) 
+          ++ ", otherFiles=" ++ (show otherFiles))
+
   leak_indicators <- if gopt Opt_EtaReplLeakCheck dflags
     then liftIO $ getLeakIndicators hsc_env
     else return (panic "no leak indicators")
@@ -1750,6 +1755,7 @@ loadModule' files = do
   lift discardActiveBreakPoints
 
   let dflags' = foldr addJarInputs dflags (map fst otherFiles)
+  
   _ <- GHC.setSessionDynFlags dflags'
   
   GHC.setTargets []
