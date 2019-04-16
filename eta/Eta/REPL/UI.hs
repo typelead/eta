@@ -49,7 +49,8 @@ import qualified Eta.Main.GHC as GHC
 import Eta.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
              getModuleGraph, handleSourceError )
-import Eta.Main.DriverPhases ( partitionByHaskellish )
+import Eta.Main.DriverPhases ( partitionByHaskellish, Phase(..) )
+import Eta.Main.DriverPipeline ( compileFiles )
 import Eta.HsSyn.HsImpExp
 import Eta.HsSyn.HsSyn
 import Eta.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
@@ -1753,13 +1754,10 @@ loadModule' files = do
   -- unload first
   _ <- GHC.abandonAll
   lift discardActiveBreakPoints
-
-  objectFiles <- liftIO $ compileFiles hsc_env StopLn otherFiles
-  let dflags' = foldr addJarInputs dflags (map fst objectFiles)
-  
-  _ <- GHC.setSessionDynFlags dflags'
-  
   GHC.setTargets []
+
+  liftIO $ compileAndAddToClasspath hsc_env otherFiles
+    
   _ <- GHC.load LoadAllTargets
 
   GHC.setTargets targets
@@ -1768,15 +1766,31 @@ loadModule' files = do
     liftIO $ checkLeakIndicators dflags leak_indicators
   return success
 
+compileAndAddToClasspath :: GHC.HscEnv -> [(FilePath, Maybe Phase)] -> IO()
+compileAndAddToClasspath hsc_env files = do
+  compiledFiles <- compileFiles hsc_env StopLn files
+  addDynamicClassPath hsc_env compiledFiles
+  setClassInfoPath hsc_env compiledFiles
+
 -- | @:add@ command
 addModule :: [FilePath] -> InputT GHCi ()
 addModule files = do
   lift revertCAFs -- always revert CAFs on load/add.
+        
   files' <- mapM expandPath files
-  targets <- mapM (\m -> GHC.guessTarget m Nothing) files'
+  let filesWithPhase = zip files' (repeat Nothing)
+      (haskellFiles, otherFiles) = partitionByHaskellish filesWithPhase
+      haskellFiles' = map fst haskellFiles
+      
+  targets <- mapM (\m -> GHC.guessTarget m Nothing) haskellFiles'
   targets' <- filterM checkTarget targets
   -- remove old targets with the same id; e.g. for :add *M
   mapM_ GHC.removeTarget [ tid | Target tid _ _ <- targets' ]
+
+  hsc_env <- GHC.getSession
+
+  liftIO $ compileAndAddToClasspath hsc_env otherFiles
+
   mapM_ GHC.addTarget targets'
   _ <- doLoadAndCollectInfo False LoadAllTargets
   return ()
@@ -1805,7 +1819,11 @@ addModule files = do
 unAddModule :: [FilePath] -> InputT GHCi ()
 unAddModule files = do
   files' <- mapM expandPath files
-  targets <- mapM (\m -> GHC.guessTarget m Nothing) files'
+  let filesWithPhase = zip files' (repeat Nothing)
+      (haskellFiles, _) = partitionByHaskellish filesWithPhase
+      haskellFiles' = map fst haskellFiles
+  
+  targets <- mapM (\m -> GHC.guessTarget m Nothing) haskellFiles'
   mapM_ GHC.removeTarget [ tid | Target tid _ _ <- targets ]
   _ <- doLoadAndCollectInfo False LoadAllTargets
   return ()
