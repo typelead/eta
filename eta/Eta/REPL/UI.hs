@@ -1744,7 +1744,7 @@ loadModule' files = do
 
   liftIO $ debugTraceMsg dflags 3 $ 
     text (   "loadModule': haskellFiles=" ++ (show haskellFiles) 
-          ++ ", otherFiles=" ++ (show otherFiles))
+         ++ ", otherFiles=" ++ (show otherFiles))
 
   leak_indicators <- if gopt Opt_EtaReplLeakCheck dflags
     then liftIO $ getLeakIndicators hsc_env
@@ -1754,7 +1754,8 @@ loadModule' files = do
   _ <- GHC.abandonAll
   lift discardActiveBreakPoints
 
-  let dflags' = foldr addJarInputs dflags (map fst otherFiles)
+  objectFiles <- liftIO $ compileFiles hsc_env StopLn otherFiles
+  let dflags' = foldr addJarInputs dflags (map fst objectFiles)
   
   _ <- GHC.setSessionDynFlags dflags'
   
