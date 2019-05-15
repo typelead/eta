@@ -1,4 +1,22 @@
+resolver: lts-6.27
 allow-newer: true
+
+packages:
+- '.'
+# - '../hpp' # Used for local development
+# - '../zip'
+- codec-jvm
+- libraries/eta-boot
+- libraries/eta-boot-meta
+- libraries/eta-meta
+- libraries/eta-repl
+- utils/eta-pkg
+- etlas/etlas
+- etlas/etlas-cabal
+- etlas/dhall-to-etlas
+- etlas/hackage-security/hackage-security
+- shake
+
 extra-deps:
 - binary-0.8.4.1
 - cryptohash-sha256-0.11.100.1
@@ -15,7 +33,8 @@ extra-deps:
 - turtle-1.5.9
 - unix-compat-0.4.3.1
 - parsec-3.1.13.0
-- dhall-1.19.1
+# etlas
+- dhall-1.23.0
 - ansi-terminal-0.7.1.1
 - ansi-wl-pprint-0.6.8.2
 - cryptonite-0.24
@@ -32,35 +51,25 @@ extra-deps:
 - directory-1.2.7.1
 - foundation-0.0.19
 - process-1.2.3.0
-- repline-0.2.0.0
+- repline-0.2.1.0
 - haskeline-0.7.4.2
-- insert-ordered-containers-0.2.1.0
 - aeson-1.2.3.0
 - th-abstraction-0.2.6.0
-- hashable-1.2.7.0
-- Diff-0.3.4
-- cborg-0.2.0.0
-- serialise-0.2.0.0
+- cborg-0.2.1.0
+- serialise-0.2.1.0
+- shell-escape-0.2.0
+- cborg-json-0.2.1.0
 - dotgen-0.4.2
-resolver: lts-6.27
+- aeson-pretty-0.8.7
+- transformers-compat-0.6.5
+- exceptions-0.8.3
+
 flags:
   mintty:
     win32-2-5: false
   haskeline:
     terminfo: false
+  transformers-compat:
+    four: true
 extra-package-dbs: []
-packages:
-- '.'
-# - '../hpp' # Used for local development
-# - '../zip'
-- codec-jvm
-- libraries/eta-boot
-- libraries/eta-boot-meta
-- libraries/eta-meta
-- libraries/eta-repl
-- utils/eta-pkg
-- etlas/etlas
-- etlas/etlas-cabal
-- etlas/dhall-to-etlas
-- etlas/hackage-security/hackage-security
-- shake
+
