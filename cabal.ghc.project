@@ -15,6 +15,7 @@ packages:
   utils/eta-pkg/
   etlas/etlas/
   etlas/etlas-cabal/
+  etlas/dhall-to-etlas/
   etlas/hackage-security/hackage-security/
   shake/
 
