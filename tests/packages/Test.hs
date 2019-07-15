@@ -9,7 +9,7 @@ import Turtle.Prelude hiding (die, sort, nub, sortBy)
 import Data.Aeson
 import Data.Text (Text)
 import qualified Data.Text as T
-import System.Directory (getAppUserDataDirectory, getDirectoryContents, createDirectoryIfMissing, removeFile)
+import System.Directory (getAppUserDataDirectory, getDirectoryContents, removeDirectoryRecursive)
 import System.FilePath ((</>), dropExtension)
 import qualified Data.ByteString.Lazy as BS
 
@@ -26,7 +26,9 @@ data Packages = Packages {
       patched :: [Text],
       vanilla :: [Text],
       ignored :: [Text],
-      ignoredVersions :: [Text]
+      ignoredVersions :: [Text],
+      test :: [Text],
+      testVersions :: [Text]
     } deriving (Show, Eq, Ord)
 
 instance FromJSON Packages where
@@ -35,6 +37,8 @@ instance FromJSON Packages where
                <*> v.: "vanilla"
                <*> v.: "ignored"
                <*> v.: "ignored-versions"
+               <*> v.: "test"
+               <*> v.: "test-versions"
     parseJSON _ = empty
 
 parsePackagesFile :: FilePath -> IO (Maybe Packages)
@@ -144,21 +148,20 @@ main = do
   case pkg of
     Nothing -> die "Problem parsing your packages.json file"
     Just pkg' -> do
-      let packages = (patched pkg') <> (vanilla pkg')
-          constraints = map (\p -> T.unpack $ actualName p <> "==" <> actualVersion' p) packages
-          packageNames = map (T.unpack . actualName) packages
-          tmpDir  = "testing"
-          tmpFile = "testing/cabal.project"
-      createDirectoryIfMissing True tmpDir
-      forM_ (zip packageNames constraints) $ \(pkg'', constr) -> do
-        let projectFile = (unlines (["independent-goals: True",
-                                     "extra-packages: " <> constr,
-                                     "tests: False",
-                                     "benchmarks: False"] ++ maybeVerify))
-            maybeVerify
-              | any (`T.isPrefixOf` (T.pack pkg'')) dontVerify = [""]
-              | otherwise = ["verify: True"]
-        writeFile tmpFile projectFile
-        putStrLn $ "[BUILDING] " <> constr
-        sh $ procExitOnError (Just tmpDir) "etlas" ["build", T.pack pkg''] empty
-      removeFile tmpFile
+      let packages = patched pkg' <> vanilla pkg'
+          tests = test pkg'
+          extraTests = testVersions pkg'
+          runPackageTest shouldTest package = do
+            sh $ procExitOnError Nothing "etlas" ["get", package] empty
+            let maybeVerify
+                  | any (`T.isPrefixOf` package) dontVerify = []
+                  | otherwise = ["--enable-verify"]
+                command
+                  | shouldTest = ["test"]
+                  | otherwise  = ["build"]
+            let projectFile = unlines ["packages: ."]
+            writeFile (T.unpack package </> "cabal.project") projectFile
+            sh $ procExitOnError (Just (T.unpack package)) "etlas" (command <> maybeVerify) empty
+            removeDirectoryRecursive (T.unpack package)
+      mapM_ (\p -> runPackageTest (p `elem` tests) p) packages
+      mapM_ (runPackageTest True) extraTests
