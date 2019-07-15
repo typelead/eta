@@ -1,7 +1,7 @@
 defaults: &defaults
   working_directory: ~/eta
   docker:
-    - image: fpco/stack-build:lts-9.20
+    - image: fpco/stack-build:lts-13.7
 
 version: 2.0
 jobs:
