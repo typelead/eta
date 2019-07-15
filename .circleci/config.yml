@@ -28,6 +28,7 @@ jobs:
           key: dot-stack1-resolver-{{ checksum "resolver.txt" }}
           paths:
             - ~/.stack
+            - ~/.gitconfig
       - save_cache:
           key: dot-stack1-{{ checksum "stack.yaml" }}
           paths:
