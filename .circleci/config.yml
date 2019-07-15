@@ -11,6 +11,8 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p ~/.local/bin
+      - run: git config --global user.email etalanguage@gmail.com
+      - run: git config --global user.name Eta 
       - run: git submodule sync
       - run: git submodule update --init --recursive
       - run: grep '^resolver:' stack.yaml > resolver.txt
