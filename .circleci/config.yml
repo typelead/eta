@@ -28,7 +28,6 @@ jobs:
           key: dot-stack1-resolver-{{ checksum "resolver.txt" }}
           paths:
             - ~/.stack
-            - ~/.gitconfig
       - save_cache:
           key: dot-stack1-{{ checksum "stack.yaml" }}
           paths:
@@ -58,12 +57,13 @@ jobs:
             - ./shake/.stack-work
 
       - save_cache:
-          key: eta-bin-{{ .Revision }}
+          key: v2-eta-bin-{{ .Revision }}
           paths:
             - ~/.eta
             - ~/.etlas
             - ~/.coursier
             - ~/.local
+            - ~/.gitconfig
 
       - persist_to_workspace:
           root: .
@@ -76,7 +76,7 @@ jobs:
           at: .
 
       - restore_cache:
-          key: eta-bin-{{ .Revision }}
+          key: v2-eta-bin-{{ .Revision }}
 
       - restore_cache:
           keys:
@@ -104,7 +104,7 @@ jobs:
           at: .
 
       - restore_cache:
-          key: eta-bin-{{ .Revision }}
+          key: v2-eta-bin-{{ .Revision }}
 
       - restore_cache:
           keys:
@@ -125,7 +125,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: eta-bin-{{ .Revision }}
+          key: v2-eta-bin-{{ .Revision }}
       - setup_remote_docker
       - run:
           name: Install Docker client
