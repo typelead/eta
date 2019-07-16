@@ -33,6 +33,7 @@ extra-deps:
 - turtle-1.5.9
 - unix-compat-0.4.3.1
 - parsec-3.1.13.0
+- hpc-0.6.0.3
 # etlas
 - dhall-1.23.0
 - ansi-terminal-0.7.1.1
