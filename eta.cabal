@@ -365,6 +365,7 @@ library
     buildable:           True
     build-tools:         alex
                        , happy
+    build-tool-depends:  happy:happy <= 1.19.10
     if flag(debug)
        ghc-options:      -DDEBUG
 
