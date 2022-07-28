@@ -118,7 +118,7 @@ Note [Running plugins on unflattened wanteds]
 
 There is an annoying mismatch between solveSimpleGivens and
 solveSimpleWanteds, because the latter needs to fiddle with the inert
-set, unflatten and and zonk the wanteds.  It passes the zonked wanteds
+set, unflatten and zonk the wanteds.  It passes the zonked wanteds
 to runTcPluginsWanteds, which produces a replacement set of wanteds,
 some additional insolubles and a flag indicating whether to go round
 the loop again.  If so, prepareInertsForImplications is used to remove

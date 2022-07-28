@@ -471,7 +471,7 @@ tcExtendGhciIdEnv ids thing_inside
               | otherwise                                = NotTopLevel
 
 tcExtendLetEnv :: TopLevelFlag -> TopLevelFlag -> [TcId] -> TcM a -> TcM a
--- Used for both top-level value bindings and and nested let/where-bindings
+-- Used for both top-level value bindings and nested let/where-bindings
 tcExtendLetEnv top_lvl closed ids thing_inside
   = do  { stage <- getStage
         ; tc_extend_local_env (top_lvl, thLevel stage)
