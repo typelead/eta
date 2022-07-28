@@ -1129,7 +1129,7 @@ The DeriveAnyClass extension adds a third way to derive instances, based on
 empty instance declarations.
 
 The canonical use case is in combination with GHC.Generics and default method
-signatures. These allow us have have instance declarations be empty, but still
+signatures. These allow us to have instance declarations be empty, but still
 useful, e.g.
 
   data T a = ...blah..blah... deriving( Generic )
