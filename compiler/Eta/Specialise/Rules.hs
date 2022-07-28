@@ -321,7 +321,7 @@ but that isn't quite right:
 
 -- | Gathers a collection of 'CoreRule's. Maps (the name of) an 'Id' to its rules
 type RuleBase = NameEnv [CoreRule]
-        -- The rules are are unordered;
+        -- The rules are unordered;
         -- we sort out any overlaps on lookup
 
 emptyRuleBase :: RuleBase

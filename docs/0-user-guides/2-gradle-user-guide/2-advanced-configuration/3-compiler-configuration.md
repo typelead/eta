@@ -18,7 +18,7 @@ The following table lists the properties that are available for the `options` pr
 
 ## language
 
-This specifies the language to use for the build. A language consists of a set of predefined language extensions are are defined by the compiler. Currently, there are only two values you can put for this field:
+This specifies the language to use for the build. A language consists of a set of predefined language extensions are defined by the compiler. Currently, there are only two values you can put for this field:
 
 - `'Haskell98'` 
 - `'Haskell2010'`
