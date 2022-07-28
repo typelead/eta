@@ -601,7 +601,7 @@ unQualOK (GRE {gre_prov = Imported is}) = any unQualSpecOK is
 pickGREs :: RdrName -> [GlobalRdrElt] -> [GlobalRdrElt]
 -- ^ Take a list of GREs which have the right OccName
 -- Pick those GREs that are suitable for this RdrName
--- And for those, keep only only the Provenances that are suitable
+-- And for those, keep only the Provenances that are suitable
 -- Only used for Qual and Unqual, not Orig or Exact
 --
 -- Consider:
