@@ -121,7 +121,7 @@ So there is an interesting design question in regards to transitive trust
 checking. Say I have a module B compiled with -XSafe. B is dependent on a bunch
 of modules and packages, some packages it requires to be trusted as its using
 -XTrustworthy modules from them. Now if I have a module A that doesn't use safe
-haskell at all and simply imports B, should A inherit all the the trust
+haskell at all and simply imports B, should A inherit all the trust
 requirements from B? Should A now also require that a package p is trusted since
 B required it?
 

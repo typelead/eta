@@ -61,7 +61,7 @@ Global bindings (where clauses)
 -}
 
 -- During renaming, we need bindings where the left-hand sides
--- have been renamed but the the right-hand sides have not.
+-- have been renamed but the right-hand sides have not.
 -- the ...LR datatypes are parametrized by two id types,
 -- one for the left and one for the right.
 -- Other than during renaming, these will be the same.

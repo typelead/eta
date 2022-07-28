@@ -1051,7 +1051,7 @@ So we
   * Apply the mini-event to them, and check that the result is
     consistent with the instance types [p] y Int
 
-We do *not* assume (at this point) the the bound variables of
+We do *not* assume (at this point) the bound variables of
 the associated type instance decl are the same as for the parent
 instance decl. So, for example,
 

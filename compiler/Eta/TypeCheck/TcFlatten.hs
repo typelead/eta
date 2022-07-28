@@ -1312,7 +1312,7 @@ flattenTyVarFinal fmode tv
 Note [An alternative story for the inert substitution]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 (This entire note is just background, left here in case we ever want
- to return the the previously state of affairs)
+ to return the previously state of affairs)
 
 We used (GHC 7.8) to have this story for the inert substitution inert_eqs
 

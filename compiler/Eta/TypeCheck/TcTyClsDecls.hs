@@ -650,7 +650,7 @@ tcTyClDecl1 _parent rec_info
 
        ; return (ATyCon (classTyCon clas) : gen_dm_ids ++ class_ats ) }
          -- NB: Order is important due to the call to `mkGlobalThings' when
-         --     tying the the type and class declaration type checking knot.
+         --     tying the type and class declaration type checking knot.
   where
     tc_fundep (tvs1, tvs2) = do { tvs1' <- mapM (tc_fd_tyvar . unLoc) tvs1 ;
                                 ; tvs2' <- mapM (tc_fd_tyvar . unLoc) tvs2 ;

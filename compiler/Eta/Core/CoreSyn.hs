@@ -1635,7 +1635,7 @@ collectNBinders orig_n orig_expr
     go _ _  _         = pprPanic "collectNBinders" $ int orig_n
 
 
--- | Takes a nested application expression and returns the the function
+-- | Takes a nested application expression and returns the function
 -- being applied and the arguments to which it is applied
 collectArgs :: Expr b -> (Expr b, [Arg b])
 collectArgs expr
@@ -1738,7 +1738,7 @@ data AnnBind bndr annot
   = AnnNonRec bndr (AnnExpr bndr annot)
   | AnnRec    [(bndr, AnnExpr bndr annot)]
 
--- | Takes a nested application expression and returns the the function
+-- | Takes a nested application expression and returns the function
 -- being applied and the arguments to which it is applied
 collectAnnArgs :: AnnExpr b a -> (AnnExpr b a, [AnnExpr b a])
 collectAnnArgs expr

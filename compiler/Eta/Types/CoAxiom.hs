@@ -340,7 +340,7 @@ enclosing class or instance.  Consider
      type F Int [z] = ...   -- Second param must be [z]
 
 In the CoAxBranch in the instance decl (F Int [z]) we use the
-same 'z', so that it's easy to check that that type is the same
+same 'z', so that it's easy to check that the type is the same
 as that in the instance header.
 
 Similarly in the CoAxBranch for the default decl for F in the

@@ -136,7 +136,7 @@ simplLazyBind:  [binder already simplified, RHS not]
 
 
 completeNonRecX:        [binder and rhs both simplified]
-  - if the the thing needs case binding (unlifted and not ok-for-spec)
+  - if the thing needs case binding (unlifted and not ok-for-spec)
         build a Case
    else
         completeBind
