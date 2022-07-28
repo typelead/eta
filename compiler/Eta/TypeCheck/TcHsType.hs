@@ -1157,7 +1157,7 @@ tcDataKindSig :: Kind -> TcM [TyVar]
 --      e.g.  data T :: * -> * -> * where ...
 -- This function makes up suitable (kinded) type variables for
 -- the argument kinds, and checks that the result kind is indeed *.
--- We use it also to make up argument type variables for for data instances.
+-- We use it also to make up argument type variables for data instances.
 tcDataKindSig kind
   = do  { checkTc (isLiftedTypeKind res_kind) (badKindSig kind)
         ; span <- getSrcSpanM

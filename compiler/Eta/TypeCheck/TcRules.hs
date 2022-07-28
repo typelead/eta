@@ -223,7 +223,7 @@ tcRuleBndrs (L _ (RuleBndrSig (L _ name) rn_ty) : rule_bndrs)
         ; let id  = mkLocalId name id_ty
               tvs = map snd tv_prs
                     -- tcHsPatSigType returns (Name,TyVar) pairs
-                    -- for for RuleSigCtxt their Names are not
+                    -- for RuleSigCtxt their Names are not
                     -- cloned, so we get (n, tv-with-name-n) pairs
                     -- See Note [Pattern signature binders] in TcHsType
 
