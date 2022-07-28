@@ -49,7 +49,7 @@ numbered on the fly.
 ************************************************************************
 -}
 
-type XT a = Maybe a -> Maybe a  -- How to alter a non-existent elt (Nothing)
+type XT a = Maybe a -> Maybe a  -- How to alter a nonexistent elt (Nothing)
                                 --               or an existing elt (Just)
 
 class TrieMap m where

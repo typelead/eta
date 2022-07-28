@@ -770,7 +770,7 @@ readParseDatabase :: forall mode t. Verbosity
                   -> FilePath
                   -> IO (PackageDB mode)
 readParseDatabase verbosity mb_user_conf mode use_cache path
-  -- the user database (only) is allowed to be non-existent
+  -- the user database (only) is allowed to be nonexistent
   | Just (user_conf,False) <- mb_user_conf, path == user_conf
   = do lock <- F.forM mode $ \_ -> do
          createDirectoryIfMissing True path
@@ -1894,7 +1894,7 @@ checkModule fieldName db_stack pkg
               else PackageIndex.lookupUnitId ipix definingPkgId
   in case mpkg of
       Nothing
-           -> verror ForceAll (fieldName ++ " refers to a non-existent " ++
+           -> verror ForceAll (fieldName ++ " refers to a nonexistent " ++
                                "defining package: " ++
                                        display definingPkgId)
 
