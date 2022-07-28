@@ -8,7 +8,7 @@ works = id foo
 
 fails = (id) foo
 
--- works type checks, but fails fails with the following error
+-- works type checks, but fails with the following error
 -- message:
 --
 --   Cannot match a monotype with `() -> forall b. b'
