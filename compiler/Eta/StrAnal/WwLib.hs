@@ -361,7 +361,7 @@ Note [Freshen type variables]
 Wen we do a worker/wrapper split, we must not use shadowed names,
 else we'll get
    f = /\ a /\a. fw a a
-which is obviously wrong.  Type variables can can in principle shadow,
+which is obviously wrong.  Type variables can in principle shadow,
 within a type (e.g. forall a. a -> forall a. a->a).  But type
 variables *are* mentioned in <blah>, so we must substitute.
 
