@@ -4616,7 +4616,7 @@ Duplicate      YES           NO
 
 Note [Implementation: how can_fail/has_side_effects affect transformations]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-How do we ensure that that floating/duplication/discarding are done right
+How do we ensure that floating/duplication/discarding are done right
 in the simplifier?
 
 Two main predicates on primpops test these flags:

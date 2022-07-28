@@ -1345,7 +1345,7 @@ Consider
 
 Here
  * The pattern (T p1 p2) creates a *skolem* type variable 'a_sk',
-   It must be a skolem so that that it retains its identity, and
+   It must be a skolem so that it retains its identity, and
    TcErrors.getSkolemInfo can thereby find the binding site for the skolem.
 
  * The type signature pattern (f :: a->Int) binds "a" -> a_sig in the envt

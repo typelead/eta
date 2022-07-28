@@ -1100,7 +1100,7 @@ the top-level simple constraints are plausible, but we also float constraints
 out from inside, if they are not captured by skolems.
 
 The same function is used when doing type-class defaulting (see the call
-to applyDefaultingRules) to extract constraints that that might be defaulted.
+to applyDefaultingRules) to extract constraints that might be defaulted.
 
 There are two caveats:
 

@@ -279,7 +279,7 @@ insertSuffixes
         :: FilePath     -- Original filename;   e.g. "foo.o"
         -> [String]     -- Suffix prefixes      e.g. ["x_", "y_"]
         -> [FilePath]   -- Zapped filenames     e.g. ["foo.x_o", "foo.y_o"]
-        -- Note that that the extra bit gets inserted *before* the old suffix
+        -- Note that the extra bit gets inserted *before* the old suffix
         -- We assume the old suffix contains no dots, so we know where to
         -- split it
 insertSuffixes file_name extras
