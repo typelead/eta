@@ -54,13 +54,13 @@ libraryDependencies in EtaLib += eta("array", "1.2.3.0")
 | Notation | Description                                                                     |
 | -------- | --------------------------------------                                          |
 | `[a,b]`  | Matches all versions greater than or equal to `a` and less than or equal to `b` |
-| `[a,b[`  | Matches all versions greater than or equal to `a` and less than than `b`        |
+| `[a,b[`  | Matches all versions greater than or equal to `a` and less than `b`             |
 | `]a,b]`  | Matches all versions greater than `a` and less than or equal to `b`             |
-| `]a,b[`  | Matches all versions greater than `a` and less than than `b`                    |
+| `]a,b[`  | Matches all versions greater than `a` and less than `b`                         |
 | `[a,)`   | Matches all versions greater than or equal to `a`                               |
 | `]a,)`   | Matches all versions greater than `a`                                           |
 | `(,b]`   | Matches all versions less than or equal to `b`                                  |
-| `(,b[`   | Matches all versions less than than `b`                                         |
+| `(,b[`   | Matches all versions less than `b`                                              |
 
 **Example**
 
