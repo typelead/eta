@@ -1566,7 +1566,7 @@ data Overlap = Overlappable   -- ^ May be overlapped by more specific instances
   deriving( Show, Eq, Ord, Data, Typeable, Generic )
 
 -- | Common elements of 'OpenTypeFamilyD' and 'ClosedTypeFamilyD'.
--- By analogy with with "head" for type classes and type class instances as
+-- By analogy with "head" for type classes and type class instances as
 -- defined in /Type classes: an exploration of the design space/, the
 -- @TypeFamilyHead@ is defined to be the elements of the declaration between
 -- @type family@ and @where@.
