@@ -31,7 +31,7 @@ module GHC.IO (
         unsafeDupablePerformIO, unsafeDupableInterleaveIO,
         noDuplicate,
 
-        -- To and from from ST
+        -- To and from ST
         stToIO, ioToST, unsafeIOToST, unsafeSTToIO,
 
         FilePath,
