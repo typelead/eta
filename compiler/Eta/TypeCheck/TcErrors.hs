@@ -1571,7 +1571,7 @@ relevantBindings want_filtering ctxt ct
 
               else if run_out n_left && id_tvs `subVarSet` tvs_seen
                        -- We've run out of n_left fuel and this binding only
-                       -- mentions aleady-seen type variables, so discard it
+                       -- mentions already-seen type variables, so discard it
               then go tidy_env n_left tvs_seen docs True tc_bndrs
 
                        -- Keep this binding, decrement fuel

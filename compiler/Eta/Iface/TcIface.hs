@@ -720,7 +720,7 @@ tcIfaceDataCons tycon_name tycon tc_tyvars if_cons
                          ifConStricts    = if_stricts,
                          ifConSrcStricts = if_src_stricts})
      = -- Universally-quantified tyvars are shared with
-       -- parent TyCon, and are alrady in scope
+       -- parent TyCon, and are already in scope
        bindIfaceTyVars ex_tvs    $ \ ex_tyvars -> do
         { traceIf (text "Start interface-file tc_con_decl" <+> ppr dc_name)
 
