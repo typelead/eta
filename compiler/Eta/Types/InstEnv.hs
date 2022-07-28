@@ -438,7 +438,7 @@ deleteFromInstEnv inst_env ins_item@(ClsInst { is_cls_nm = cls_nm })
     adjust (ClsIE items) = ClsIE (filterOut (identicalClsInstHead ins_item) items)
 
 identicalClsInstHead :: ClsInst -> ClsInst -> Bool
--- ^ True when when the instance heads are the same
+-- ^ True when the instance heads are the same
 -- e.g.  both are   Eq [(a,b)]
 -- Used for overriding in GHCi
 -- Obviously should be insensitive to alpha-renaming
