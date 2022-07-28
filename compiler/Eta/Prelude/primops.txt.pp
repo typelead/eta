@@ -57,8 +57,8 @@
 
 defaults
    has_side_effects = False
-   out_of_line      = False   -- See Note Note [PrimOp can_fail and has_side_effects] in PrimOp
-   can_fail         = False   -- See Note Note [PrimOp can_fail and has_side_effects] in PrimOp
+   out_of_line      = False   -- See Note [PrimOp can_fail and has_side_effects] in PrimOp
+   can_fail         = False   -- See Note [PrimOp can_fail and has_side_effects] in PrimOp
    commutable       = False
    code_size        = { primOpCodeSizeDefault }
    strictness       = { \ arity -> mkClosedStrictSig (replicate arity topDmd) topRes }
