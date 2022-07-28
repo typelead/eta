@@ -139,7 +139,7 @@ depanal excluded_mods allow_dup_roots = do
 -- when building a library, so that GHC warns user about modules, not listed
 -- neither in `exposed-modules`, nor in `other-modules`.
 --
--- Here "home module" means a module, that doesn't come from an other package.
+-- Here "home module" means a module, that doesn't come from another package.
 --
 -- For example, if GHC is invoked with modules "A" and "B" as targets,
 -- but "A" imports some other module "C", then GHC will issue a warning
