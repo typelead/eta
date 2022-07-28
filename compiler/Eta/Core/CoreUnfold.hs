@@ -1287,7 +1287,7 @@ However, watch out:
         case $fMonadST @ RealWorld of { :DMonad a b c -> c }
    We had better inline that sucker!  The case won't see through it.
 
-   For now, I'm treating treating a variable applied to types
+   For now, I'm treating a variable applied to types
    in a *lazy* context "lone". The motivating example was
         f = /\a. \x. BIG
         g = /\a. \y.  h (f a)
