@@ -362,7 +362,7 @@ Two cases, dealt with by the LetPat case of tcPatBndr
    generalisation step will do the checking and impedance matching
    against the signature.
 
- * If for some some reason we are not generalising (plan = NoGen), the
+ * If for some reason we are not generalising (plan = NoGen), the
    LetBndrSpec will be LetGblBndr.  In that case we must bind the
    global version of the Id, and do so with precisely the type given
    in the signature.  (Then we unify with the type from the pattern
