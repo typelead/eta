@@ -342,7 +342,7 @@ calculateAvails dflags iface mod_safe' want_boot imported_by =
       -- reported.  Easiest thing is just to filter them out up
       -- front. This situation only arises if a module imports
       -- itself, or another module that imported it.  (Necessarily,
-      -- this invoves a loop.)
+      -- this involves a loop.)
       --
       -- We do this *after* filterImports, so that if you say
       --      module A where
