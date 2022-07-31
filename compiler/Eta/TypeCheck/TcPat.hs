@@ -123,7 +123,7 @@ data LetBndrSpec
   = LetLclBndr            -- The binder is just a local one;
                           -- an AbsBinds will provide the global version
 
-  | LetGblBndr TcPragFun  -- Genrealisation plan is NoGen, so there isn't going
+  | LetGblBndr TcPragFun  -- Generalisation plan is NoGen, so there isn't going
                           -- to be an AbsBinds; So we must bind the global version
                           -- of the binder right away.
                           -- Oh, and dhhere is the inline-pragma information
