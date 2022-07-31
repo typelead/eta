@@ -42,7 +42,7 @@ public class CAF extends Thunk {
     }
 
     /* By default, if the single-argument constructor is used, it will just redirect
-       to the indirectee. Normally, it will be overriden by non-trivial top-level
+       to the indirectee. Normally, it will be overridden by non-trivial top-level
        thunks. */
     @Override
     public Closure thunkEnter(StgContext context) {
