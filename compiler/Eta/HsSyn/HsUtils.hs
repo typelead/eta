@@ -458,7 +458,7 @@ mkBigLHsPatTup = mkChunkified mkLHsPatTup
 -- #big_tuples#
 --
 -- GHCs built in tuples can only go up to 'mAX_TUPLE_SIZE' in arity, but
--- we might concievably want to build such a massive tuple as part of the
+-- we might conceivably want to build such a massive tuple as part of the
 -- output of a desugaring stage (notably that for list comprehensions).
 --
 -- We call tuples above this size \"big tuples\", and emulate them by
