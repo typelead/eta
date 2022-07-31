@@ -321,7 +321,7 @@ everytime we would be lookup up `x` in the analysis result of `e2`.
     that this variable might be called many times with no variables.
   * Instead of checking `calledWith x`, we assume that everything can be called
     with it.
-  * In the recursive case, when calclulating the `cross_calls`, if there is
+  * In the recursive case, when calculating the `cross_calls`, if there is
     any boring variable in the recursive group, we ignore all co-call-results
     and directly go to a very conservative assumption.
 
