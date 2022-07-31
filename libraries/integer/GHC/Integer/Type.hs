@@ -755,7 +755,7 @@ testPrimeInteger :: Integer -> Int# -> Int#
 testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
 testPrimeInteger (J# o#)  reps = jbool2int# (testPrimeInteger# o# reps)
 
--- | Compute next prime greater than @/n/@ probalistically.
+-- | Compute next prime greater than @/n/@ probabilistically.
 --
 -- According to the GMP documentation, the underlying function
 -- @mpz_nextprime()@ \"uses a probabilistic algorithm to identify
