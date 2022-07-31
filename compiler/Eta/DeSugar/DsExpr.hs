@@ -592,7 +592,7 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
   where
     ds_field :: LHsRecField Id (LHsExpr Id) -> DsM (Name, Id, CoreExpr)
       -- Clone the Id in the HsRecField, because its Name is that
-      -- of the record selector, and we must not make that a lcoal binder
+      -- of the record selector, and we must not make that a local binder
       -- else we shadow other uses of the record selector
       -- Hence 'lcl_id'.  Cf Trac #2735
     ds_field (L _ rec_field) = do { rhs <- dsLExpr (hsRecFieldArg rec_field)
