@@ -528,7 +528,7 @@ deriving instance (DataId id) => Data (TyClDecl id)
 
  -- This is used in TcTyClsDecls to represent
  -- strongly connected components of decls
- -- No familiy instances in here
+ -- No family instances in here
  -- The role annotations must be grouped with their decls for the
  -- type-checker to infer roles correctly
 data TyClGroup name
