@@ -793,7 +793,7 @@ runPhase (RealPhase (Unlit sf)) input_fn _dflags
        -- Unicode or anything else (so we don't use Util.charToC
        -- here).  If we get this wrong, then in
        -- Coverage.addTicksToBinds where we check that the filename in
-       -- a SrcLoc is the same as the source filenaame, the two will
+       -- a SrcLoc is the same as the source filename, the two will
        -- look bogusly different. See test:
        -- libraries/hpc/tests/function/subdir/tough2.lhs
        escape ('\\':cs) = '\\':'\\': escape cs
