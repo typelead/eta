@@ -559,7 +559,7 @@ Oh: two other reasons for injecting them late:
     the sense of chooseExternalIds); else the Ids mentioned in *their*
     RHSs will be treated as external and you get an interface file
     saying      a18 = <blah>
-    but nothing refererring to a18 (because the implicit Id is the
+    but nothing referring to a18 (because the implicit Id is the
     one that does, and implicit Ids don't appear in interface files).
 
   - More seriously, the tidied type-envt will include the implicit
@@ -664,7 +664,7 @@ chooseExternalIds hsc_env mod omit_prags expose_all binds implicit_binds imp_id_
   init_occ_env = initTidyOccEnv avoids
 
 
-  search :: [(Id,Id)]    -- The work-list: (external id, referrring id)
+  search :: [(Id,Id)]    -- The work-list: (external id, referring id)
                          -- Make a tidy, external Name for the external id,
                          --   add it to the UnfoldEnv, and do the same for the
                          --   transitive closure of Ids it refers to
