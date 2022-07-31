@@ -1052,7 +1052,7 @@ So we
     consistent with the instance types [p] y Int
 
 We do *not* assume (at this point) the the bound variables of
-the assoicated type instance decl are the same as for the parent
+the associated type instance decl are the same as for the parent
 instance decl. So, for example,
 
   instance C [p] Int
@@ -1121,7 +1121,7 @@ checkConsistentFamInst (Just (clas, mini_env)) fam_tc at_tvs at_tys
            Just subst | all_distinct subst -> return subst
            _ -> failWithTc $ wrongATArgErr at_ty inst_ty
                 -- No need to instantiate here, because the axiom
-                -- uses the same type variables as the assocated class
+                -- uses the same type variables as the associated class
       | otherwise
       = return subst   -- Allow non-type-variable instantiation
                        -- See Note [Associated type instances]

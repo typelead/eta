@@ -1276,7 +1276,7 @@ pprParenSymName a = parenSymOcc (getOccName a) (ppr (getName a))
 
 #endif
 
--- Extract the filename, stringbuffer content and dynflags associed to a module
+-- Extract the filename, stringbuffer content and dynflags associated to a module
 --
 -- XXX: Explain pre-conditions
 getModuleSourceAndFlags :: GhcMonad m => Module -> m (String, StringBuffer, DynFlags)
