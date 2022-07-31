@@ -514,7 +514,7 @@ lvlMFE strict_ctxt env ann_expr@(fvs, _)
           --    concat = /\ a -> lvl a
           -- which is pretty stupid.  Hence the strict_ctxt test
           --
-          -- Also a strict contxt includes uboxed values, and they
+          -- Also a strict contxt includes unboxed values, and they
           -- can't be bound at top level
 
 {-
