@@ -1048,7 +1048,7 @@ So we
   * Look at the tyvars a,x,b of the type family constructor T
     (it shares tyvars with the class C)
 
-  * Apply the mini-evnt to them, and check that the result is
+  * Apply the mini-event to them, and check that the result is
     consistent with the instance types [p] y Int
 
 We do *not* assume (at this point) the the bound variables of
