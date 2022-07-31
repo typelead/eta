@@ -792,7 +792,7 @@ coreToStgLet let_no_escape bind body = do
 
 
 is_join_var :: Id -> Bool
--- A hack (used only for compiler debuggging) to tell if
+-- A hack (used only for compiler debugging) to tell if
 -- a variable started life as a join point ($j)
 is_join_var j = occNameString (getOccName j) == "$j"
 
