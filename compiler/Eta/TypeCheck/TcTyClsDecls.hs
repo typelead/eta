@@ -564,7 +564,7 @@ However, during tcTyClDecl of T (above) we will be in a recursive
 "knot". So we aren't allowed to look at the TyCon T itself; we are only
 allowed to put it (lazily) in the returned structures.  But when
 kind-checking the RHS of T's decl, we *do* need to know T's kind (so
-that we can correctly elaboarate (T k f a).  How can we get T's kind
+that we can correctly elaborate (T k f a).  How can we get T's kind
 without looking at T?  Delicate answer: during tcTyClDecl, we extend
 
   *Global* env with T -> ATyCon (the (not yet built) TyCon for T)
