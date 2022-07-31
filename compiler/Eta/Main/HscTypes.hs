@@ -2792,7 +2792,7 @@ showModMsg dflags target recomp mod_summary
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Recmpilation}
+\subsection{Recompilation}
 *                                                                      *
 ************************************************************************
 -}
