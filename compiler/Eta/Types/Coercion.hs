@@ -589,7 +589,7 @@ tyCoVarsOfCosAcc (co:cos) fv_cand in_scope acc =
 tyCoVarsOfCosAcc [] fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 
 coVarsOfCo :: Coercion -> VarSet
--- Extract *coerction* variables only.  Tiresome to repeat the code, but easy.
+-- Extract *coercion* variables only.  Tiresome to repeat the code, but easy.
 coVarsOfCo (Refl _ _)            = emptyVarSet
 coVarsOfCo (TyConAppCo _ _ cos)  = coVarsOfCos cos
 coVarsOfCo (AppCo co1 co2)       = coVarsOfCo co1 `unionVarSet` coVarsOfCo co2
