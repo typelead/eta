@@ -1472,7 +1472,7 @@ data GeneralisationPlan
                         -- Explicit generalisation; there is an AbsBinds
 
 -- A consequence of the no-AbsBinds choice (NoGen) is that there is
--- no "polymorphic Id" and "monmomorphic Id"; there is just the one
+-- no "polymorphic Id" and "monomorphic Id"; there is just the one
 
 instance Outputable GeneralisationPlan where
   ppr NoGen          = ptext (sLit "NoGen")
