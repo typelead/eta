@@ -411,7 +411,7 @@ flatten
 
 
 ----------------------------
-indexed-types/should_failt/T4179
+indexed-types/should_fail/T4179
 
 after solving
   [W] fmv_1 ~ fmv_2
