@@ -364,7 +364,7 @@ data RuleInfo
                         -- ru_fn though.
                         -- Note [Rule dependency info] in OccurAnal
 
--- | Assume that no specilizations exist: always safe
+-- | Assume that no specializations exist: always safe
 emptyRuleInfo :: RuleInfo
 emptyRuleInfo = RuleInfo [] emptyDVarSet
 
