@@ -917,7 +917,7 @@ checkValidInstance ctxt hs_type ty
   = do  { setSrcSpan head_loc (checkValidInstHead ctxt clas inst_tys)
         ; checkValidTheta ctxt theta
 
-        -- The Termination and Coverate Conditions
+        -- The Termination and Coverage Conditions
         -- Check that instance inference will terminate (if we care)
         -- For Haskell 98 this will already have been done by checkValidTheta,
         -- but as we may be using other extensions we need to check.
