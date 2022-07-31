@@ -1001,7 +1001,7 @@ by dmdAnalTopBind.
 
 Note [NOINLINE and strictness]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The strictness analyser used to have a HACK which ensured that NOINLNE
+The strictness analyser used to have a HACK which ensured that NOINLINE
 things were not strictness-analysed.  The reason was unsafePerformIO.
 Left to itself, the strictness analyser would discover this strictness
 for unsafePerformIO:
