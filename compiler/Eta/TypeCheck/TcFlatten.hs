@@ -328,7 +328,7 @@ Now we don’t see that fmv ~ fmv’, which is a problem for injectivity detecti
 
 Conclusion: rewrite wanteds with wanted for all untouchables.
 
-skol ~ untch, must re-orieint to untch ~ skol, so that we can use it to rewrite.
+skol ~ untch, must re-orient to untch ~ skol, so that we can use it to rewrite.
 
 
 
