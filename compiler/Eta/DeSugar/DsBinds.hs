@@ -753,7 +753,7 @@ decomposeRuleLhs orig_bndrs orig_lhs
 
   | Just (fn_id, args) <- decompose fun2 args2
   , let extra_dict_bndrs = mk_extra_dict_bndrs fn_id args
-  = -- pprTrace "decmposeRuleLhs" (vcat [ ptext (sLit "orig_bndrs:") <+> ppr orig_bndrs
+  = -- pprTrace "decomposeRuleLhs" (vcat [ ptext (sLit "orig_bndrs:") <+> ppr orig_bndrs
     --                                  , ptext (sLit "orig_lhs:") <+> ppr orig_lhs
     --                                  , ptext (sLit "lhs1:")     <+> ppr lhs1
     --                                  , ptext (sLit "extra_dict_bndrs:") <+> ppr extra_dict_bndrs

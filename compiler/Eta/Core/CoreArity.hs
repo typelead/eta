@@ -346,7 +346,7 @@ we want to get:                  coerce T (\x::[T] -> (coerce ([T]->Int) e) x)
   HOWEVER, note that if you use coerce bogusly you can ge
         coerce Int negate
   And since negate has arity 2, you might try to eta expand.  But you can't
-  decopose Int to a function type.   Hence the final case in eta_expand.
+  decompose Int to a function type.   Hence the final case in eta_expand.
 
 Note [The state-transformer hack]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

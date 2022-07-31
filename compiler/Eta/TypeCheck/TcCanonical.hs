@@ -842,7 +842,7 @@ If we see (T s1 t1 ~ T s2 t2), then we can just decompose to
   (s1 ~ s2, t1 ~ t2)
 and push those back into the work list.  But if
   s1 = K k1    s2 = K k2
-then we will jus decomopose s1~s2, and it might be better to
+then we will jus decompose s1~s2, and it might be better to
 do so on the spot.  An important special case is where s1=s2,
 and we get just Refl.
 
