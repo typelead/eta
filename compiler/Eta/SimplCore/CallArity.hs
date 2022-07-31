@@ -603,7 +603,7 @@ callArityBind boring_vars ae_body int b@(Rec binds)
             = (False, (i, mbLastRun, rhs))
 
             | otherwise
-            -- We previously analized this with a different arity (or not at all)
+            -- We previously analyzed this with a different arity (or not at all)
             = let is_thunk = not (exprIsHNF rhs)
 
                   safe_arity | is_thunk    = 0  -- See Note [Thunks in recursive groups]
