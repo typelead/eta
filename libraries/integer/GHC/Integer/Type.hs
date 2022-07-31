@@ -775,7 +775,7 @@ nextPrimeInteger (J# o#)  = smartJ# (nextPrimeInteger# o#)
 -- integers in order to call @mpz_sizeinbase()@.
 --
 -- This function wraps @mpz_sizeinbase()@ which has some
--- implementation pecularities to take into account:
+-- implementation peculiarities to take into account:
 --
 -- * \"@'sizeInBaseInteger' 0 /base/ = 1@\" (see also comment in 'exportIntegerToMutableByteArray').
 --
