@@ -1583,7 +1583,7 @@ rewriteEqEvidence :: CtEvidence         -- Old evidence :: olhs ~ orhs (not swap
 -- If swapped
 --      w : orhs ~ olhs = sym rhs_co ; sym w1 ; lhs_co
 --
--- It's all a form of rewwriteEvidence, specialised for equalities
+-- It's all a form of rewriteEvidence, specialised for equalities
 rewriteEqEvidence old_ev eq_rel swapped nlhs nrhs lhs_co rhs_co
   | CtDerived {} <- old_ev
   = do { mb <- newDerived loc' new_pred
