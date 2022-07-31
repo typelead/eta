@@ -1300,7 +1300,7 @@ that performs an integer/word operation on a floating-point register, which
 results in a compile error.
 
 The correct way of implementing `reinterpret_cast` to implement a primpop, but
-that requires a unique implementation for all supported archetectures. The next
+that requires a unique implementation for all supported architectures. The next
 best solution is to write the value from the source register to memory and then
 read it from memory into the destination register and the best way to do that
 is using CMM.
