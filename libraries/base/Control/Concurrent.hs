@@ -537,7 +537,7 @@ threadWaitWriteSTM fd = GHC.Conc.threadWaitWriteSTM fd
 
       GHC implements pre-emptive multitasking: the execution of
       threads are interleaved in a random fashion.  More specifically,
-      a thread may be pre-empted whenever it allocates some memory,
+      a thread may be preempted whenever it allocates some memory,
       which unfortunately means that tight loops which do no
       allocation tend to lock out other threads (this only seems to
       happen with pathological benchmark-style code, however).
@@ -545,7 +545,7 @@ threadWaitWriteSTM fd = GHC.Conc.threadWaitWriteSTM fd
       The rescheduling timer runs on a 20ms granularity by
       default, but this may be altered using the
       @-i\<n\>@ RTS option.  After a rescheduling
-      \"tick\" the running thread is pre-empted as soon as
+      \"tick\" the running thread is preempted as soon as
       possible.
 
       One final note: the
