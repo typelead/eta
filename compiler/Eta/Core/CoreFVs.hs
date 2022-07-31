@@ -175,7 +175,7 @@ someVars vars = foldr (unionFV . oneVar) emptyFV vars
 addBndr :: CoreBndr -> FV -> FV
 addBndr bndr fv fv_cand in_scope acc
   = (varTypeTyFVs bndr `unionFV`
-        -- Include type varibles in the binder's type
+        -- Include type variables in the binder's type
         --      (not just Ids; coercion variables too!)
     FV.delFV bndr fv) fv_cand in_scope acc
 

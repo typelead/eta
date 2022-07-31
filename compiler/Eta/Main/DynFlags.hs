@@ -2581,7 +2581,7 @@ dynamic_flags = [
       (NoArg (upd (\d -> d { useColor = Never })))
   , defGhcFlag "dtrace-level"  (intSuffix (\n d -> d{ traceLevel = n }))
   -- Suppress all that is suppressible in core dumps.
-  -- Except for uniques, as some simplifier phases introduce new varibles that
+  -- Except for uniques, as some simplifier phases introduce new variables that
   -- have otherwise identical names.
   , defGhcFlag "dsuppress-all"
       (NoArg $ do setGeneralFlag Opt_SuppressCoercions

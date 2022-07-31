@@ -219,7 +219,7 @@ data Env gbl lcl
                              -- BangPattern is to fix leak, see #15111
 
         env_us   :: {-# UNPACK #-} !(IORef UniqSupply),
-                             -- Unique supply for local varibles
+                             -- Unique supply for local variables
 
         env_gbl  :: gbl,     -- Info about things defined at the top level
                              -- of the module being compiled
@@ -1687,7 +1687,7 @@ Note [Shadowing in a constraint]
 We assume NO SHADOWING in a constraint.  Specifically
  * The unification variables are all implicitly quantified at top
    level, and are all unique
- * The skolem varibles bound in ic_skols are all fresh when the
+ * The skolem variables bound in ic_skols are all fresh when the
    implication is created.
 So we can safely substitute. For example, if we have
    forall a.  a~Int => ...(forall b. ...a...)...

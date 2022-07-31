@@ -93,7 +93,7 @@ But in mutually recursive groups of type and class decls we do
 
 For example, when we find
         (forall a m. m a -> m a)
-we bind a,m to kind varibles and kind-check (m a -> m a).  This makes
+we bind a,m to kind variables and kind-check (m a -> m a).  This makes
 a get kind *, and m get kind *->*.  Now we typecheck (m a -> m a) in
 an environment that binds a and m suitably.
 

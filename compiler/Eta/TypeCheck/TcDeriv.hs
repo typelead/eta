@@ -1697,7 +1697,7 @@ variable, tv.
 
 \item
 The (k,TyVarTy tv) pairs in a solution are canonically
-ordered by sorting on type varible, tv, (major key) and then class, k,
+ordered by sorting on type variable, tv, (major key) and then class, k,
 (minor key)
 \end{itemize}
 -}
