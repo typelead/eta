@@ -773,7 +773,7 @@ its left hand side mentions nothing defined in this module.  Orphan-hood
 has two major consequences
 
  * A module that contains orphans is called an "orphan module".  If
-   the module being compiled depends (transitively) on an oprhan
+   the module being compiled depends (transitively) on an orphan
    module M, then M.hi is read in regardless of whether M is oherwise
    needed. This is to ensure that we don't miss any instance decls in
    M.  But it's painful, because it means we need to keep track of all

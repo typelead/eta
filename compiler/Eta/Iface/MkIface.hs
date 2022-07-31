@@ -716,7 +716,7 @@ When we specialise an INLINEABLE function, or when we have
 We don't want to warn about these, at least not by default, or we'd
 generate a lot of warnings.  Hence -fwarn-auto-orphans.
 
-Indeed, we don't even treat the module as an oprhan module if it has
+Indeed, we don't even treat the module as an orphan module if it has
 auto-generated *rule* orphans.  Orphan modules are read every time we
 compile, so they are pretty obtrusive and slow down every compilation,
 even non-optimised ones.  (Reason: for type class instances it's a
