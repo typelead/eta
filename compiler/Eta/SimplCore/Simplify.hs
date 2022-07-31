@@ -1816,7 +1816,7 @@ rebuildCase, reallyRebuildCase
    :: SimplEnv
    -> OutExpr          -- Scrutinee
    -> InId             -- Case binder
-   -> [InAlt]          -- Alternatives (inceasing order)
+   -> [InAlt]          -- Alternatives (increasing order)
    -> SimplCont
    -> SimplM (SimplEnv, OutExpr)
 
