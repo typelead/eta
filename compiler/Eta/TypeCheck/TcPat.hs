@@ -506,7 +506,7 @@ tc_pat penv (ViewPat expr pat _) overall_pat_ty thing_inside
          -- NOTE: this forces pat_ty to be a monotype (because we use a unification
          -- variable to find it).  this means that in an example like
          -- (view -> f)    where view :: _ -> forall b. b
-         -- we will only be able to use view at one instantation in the
+         -- we will only be able to use view at one instantiation in the
          -- rest of the view
         ; (expr_co, pat_ty) <- tcInfer $ \ pat_ty ->
                 unifyType expr'_inferred (mkFunTy overall_pat_ty pat_ty)
