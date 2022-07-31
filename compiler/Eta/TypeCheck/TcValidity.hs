@@ -952,7 +952,7 @@ checkValidInstance ctxt hs_type ty
 Note [Paterson conditions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Termination test: the so-called "Paterson conditions" (see Section 5 of
-"Understanding functionsl dependencies via Constraint Handling Rules,
+"Understanding functional dependencies via Constraint Handling Rules,
 JFP Jan 2007).
 
 We check that each assertion in the context satisfies:
