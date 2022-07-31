@@ -180,7 +180,7 @@ swapMVar mvar new =
 -}
 {-# INLINE withMVar #-}
 -- inlining has been reported to have dramatic effects; see
--- http://www.haskell.org//pipermail/haskell/2006-May/017907.html
+-- https://mail.haskell.org/pipermail/haskell/2006-May/017907.html
 withMVar :: MVar a -> (a -> IO b) -> IO b
 withMVar m io =
   mask $ \restore -> do
