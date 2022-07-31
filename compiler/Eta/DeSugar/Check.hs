@@ -923,7 +923,7 @@ it does not even produce the covered and uncovered sets. Since we only care
 about whether a clause covers SOMETHING or if it may forces ANY argument, we
 -}
 
--- | Lift a pattern matching action from a single value vector abstration to a
+-- | Lift a pattern matching action from a single value vector abstraction to a
 -- value set abstraction, but calling it on every vector and the combining the
 -- results.
 runMany :: (ValVec -> PmM Triple) -> (Uncovered -> PmM Triple)
