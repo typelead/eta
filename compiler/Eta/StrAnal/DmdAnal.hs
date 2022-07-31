@@ -145,7 +145,7 @@ dmdAnalStar env dmd e
   , (dmd_ty, e')        <- dmdAnal env cd e
   = (postProcessDmdType defer_and_use dmd_ty, e')
 
--- Main Demand Analsysis machinery
+-- Main Demand Analysis machinery
 dmdAnal, dmdAnal' :: AnalEnv
         -> CleanDemand         -- The main one takes a *CleanDemand*
         -> CoreExpr -> (DmdType, CoreExpr)

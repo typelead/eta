@@ -26,7 +26,7 @@ import Control.Arrow ( first, second )
 {-
 %************************************************************************
 %*                                                                      *
-              Call Arity Analyis
+              Call Arity Analysis
 %*                                                                      *
 %************************************************************************
 
@@ -95,7 +95,7 @@ For efficiency reasons, we gather this information only for a set of
 The two analysis are not completely independent, as a higher arity can improve
 the information about what variables are being called once or multiple times.
 
-Note [Analysis I: The arity analyis]
+Note [Analysis I: The arity analysis]
 ------------------------------------
 
 The arity analysis is quite straight forward: The information about an
@@ -677,7 +677,7 @@ trimArity v a = minimum [a, max_arity_by_type, max_arity_by_strsig]
 ---------------------------------------
 
 -- Result type for the two analyses.
--- See Note [Analysis I: The arity analyis]
+-- See Note [Analysis I: The arity analysis]
 -- and Note [Analysis II: The Co-Called analysis]
 type CallArityRes = (UnVarGraph, VarEnv Arity)
 

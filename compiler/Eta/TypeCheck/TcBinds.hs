@@ -137,7 +137,7 @@ up with a chain of identical values all hung onto by the CAF ff.
 
 Etc.
 
-NOTE: a bit of arity anaysis would push the (f a d) inside the (\ys...),
+NOTE: a bit of arity analysis would push the (f a d) inside the (\ys...),
 which would make the space leak go away in this case
 
 Solution: when typechecking the RHSs we always have in hand the
