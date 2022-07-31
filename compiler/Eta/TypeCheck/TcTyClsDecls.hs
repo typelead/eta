@@ -146,7 +146,7 @@ tcTyClGroup tyclds
 
                  -- Populate environment with knot-tied ATyCon for TyCons
                  -- NB: if the decls mention any ill-staged data cons
-                 -- (see Note [Recusion and promoting data constructors]
+                 -- (see Note [Recursion and promoting data constructors]
                  -- we will have failed already in kcTyClGroup, so no worries here
            ; tcExtendRecEnv (zipRecTyClss names_w_poly_kinds rec_tyclss) $
 

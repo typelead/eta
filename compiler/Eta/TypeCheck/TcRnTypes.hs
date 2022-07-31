@@ -884,7 +884,7 @@ data PromotionErr
                      -- See Note [AFamDataCon: not promoting data family constructors] in TcRnDriver
 
   | RecDataConPE     -- Data constructor in a recursive loop
-                     -- See Note [ARecDataCon: recusion and promoting data constructors] in TcTyClsDecls
+                     -- See Note [ARecDataCon: recursion and promoting data constructors] in TcTyClsDecls
   | NoDataKinds      -- -XDataKinds not enabled
 
 instance Outputable TcTyThing where     -- Debugging only
