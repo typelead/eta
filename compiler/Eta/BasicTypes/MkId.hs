@@ -821,7 +821,7 @@ Because then we'd get an infinite number of arguments.
 Here is a more complicated case:
         data S = MkS {-# UNPACK #-} !T Int
         data T = MkT {-# UNPACK #-} !S Int
-Each of S and T must decide independendently whether to unpack
+Each of S and T must decide independently whether to unpack
 and they had better not both say yes. So they must both say no.
 
 Also behave conservatively when there is no UNPACK pragma
