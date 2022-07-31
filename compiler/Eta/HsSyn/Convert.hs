@@ -869,7 +869,7 @@ cvtDD (FromThenR x y)     = do { x' <- cvtl x; y' <- cvtl y; return $ FromThen x
 cvtDD (FromToR x y)       = do { x' <- cvtl x; y' <- cvtl y; return $ FromTo x' y' }
 cvtDD (FromThenToR x y z) = do { x' <- cvtl x; y' <- cvtl y; z' <- cvtl z; return $ FromThenTo x' y' z' }
 
-{- Note [Operator assocation]
+{- Note [Operator association]
 We must be quite careful about adding parens:
   * Infix (UInfix ...) op arg      Needs parens round the first arg
   * Infix (Infix ...) op arg       Needs parens round the first arg
