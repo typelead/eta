@@ -527,7 +527,7 @@ litTag (MachNull)          = _ILIT(12)
 {-
         Printing
         ~~~~~~~~
-* MachX (i.e. unboxed) things are printed unadornded (e.g. 3, 'a', "foo")
+* MachX (i.e. unboxed) things are printed unadorned (e.g. 3, 'a', "foo")
   exceptions: MachFloat gets an initial keyword prefix.
 -}
 
