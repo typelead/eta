@@ -63,7 +63,7 @@ The execution plan for canonicalization is the following:
 
   2) If, when we decompose, we discover a variable on the head then we
      look at inert_eqs from the current inert for a substitution for this
-     variable and contine decomposing. Hence we lazily apply the inert
+     variable and continue decomposing. Hence we lazily apply the inert
      substitution if it is needed.
 
   3) If no more decomposition is possible, we deeply apply the substitution
