@@ -852,7 +852,7 @@ gen_Ix_binds loc tycon
         -- We need to reverse the order we consider the components in
         -- so that
         --     range (l,u) !! index (l,u) i == i   -- when i is in range
-        -- (from http://haskell.org/onlinereport/ix.html) holds.
+        -- (from https://www.haskell.org/onlinereport/ix.html) holds.
                 (mk_index (reverse $ zip3 as_needed bs_needed cs_needed))
       where
         -- index (l1,u1) i1 + rangeSize (l1,u1) * (index (l2,u2) i2 + ...)
