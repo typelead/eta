@@ -47,7 +47,7 @@ import Control.Exception
 
 Note [The Name Cache]
 ~~~~~~~~~~~~~~~~~~~~~
-The Name Cache makes sure that, during any invovcation of GHC, each
+The Name Cache makes sure that, during any invocation of GHC, each
 External Name "M.x" has one, and only one globally-agreed Unique.
 
 * The first time we come across M.x we make up a Unique and record that
