@@ -535,7 +535,7 @@ translateGuards fam_insts guards = do
   -- It should have been (return all_guards) but it is too expressive.
   -- Since the term oracle does not handle all constraints we generate,
   -- we (hackily) replace all constraints the oracle cannot handle with a
-  -- single one (we need to know if there is a possibility of falure).
+  -- single one (we need to know if there is a possibility of failure).
   -- See Note [Guards and Approximation] for all guard-related approximations
   -- we implement.
   where
