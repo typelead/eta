@@ -1,6 +1,6 @@
 {-# LANGUAGE ImplicitParams, RankNTypes #-}
 
--- Tests impredivative polymorphism with left-to-right
+-- Tests impredicative polymorphism with left-to-right
 -- flow information; see the uses of "$"
 
 module TestIP where
