@@ -524,7 +524,7 @@ modeFlags =
           "Object splitting supported",
           "Have native code generator",
           "Support SMP",
-          "Unregisterised",
+          "Unregistered",
           "Tables next to code",
           "RTS ways",
           "Leading underscore",

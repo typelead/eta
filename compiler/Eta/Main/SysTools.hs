@@ -178,7 +178,7 @@ initSysTools mbMinusB
        let platform = Platform { platformWordSize = 4
                           , platformArch = undefined
                           , platformOS = undefined
-                          , platformUnregisterised = undefined
+                          , platformUnregistered = undefined
                           , platformHasGnuNonexecStack = undefined
                           , platformHasIdentDirective = undefined
                           , platformHasSubsectionsViaSymbols = undefined

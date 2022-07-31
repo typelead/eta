@@ -1999,7 +1999,7 @@ setMetricsDir f d = d{ metricsDir = Just f}
 setHiDir      f d = d{ hiDir      = Just f}
 setStubDir    f d = d{ stubDir    = Just f, includePaths = f : includePaths d }
   -- -stubdir D adds an implicit -I D, so that gcc can find the _stub.h file
-  -- \#included from the .hc file when compiling via C (i.e. unregisterised
+  -- \#included from the .hc file when compiling via C (i.e. unregistered
   -- builds).
 setDumpDir    f d = d{ dumpDir    = Just f}
 setOutputDir  f = setObjectDir f . setHiDir f . setStubDir f . setDumpDir f
