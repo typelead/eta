@@ -19,7 +19,7 @@ There are three plugins which the Eta Gradle plugin provides:
 
 ### Eta Base Plugin
 
-This plugin is used for configuring your Eta and Etlas versions and other global parametrs for all the projects in your build. It will activate the `eta` extension block that will allow you to do so.
+This plugin is used for configuring your Eta and Etlas versions and other global parameters for all the projects in your build. It will activate the `eta` extension block that will allow you to do so.
 
 **NOTE:** Both the Eta Plugin and the Eta Android Plugin apply the Eta Base Plugin by default, so if you apply either one, it is not required to apply this one!
 
