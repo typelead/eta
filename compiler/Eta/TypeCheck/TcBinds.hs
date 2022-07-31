@@ -651,13 +651,13 @@ mkExport prag_fn qtvs inferred_theta (poly_name, mb_sig, mono_id)
         ; traceTc "mkExport: check sig"
                   (vcat [ ppr poly_name, ppr sel_poly_ty, ppr (idType poly_id) ])
 
-        -- Perform the impedence-matching and ambiguity check
+        -- Perform the impedance-matching and ambiguity check
         -- right away.  If it fails, we want to fail now (and recover
         -- in tcPolyBinds).  If we delay checking, we get an error cascade.
         -- Remember we are in the tcPolyInfer case, so the type envt is
         -- closed (unless we are doing NoMonoLocalBinds in which case all bets
         -- are off)
-        -- See Note [Impedence matching]
+        -- See Note [Impedance matching]
         ; (wrap, wanted) <- addErrCtxtM (mk_bind_msg inferred True poly_name (idType poly_id)) $
                             captureConstraints $
                             tcSubType_NC sig_ctxt sel_poly_ty (idType poly_id)
@@ -807,13 +807,13 @@ Examples that might fail:
  - an inferred type that includes unboxed tuples
 
 However we don't do the ambiguity check (checkValidType omits it for
-InfSigCtxt) because the impedence-matching stage, which follows
+InfSigCtxt) because the impedance-matching stage, which follows
 immediately, will do it and we don't want two error messages.
-Moreover, because of the impedence matching stage, the ambiguity-check
+Moreover, because of the impedance matching stage, the ambiguity-check
 suggestion of -XAllowAmbiguousTypes will not work.
 
 
-Note [Impedence matching]
+Note [Impedance matching]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider
    f 0 x = x
@@ -833,7 +833,7 @@ The types we really want for f and g are
    f :: forall a. (Eq a, Num a) => a -> Bool -> Bool
    g :: forall b. [b] -> Bool -> Bool
 
-We can get these by "impedence matching":
+We can get these by "impedance matching":
    tuple :: forall a b. (Eq a, Num a) => (a -> Bool -> Bool, [b] -> Bool -> Bool)
    tuple a b d1 d1 = let ...bind f_mono, g_mono in (f_mono, g_mono)
 
@@ -843,9 +843,9 @@ We can get these by "impedence matching":
 Suppose the shared quantified tyvars are qtvs and constraints theta.
 Then we want to check that
    f's polytype  is more polymorphic than   forall qtvs. theta => f_mono_ty
-and the proof is the impedence matcher.
+and the proof is the impedance matcher.
 
-Notice that the impedence matcher may do defaulting.  See Trac #7173.
+Notice that the impedance matcher may do defaulting.  See Trac #7173.
 
 It also cleverly does an ambiguity check; for example, rejecting
    f :: F a -> a

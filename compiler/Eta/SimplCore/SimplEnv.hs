@@ -684,7 +684,7 @@ the letrec.
 {-
 ************************************************************************
 *                                                                      *
-                Impedence matching to type substitution
+                Impedance matching to type substitution
 *                                                                      *
 ************************************************************************
 -}
@@ -759,7 +759,7 @@ In just one place (sigh) we need to lazily substitute over a CoreExpr.
 For that we need CoreSubst.substExpr.  But there is a difficulty: SimplEnv
 has a SimplIdSubst, whose range is SimplSR, not just CoreExpr.
 
-So SimplEnv.substExpr has to perform impedence-matching, via the ambient
+So SimplEnv.substExpr has to perform impedance-matching, via the ambient
 substitution provided by mkGblSubst.  It seems like a lot of work for
 a small thing.  Previously we attempted to construct a (VarEnv CoreExpr)
 from the SimplIdSubst, but that had absolutely terrible performance
