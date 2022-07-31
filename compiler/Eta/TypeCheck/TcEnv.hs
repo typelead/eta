@@ -797,7 +797,7 @@ simpleInstInfoTyCon inst = tcTyConAppTyCon (simpleInstInfoTy inst)
 
 {-
 Make a name for the dict fun for an instance decl.  It's an *external*
-name, like otber top-level names, and hence must be made with newGlobalBinder.
+name, like other top-level names, and hence must be made with newGlobalBinder.
 -}
 
 newDFunName :: Class -> [Type] -> SrcSpan -> TcM Name
