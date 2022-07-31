@@ -328,7 +328,7 @@ checkJavaTarget (StaticTarget importFS _ _)
                            _ -> exactlyOneArgument "@static @field" partsRest2 staticFieldExample
                     else (False,
                           vcat [ str "@static @" <> str secondKeyword
-                             <+> str "is not a valid annotiation."
+                             <+> str "is not a valid annotation."
                                , str "Perhaps you meant to write @static @field?"])
                  | argument:_partsRest2 <- partsRest
                  -> checkDotInStatic "@static" argument partsRest staticMethodExample
@@ -344,7 +344,7 @@ checkJavaTarget (StaticTarget importFS _ _)
                      then exactlyOneArgument "@wrapper @abstract" partsRest2 abstractWrapperExample
                      else (False,
                            vcat [ str "@wrapper @" <> str secondKeyword
-                              <+> str "is not a valid annotiation."
+                              <+> str "is not a valid annotation."
                                 , str "Perhaps you meant to write @wrapper @abstract?"])
                   | otherwise
                   -> exactlyOneArgument "@wrapper" partsRest interfaceWrapperExample
