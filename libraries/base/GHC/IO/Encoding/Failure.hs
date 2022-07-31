@@ -177,7 +177,7 @@ recoverEncode cfm input@Buffer{  bufRaw=iraw, bufL=ir, bufR=_  }
           -- The "if" test above ensures we skip if the encoding fails
           -- to deal with the ?, though this should never happen in
           -- practice as all encodings are in fact capable of
-          -- reperesenting all ASCII characters.
+          -- representing all ASCII characters.
           _ir' <- writeCharBuf iraw ir '?'
           return (input, output)
 
