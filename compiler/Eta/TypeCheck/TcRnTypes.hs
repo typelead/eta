@@ -1656,7 +1656,7 @@ data Implication
                                  -- False <=> ic_givens might have equalities
 
       ic_env   :: TcLclEnv,      -- Gives the source location and error context
-                                 -- for the implicatdion, and hence for all the
+                                 -- for the implication, and hence for all the
                                  -- given evidence variables
 
       ic_wanted :: WantedConstraints,  -- The wanted
