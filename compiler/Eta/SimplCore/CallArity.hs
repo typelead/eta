@@ -274,7 +274,7 @@ together with what other functions.
 Note [Analysis type signature]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The work-hourse of the analysis is the function `callArityAnal`, with the
+The work-horse of the analysis is the function `callArityAnal`, with the
 following type:
 
     type CallArityRes = (UnVarGraph, VarEnv Arity)
