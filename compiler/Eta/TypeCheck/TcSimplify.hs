@@ -509,7 +509,7 @@ quantifyPred qtvs pred
       IrredPred ty          -> tyVarsOfType ty `intersectsVarSet` qtvs
       TuplePred {}          -> False
   where
-    -- Only quantify over (F tys ~ ty) if tys mentions a quantifed variable
+    -- Only quantify over (F tys ~ ty) if tys mentions a quantified variable
     -- In particular, quanitifying over (F Int ~ ty) is a bit like quantifying
     -- over (Eq Int); the instance should kick in right here
     quant_fun ty
