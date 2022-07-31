@@ -99,7 +99,7 @@ It turns out that this generates a subexpression of the form
 @
         \deq x ys -> let eq = eqFromEqDict deq in ...
 @
-vwhich might usefully be separated to
+which might usefully be separated to
 @
         \deq -> let eq = eqFromEqDict deq in \xy -> ...
 @
