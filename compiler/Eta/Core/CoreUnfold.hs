@@ -1364,6 +1364,6 @@ computeDiscount dflags arg_discounts res_discount arg_infos cont_info
                 -- constructors; but we only want to invoke that large discount
                 -- when there's a case continuation.
                 -- Otherwise we, rather arbitrarily, threshold it.  Yuk.
-                -- But we want to aovid inlining large functions that return
+                -- But we want to avoid inlining large functions that return
                 -- constructors into contexts that are simply "interesting"
 
