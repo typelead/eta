@@ -209,7 +209,7 @@ type RnM  = TcRn
 -- | Historical "type-checking monad" (now it's just 'TcRn').
 type TcM  = TcRn
 
--- We 'stack' these envs through the Reader like monad infastructure
+-- We 'stack' these envs through the Reader like monad infrastructure
 -- as we move into an expression (although the change is focused in
 -- the lcl type).
 data Env gbl lcl
