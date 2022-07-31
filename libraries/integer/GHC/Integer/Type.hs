@@ -240,7 +240,7 @@ operations are more efficient. See Trac #8638.
 'smartJ#' is the smart constructor for J# that performs the necessary
 tests.  When returning a nested result, we always use smartJ# strictly,
 thus
-       let !r = smartJ# a b in (# r, somthing_else #)
+       let !r = smartJ# a b in (# r, something_else #)
 to avoid creating a thunk that is subsequently evaluated to a J#.
 smartJ# itself does a pretty small amount of work, so it's not worth
 thunking it.

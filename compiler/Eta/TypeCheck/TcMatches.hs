@@ -327,7 +327,7 @@ tcStmtsAndThen ctxt stmt_chk (L loc (LetStmt binds) : stmts) res_ty thing_inside
 
 -- Don't set the error context for an ApplicativeStmt.  It ought to be
 -- possible to do this with a popErrCtxt in the tcStmt case for
--- ApplicativeStmt, but it did someting strange and broke a test (ado002).
+-- ApplicativeStmt, but it did something strange and broke a test (ado002).
 tcStmtsAndThen ctxt stmt_chk (L loc stmt : stmts) res_ty thing_inside
   | ApplicativeStmt{} <- stmt
   = do  { (stmt', (stmts', thing)) <-
