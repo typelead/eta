@@ -400,7 +400,7 @@ Seems quite reasonable.  Similar things could be done with instance decls:
 Ho hum.  Things are complex enough without this.  I pass.
 
 
-Requirements for the simplifer
+Requirements for the simplifier
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The simplifier has to be able to take advantage of the specialisation.
 

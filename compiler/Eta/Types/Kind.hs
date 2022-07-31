@@ -248,7 +248,7 @@ isSubKindCon kc1 kc2
 -- a sub-kind of OpenTypeKind.  It must be a sub-kind of OpenTypeKind
 -- *after* the typechecker
 --   a) So that (Ord a -> Eq a) is a legal type
---   b) So that the simplifer can generate (error (Eq a) "urk")
+--   b) So that the simplifier can generate (error (Eq a) "urk")
 -- Moreover, after the type checker, Constraint and *
 -- are identical; see Note [Kind Constraint and kind *]
 --
