@@ -170,7 +170,7 @@ big intermediate) if you inline a bit too much.
 Instead we use a cunning trick.
  * We arrange that 'df' and 'op2' NEVER inline.
 
- * We arrange that 'df' is ALWAYS defined in the sylised form
+ * We arrange that 'df' is ALWAYS defined in the stylised form
       df d1 d2 = MkD ($cop1 d1 d2) ($cop2 d1 d2) ...
 
  * We give 'df' a magical unfolding (DFunUnfolding [$cop1, $cop2, ..])
