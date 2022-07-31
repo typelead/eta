@@ -108,13 +108,11 @@ The `maven-repos` field can take a URL to a Maven repository OR a keyword from t
 | Keyword                    | Maven Repository URL                                     |
 | -------------------------- | -------------------------------------------------------- |
 | `central`                  | `https://repo1.maven.org/maven2/`                        |
-| `javaNet1`                 | `http://download.java.net/maven/1/`                      |
+| `javaNet1`                 | `https://maven.java.net/content/groups/public/`          |
 | `sonatype:[type]`          | `https://oss.sonatype.org/content/repositories/[type]`   |
 | `jcenter`                  | `https://jcenter.bintray.com/`                           |
-| `bintray:[owner]:[repo]`   | `https://dl.bintray.com/[owner]/[repo]/`                 |
 
 - `[type]` should be one of `public`, `snapshots`, or `releases`.
-- `[owner]` should be the owner of the repository and `[repo]` should be the name of the Bintray repository.
 
 **NOTE:** If you need to access a Maven repository that requires credentials, you can specify the URL in the form `http://[user]:[pass]@[repo-url]`.
 
