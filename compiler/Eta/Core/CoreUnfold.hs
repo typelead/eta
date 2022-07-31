@@ -599,7 +599,7 @@ sizeExpr dflags bOMB_OUT_SIZE top_args expr
         --
         -- IMPORATANT: *do* charge 1 for the alternative, else we
         -- find that giant case nests are treated as practically free
-        -- A good example is Foreign.C.Error.errrnoToIOError
+        -- A good example is Foreign.C.Error.errnoToIOError
 
     ------------
         -- These addSize things have to be here because
