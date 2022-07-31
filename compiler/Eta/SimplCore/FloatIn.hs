@@ -427,7 +427,7 @@ okToFloatInside bndrs = all ok bndrs
 
 noFloatIntoRhs :: AnnExpr' Var (UniqDFM Var) -> Type -> Bool
 -- ^ True if it's a bad idea to float bindings into this RHS
--- Preconditio:  rhs :: rhs_ty
+-- Precondition:  rhs :: rhs_ty
 noFloatIntoRhs rhs rhs_ty
   =  isUnLiftedType rhs_ty   -- See Note [Do not destroy the let/app invariant]
   || noFloatIntoExpr rhs
