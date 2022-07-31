@@ -179,7 +179,7 @@ ToDo: The stdcall calling convention is x86 (win32) specific,
 so perhaps we should emit a warning if it's being used on other
 platforms.
 
-See: http://www.programmersheaven.com/2/Calling-conventions
+See: https://programmersheaven.com/2/Calling-conventions
 -}
 
 -- any changes here should be replicated in  the CallConv type in template haskell
