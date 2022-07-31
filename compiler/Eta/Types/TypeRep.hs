@@ -111,7 +111,7 @@ data Type
   | TyConApp      -- See Note [AppTy invariant]
         TyCon
         [KindOrType]    -- ^ Application of a 'TyCon', including newtypes /and/ synonyms.
-                        -- Invariant: saturated appliations of 'FunTyCon' must
+                        -- Invariant: saturated applications of 'FunTyCon' must
                         -- use 'FunTy' and saturated synonyms must use their own
                         -- constructors. However, /unsaturated/ 'FunTyCon's
                         -- do appear as 'TyConApp's.

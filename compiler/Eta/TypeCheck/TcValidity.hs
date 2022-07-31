@@ -439,7 +439,7 @@ expand S first, then T we get just
 which is fine.
 
 IMPORTANT: suppose T is a type synonym.  Then we must do validity
-checking on an appliation (T ty1 ty2)
+checking on an application (T ty1 ty2)
 
         *either* before expansion (i.e. check ty1, ty2)
         *or* after expansion (i.e. expand T ty1 ty2, and then check)

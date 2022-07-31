@@ -133,7 +133,7 @@ rnExpr (OpApp e1 (L op_loc (HsVar op_rdr)) _ e2)
         ; op_name <- setSrcSpan op_loc (lookupOccRn op_rdr)
         ; (op', fv_op) <- finishHsVar op_name
                 -- NB: op' is usually just a variable, but might be
-                --     an applicatoin (assert "Foo.hs:47")
+                --     an application (assert "Foo.hs:47")
         -- Deal with fixity
         -- When renaming code synthesised from "deriving" declarations
         -- we used to avoid fixity stuff, but we can't easily tell any
