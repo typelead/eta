@@ -513,7 +513,7 @@ Note [Specialising imported functions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 BUT for *automatically-generated* rules, the programmer can't be
 responsible for the "programmer error" in Note [Rules for imported
-functions].  In paricular, consider specialising a recursive function
+functions].  In particular, consider specialising a recursive function
 defined in another module.  If we specialise a recursive function B.g,
 we get
          g_spec = .....(B.g Int).....

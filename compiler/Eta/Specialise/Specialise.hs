@@ -1739,7 +1739,7 @@ Note [Type determines value]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Only specialise if all overloading is on non-IP *class* params,
 because these are the ones whose *type* determines their *value*.  In
-parrticular, with implicit params, the type args *don't* say what the
+particular, with implicit params, the type args *don't* say what the
 value of the implicit param is!  See Trac #7101
 
 However, consider
