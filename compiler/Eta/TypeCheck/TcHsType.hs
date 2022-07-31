@@ -1141,7 +1141,7 @@ tcTyClTyVars tycon (HsQTvs { hsq_kvs = hs_kvs, hsq_tvs = hs_tvs }) thing_inside
        ; tcExtendTyVarEnv tvs (thing_inside (kvs ++ tvs) res) }
   where
     -- In the case of associated types, the renamer has
-    -- ensured that the names are in commmon
+    -- ensured that the names are in common
     -- e.g.   class C a_29 where
     --           type T b_30 a_29 :: *
     -- Here the a_29 is shared
