@@ -509,7 +509,7 @@ works just by setting the initial context precedence very high.
 Note [Precedence in types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 We don't keep the fixity of type operators in the operator. So the pretty printer
-operates the following precedene structre:
+operates the following precedence structre:
    Type constructor application   binds more tightly than
    Operator applications           which bind more tightly than
    Function arrow
@@ -522,7 +522,7 @@ Maybe operator applications should bind a bit less tightly?
 Anyway, that's the current story, and it is used consistently for Type and HsType
 -}
 
-data TyPrec   -- See Note [Prededence in types]
+data TyPrec   -- See Note [Precedence in types]
 
   = TopPrec         -- No parens
   | FunPrec         -- Function args; no parens for tycon apps
