@@ -1143,7 +1143,7 @@ Note [Superclasses and recursive dictionaries]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Overlaps with Note [SUPERCLASS-LOOP 1]
                   Note [SUPERCLASS-LOOP 2]
-                  Note [Recursive instances and superclases]
+                  Note [Recursive instances and superclasses]
     ToDo: check overlap and delete redundant stuff
 
 Right before adding a given into the inert set, we must
@@ -1415,7 +1415,7 @@ first time, but reducible next time.
 Now we implement the Right Solution, which is to check for loops directly
 when adding superclasses.  It's a bit like the occurs check in unification.
 
-Note [Recursive instances and superclases]
+Note [Recursive instances and superclasses]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider this code, which arises in the context of "Scrap Your
 Boilerplate with Class".
@@ -1898,7 +1898,7 @@ two possibilities:
        now solvable by the given Q [a].
 
      However, this option is restrictive, for instance [Example 3] from
-     Note [Recursive instances and superclases] will fail to work.
+     Note [Recursive instances and superclasses] will fail to work.
 
   2. Ignore the problem, hoping that the situations where there exist indeed
      such multiple strategies are rare: Indeed the cause of the previous
