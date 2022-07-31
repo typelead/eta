@@ -108,7 +108,7 @@ mkTyCon :: Word64# -> Word64# -> String -> String -> String -> TyCon
 mkTyCon high# low# pkg modl name
   = TyCon (Fingerprint (W64# high#) (W64# low#)) pkg modl name
 
--- | Applies a polymorhic type constructor to a sequence of kinds and types
+-- | Applies a polymorphic type constructor to a sequence of kinds and types
 mkPolyTyConApp :: TyCon -> [KindRep] -> [TypeRep] -> TypeRep
 mkPolyTyConApp tc@(TyCon tc_k _ _ _) [] [] = TypeRep tc_k tc [] []
 mkPolyTyConApp tc@(TyCon tc_k _ _ _) kinds types =
