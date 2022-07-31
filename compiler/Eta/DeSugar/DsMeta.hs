@@ -1724,7 +1724,7 @@ repLambda (L _ (Match { m_pats = ps
                 do { xs <- repLPs ps; body <- repLE e; repLam xs body })
       ; wrapGenSyms ss lam }
 
-repLambda (L _ m) = notHandled "Guarded labmdas" (pprMatch (LambdaExpr :: HsMatchContext Name) m)
+repLambda (L _ m) = notHandled "Guarded lambdas" (pprMatch (LambdaExpr :: HsMatchContext Name) m)
 
 
 -----------------------------------------------------------------------------
