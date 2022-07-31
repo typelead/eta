@@ -810,7 +810,7 @@ binary sizes shrink significantly either.
 
 Note [Discounts and thresholds]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Constants for discounts and thesholds are defined in main/DynFlags,
+Constants for discounts and thresholds are defined in main/DynFlags,
 all of form ufXxxx.   They are:
 
 ufCreationThreshold
