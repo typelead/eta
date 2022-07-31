@@ -594,7 +594,7 @@ implications.  Consider
    a ~ F b, forall c. b~Int => blah
 If we have F b ~ fsk in the flat-cache, and we push that into the
 nested implication, we might miss that F b can be rewritten to F Int,
-and hence perhpas solve it.  Moreover, the fsk from outside is
+and hence perhaps solve it.  Moreover, the fsk from outside is
 flattened out after solving the outer level, but and we don't
 do that flattening recursively.
 
