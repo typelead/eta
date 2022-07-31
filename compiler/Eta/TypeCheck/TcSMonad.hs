@@ -613,7 +613,7 @@ could help to solve a constraint. For example
 If we pushed the (C Int alpha) inwards, as a given, it can produce a
 fundep (alpha~a) and this can float out again and be used to fix
 alpha.  (In general we can't float class constraints out just in case
-(C d blah) might help to solve (C Int a).)  But we ignore this possiblity.
+(C d blah) might help to solve (C Int a).)  But we ignore this possibility.
 
 For Derived constraints we don't have evidence, so we do not turn
 them into Givens.  There can *be* deriving CFunEqCans; see Trac #8129.
