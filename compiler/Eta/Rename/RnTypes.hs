@@ -436,7 +436,7 @@ bindHsTyVars doc mb_assoc kv_bndrs tv_bndrs thing_inside
                     ; (kind', fvs) <- rnLHsKind doc kind
                     ; return (L loc (KindedTyVar (L lv nm) kind'), fvs) }
 
-       -- Check for duplicate or shadowed tyvar bindrs
+       -- Check for duplicate or shadowed tyvar bndrs
        ; checkDupRdrNames tv_names_w_loc
        ; when (isNothing mb_assoc) (checkShadowedRdrNames tv_names_w_loc)
 
