@@ -1124,7 +1124,7 @@ checkPartialTypeSignature fullTy = case fullTy of
     case unnamedInCtxt of
       (Found lc : _) -> err hintUnnamedConstraint lc fullTy
       _              -> return ()
-    -- Calculcate the set of named wildcards in the context that aren't in the
+    -- Calculate the set of named wildcards in the context that aren't in the
     -- monotype (tau)
     let namedWildcardsNotInTau = Set.fromList (namedWildcards namedInCtxt)
                                  `Set.difference`
