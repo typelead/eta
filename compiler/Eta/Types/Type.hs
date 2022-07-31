@@ -500,7 +500,7 @@ pprUserTypeErrorTy ty =
       | tyConName tc == typeErrorVAppendDataConName ->
         pprUserTypeErrorTy t1 $$ pprUserTypeErrorTy t2
 
-    -- An uneavaluated type function
+    -- An unevaluated type function
     _ -> ppr ty
 
 
