@@ -554,7 +554,7 @@ data TickishScoping =
     --     ==>
     --   tick<...> case foo of x -> bar
     --
-    -- While this is always leagl, we want to make a best effort to
+    -- While this is always legal, we want to make a best effort to
     -- only make us of this where it exposes transformation
     -- opportunities.
   | SoftScope
