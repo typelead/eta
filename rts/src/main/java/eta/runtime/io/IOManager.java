@@ -99,7 +99,7 @@ public class IOManager {
                     }
                 }
             } catch (IOException e) {
-                /* If the channel is closed or some other anomalie happened, return instantly
+                /* If the channel is closed or some other anomaly happened, return instantly
                    so that the rest of the code can do appropriate cleanup. */
                 return e;
             }
