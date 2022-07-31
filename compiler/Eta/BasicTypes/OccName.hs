@@ -859,7 +859,7 @@ tidyOccName env occ@(OccName occ_sp fs)
        where
          new_fs = mkFastString (base ++ show n)
          new_env = addToUFM (addToUFM env new_fs 1) base1 (n+1)
-                     -- Update:  base_fs, so that next time we'll start whwere we left off
+                     -- Update:  base_fs, so that next time we'll start where we left off
                      --          new_fs,  so that we know it is taken
                      -- If they are the same (n==1), the former wins
                      -- See Note [TidyOccEnv]
