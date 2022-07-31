@@ -1087,7 +1087,7 @@ mkClassTyCon :: Name -> Kind -> [TyVar] -> [Role] -> AlgTyConRhs -> Class
 mkClassTyCon name kind tyvars roles rhs clas is_rec
   = mkAlgTyCon name kind tyvars roles Nothing [] rhs (ClassTyCon clas)
                is_rec False
-               Nothing    -- Class TyCons are not pormoted
+               Nothing    -- Class TyCons are not promoted
 
 mkTupleTyCon :: Name
              -> Kind    -- ^ Kind of the resulting 'TyCon'
