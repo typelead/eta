@@ -2580,7 +2580,7 @@ dynamic_flags = [
   , defFlag "fdiagnostics-color=never"
       (NoArg (upd (\d -> d { useColor = Never })))
   , defGhcFlag "dtrace-level"  (intSuffix (\n d -> d{ traceLevel = n }))
-  -- Suppress all that is suppressable in core dumps.
+  -- Suppress all that is suppressible in core dumps.
   -- Except for uniques, as some simplifier phases introduce new varibles that
   -- have otherwise identical names.
   , defGhcFlag "dsuppress-all"
