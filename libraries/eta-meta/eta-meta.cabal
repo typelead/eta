@@ -2,7 +2,7 @@ name:           eta-meta
 version:        0.8.6.5
 license:        BSD3
 license-file:   LICENSE
-category:       Metaprogamming
+category:       Metaprogramming
 maintainer:     typeleadhq@gmail.com
 bug-reports:    http://github.com/typelead/eta/issues
 synopsis:       Support library for Template Metaprogramming in Eta
