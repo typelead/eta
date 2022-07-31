@@ -952,7 +952,7 @@ uUnfilledVars :: CtOrigin
               -> TcTyVar -> TcTyVarDetails      -- Tyvar 1
               -> TcTyVar -> TcTyVarDetails      -- Tyvar 2
               -> TcM TcCoercion
--- Invarant: The type variables are distinct,
+-- Invariant: The type variables are distinct,
 --           Neither is filled in yet
 
 uUnfilledVars origin swapped tv1 details1 tv2 details2
