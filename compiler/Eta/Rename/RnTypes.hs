@@ -584,7 +584,7 @@ mkHsOpTyRn mk1 pp_op1 fix1 ty1 (L loc2 (HsFunTy ty21 ty22))
   = mk_hs_op_ty mk1 pp_op1 fix1 ty1
                 HsFunTy funTyConName funTyFixity ty21 ty22 loc2
 
-mkHsOpTyRn mk1 _ _ ty1 ty2              -- Default case, no rearrangment
+mkHsOpTyRn mk1 _ _ ty1 ty2              -- Default case, no rearrangement
   = return (mk1 ty1 ty2)
 
 ---------------
@@ -650,7 +650,7 @@ mkOpAppRn e1 op1 fix1 e2@(L _ (NegApp _ _))     -- NegApp can occur on the right
 
 ---------------------------
 --      Default case
-mkOpAppRn e1 op fix e2                  -- Default case, no rearrangment
+mkOpAppRn e1 op fix e2                  -- Default case, no rearrangement
   = ASSERT2( right_op_ok fix (unLoc e2),
              ppr e1 $$ text "---" $$ ppr op $$ text "---" $$ ppr fix $$ text "---" $$ ppr e2
     )
@@ -706,7 +706,7 @@ mkOpFormRn a1@(L loc (HsCmdTop (L _ (HsCmdArrForm op1 (Just fix1) [a11,a12])) _ 
     (nofix_error, associate_right) = compareFixity fix1 fix2
 
 --      Default case
-mkOpFormRn arg1 op fix arg2                     -- Default case, no rearrangment
+mkOpFormRn arg1 op fix arg2                     -- Default case, no rearrangement
   = return (HsCmdArrForm op (Just fix) [arg1, arg2])
 
 
@@ -727,7 +727,7 @@ mkConOpPatRn op2 fix2 p1@(L loc (ConPatIn op1 (InfixCon p11 p12))) p2
                 ; return (ConPatIn op1 (InfixCon p11 (L loc new_p))) } -- XXX loc right?
           else return (ConPatIn op2 (InfixCon p1 p2)) }
 
-mkConOpPatRn op _ p1 p2                         -- Default case, no rearrangment
+mkConOpPatRn op _ p1 p2                         -- Default case, no rearrangement
   = ASSERT( not_op_pat (unLoc p2) )
     return (ConPatIn op (InfixCon p1 p2))
 
