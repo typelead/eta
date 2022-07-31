@@ -2165,7 +2165,7 @@ preprocessFile hsc_env src_fn mb_phase (Just (buf, _time))
                 | otherwise                     = False
 
         when needs_preprocessing $
-           throwGhcExceptionIO (ProgramError "buffer needs preprocesing; interactive check disabled")
+           throwGhcExceptionIO (ProgramError "buffer needs preprocessing; interactive check disabled")
 
         return (dflags', src_fn, buf)
 
