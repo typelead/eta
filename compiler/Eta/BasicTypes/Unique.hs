@@ -23,7 +23,7 @@ module Eta.BasicTypes.Unique (
         Unique, Uniquable(..),
         uNIQUE_BITS,
 
-        -- ** Constructors, desctructors and operations on 'Unique's
+        -- ** Constructors, destructors and operations on 'Unique's
         hasKey,
 
         pprUniqueAlways,
