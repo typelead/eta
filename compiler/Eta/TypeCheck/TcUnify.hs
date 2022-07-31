@@ -338,7 +338,7 @@ There are a number of wrinkles (below).
 
 Notice that Wrinkle 1 and 2 both require eta-expansion, which technically
 may increase termination.  We just put up with this, in exchange for getting
-more predicatble type inference.
+more predictable type inference.
 
 Wrinkle 1: Note [Deep skolemisation]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
