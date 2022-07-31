@@ -2451,7 +2451,7 @@ cvtopdecls0 :: { [LHsDecl RdrName] }
 
 -- "texp" is short for tuple expressions:
 -- things that can appear unparenthesized as long as they're
--- inside parens or delimitted by commas
+-- inside parens or delimited by commas
 texp :: { LHsExpr RdrName }
         : exp                           { $1 }
 
