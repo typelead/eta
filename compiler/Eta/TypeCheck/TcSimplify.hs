@@ -1481,7 +1481,7 @@ findDefaultableGroups (default_tys, (ovl_strings, extended_defaults)) wanteds
         | otherwise         = all is_std_class clss && (any is_num_class clss)
 
     -- In interactive mode, or with -XExtendedDefaultRules,
-    -- we default Show a to Show () to avoid graututious errors on "show []"
+    -- we default Show a to Show () to avoid gratuitous errors on "show []"
     isInteractiveClass cls
         = is_num_class cls || (classKey cls `elem` [showClassKey, eqClassKey, ordClassKey])
 
