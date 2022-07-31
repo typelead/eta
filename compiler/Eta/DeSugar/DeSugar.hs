@@ -448,7 +448,7 @@ That keeps the desugaring of list comprehensions simple too.
 
 
 Nor do we want to warn of conversion identities on the LHS;
-the rule is precisly to optimise them:
+the rule is precisely to optimise them:
   {-# RULES "fromRational/id" fromRational = id :: Rational -> Rational #-}
 
 
