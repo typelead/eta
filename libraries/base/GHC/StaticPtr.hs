@@ -82,7 +82,7 @@ unsafeLookupStaticPtr :: StaticKey -> IO (Maybe (StaticPtr a))
 unsafeLookupStaticPtr (Fingerprint w1 w2) =
   errorWithoutStackTrace "unsafeLookupStaticPtr: Static pointers not implemented in the Eta RTS."
 
--- | Miscelaneous information available for debugging purposes.
+-- | Miscellaneous information available for debugging purposes.
 data StaticPtrInfo = StaticPtrInfo
     { -- | Package key of the package where the static pointer is defined
       spInfoPackageKey  :: String
