@@ -1235,7 +1235,7 @@ canEqTyVarTyVar, are these
    gets eliminated (improves error messages)
 
  * If one is a flatten-skolem, put it on the left so that it is
-   substituted out  Note [Elminate flat-skols]
+   substituted out  Note [Eliminate flat-skols]
         fsk ~ a
 
 Note [Avoid unnecessary swaps]

@@ -1671,7 +1671,7 @@ Note that SimplUtils.mkCase combines identical RHSs.  So
            True  -> r
            False -> r
 
-Now again the case may be elminated by the CaseElim transformation.
+Now again the case may be eliminated by the CaseElim transformation.
 This includes things like (==# a# b#)::Bool so that we simplify
       case ==# a# b# of { True -> x; False -> x }
 to just
