@@ -184,7 +184,7 @@ writeBinIface dflags hi_path mod_iface = do
     symtab_p_p <- tellBin bh
     put_ bh symtab_p_p
 
-    -- Make some intial state
+    -- Make some initial state
     symtab_next <- newFastMutInt
     writeFastMutInt symtab_next 0
     symtab_map <- newIORef emptyUFM
