@@ -725,7 +725,7 @@ and now a call could be legal after all!  Well, we'll reject this
 unless the instance is available *here*.
 
 Side note: the ambiguity check is only used for *user* types, not for
-types coming from inteface files.  The latter can legitimately have
+types coming from interface files.  The latter can legitimately have
 ambiguous types. Example
 
    class S a where s :: a -> (Int,Int)
