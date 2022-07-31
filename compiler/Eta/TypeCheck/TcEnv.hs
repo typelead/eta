@@ -809,7 +809,7 @@ newDFunName clas tys loc
 
 {-
 It may be advantageous at some point to build a string for a type which actually
-encompasses the structure of the type like parethesizing.
+encompasses the structure of the type like parenthesizing.
 Even in the new mkInfoString something like `a (b c)` and `(a b) c` will result
 in the same string "a_b_c".
 -}
