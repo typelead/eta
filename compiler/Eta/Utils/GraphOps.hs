@@ -232,7 +232,7 @@ addExclusions u getClass colors graph
 
 
 -- | Add a coalescence edge to the graph, creating nodes if requried.
---      It is considered adventageous to assign the same color to nodes in a coalesence.
+--      It is considered advantageous to assign the same color to nodes in a coalesence.
 addCoalesce
         :: Uniquable k
         => (k, cls) -> (k, cls)
