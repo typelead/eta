@@ -1042,7 +1042,7 @@ recompileRequired _ = True
 -- If the same, we can avoid recompilation. We return a tuple where the
 -- first element is a bool saying if we should recompile the object file
 -- and the second is maybe the interface file, where Nothng means to
--- rebuild the interface file not use the exisitng one.
+-- rebuild the interface file not use the existing one.
 checkOldIface
   :: HscEnv
   -> ModSummary
