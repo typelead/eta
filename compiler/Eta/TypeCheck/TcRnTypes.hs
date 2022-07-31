@@ -157,7 +157,7 @@ import Eta.REPL.RemoteTypes
 -- 'ns_module_name' @A@, defines a mapping from @{A.T}@
 -- (for some 'OccName' @T@) to some arbitrary other 'Name'.
 --
--- The most intruiging thing about a 'NameShape', however, is
+-- The most intriguing thing about a 'NameShape', however, is
 -- how it's constructed.  A 'NameShape' is *implied* by the
 -- exported 'AvailInfo's of the implementor of an interface:
 -- if an implementor of signature @<H>@ exports @M.T@, you implicitly
