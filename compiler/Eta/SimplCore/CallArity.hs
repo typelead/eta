@@ -160,7 +160,7 @@ The interesting cases of the analysis:
    Return: C(e₁) ∪ (fv e₁) × {x} ∪ {(x,x)}
  * Let v = rhs in body:
    In addition to the results from the subexpressions, add all co-calls from
-   everything that the body calls together with v to everthing that is called
+   everything that the body calls together with v to everything that is called
    by v.
    Return: C'(rhs) ∪ C(body) ∪ (fv rhs) × {v'| {v,v'} ∈ C(body)}
  * Letrec v₁ = rhs₁ ... vₙ = rhsₙ in body

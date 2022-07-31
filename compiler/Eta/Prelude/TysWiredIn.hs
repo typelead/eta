@@ -411,7 +411,7 @@ GHC supports both boxed and unboxed one-tuples:
    single value after CPR analysis
  - A boxed one-tuple is used by DsUtils.mkSelectorBinds, when
    there is just one binder
-Basically it keeps everythig uniform.
+Basically it keeps everything uniform.
 
 However the /naming/ of the type/data constructors for one-tuples is a
 bit odd:
