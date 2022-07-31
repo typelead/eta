@@ -255,7 +255,7 @@ Open type families
 This treatment of type synonyms only applies to Haskell 98-style synonyms.
 General type functions can be recursive, and hence, appear in `alg_decls'.
 
-The kind of an open type family is solely determinded by its kind signature;
+The kind of an open type family is solely determined by its kind signature;
 hence, only kind signatures participate in the construction of the initial
 kind environment (as constructed by `getInitialKind'). In fact, we ignore
 instances of families altogether in the following. However, we need to include
