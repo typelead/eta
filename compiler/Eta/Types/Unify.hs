@@ -415,7 +415,7 @@ Note [Unifying with skolems]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If we discover that two types unify if and only if a skolem variable is
 substituted, we can't properly unify the types. But, that skolem variable
-may later be instantiated with a unifyable type. So, we return maybeApart
+may later be instantiated with a unifiable type. So, we return maybeApart
 in these cases.
 
 Note [Lists of different lengths are MaybeApart]
