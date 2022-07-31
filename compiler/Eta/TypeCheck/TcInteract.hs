@@ -1439,7 +1439,7 @@ Using the instance for Data, we therefore need
         (Sat (Maybe [a], Data Maybe a)
 But we are given (Foo a), and hence its superclass (Data Maybe a).
 So that leaves (Sat (Maybe [a])).  Using the instance for Sat means
-we need (Foo [a]).  And that is the very dictionary we are bulding
+we need (Foo [a]).  And that is the very dictionary we are building
 an instance for!  So we must put that in the "givens".  So in this
 case we have
         Given:  Foo a, Foo [a]

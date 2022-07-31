@@ -633,7 +633,7 @@ tcMcStmt ctxt (TransStmt { trS_stmts = stmts, trS_bndrs = bindersMap
        ; using' <- tcPolyExpr using using_poly_ty
        ; let final_using = fmap (HsWrap (WpTyApp tup_ty)) using'
 
-       --------------- Bulding the bindersMap ----------------
+       --------------- Building the bindersMap ----------------
        ; let mk_n_bndr :: Name -> TcId -> TcId
              mk_n_bndr n_bndr_name bndr_id = mkLocalId n_bndr_name (n_app (idType bndr_id))
 
