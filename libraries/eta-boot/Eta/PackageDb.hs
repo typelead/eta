@@ -30,7 +30,7 @@
 -- the internal package format which is specialised just for Eta.
 --
 -- Eta the compiler only needs some of the information which is kept about
--- registerd packages, such as module names, various paths etc. On the other
+-- registered packages, such as module names, various paths etc. On the other
 -- hand eta-pkg has to keep all the information from Etlas packages and be able
 -- to regurgitate it for users and other tools.
 --
