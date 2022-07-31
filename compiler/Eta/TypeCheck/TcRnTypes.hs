@@ -1888,7 +1888,7 @@ Each counter starts at zero and increases.
   depth removes a type constructor from the type, so the depth never
   gets big; i.e. is bounded by the structural depth of the type.
 
-  The flag -fcontext-stack=n (not very well named!) fixes the maximium
+  The flag -fcontext-stack=n (not very well named!) fixes the maximum
   level.
 
 * The "type function reduction counter" does the same thing when resolving
@@ -1904,7 +1904,7 @@ Each counter starts at zero and increases.
   different maximum, as we expect possibly many more type function reductions
   in sensible programs than type class constraints.
 
-  The flag -ftype-function-depth=n fixes the maximium level.
+  The flag -ftype-function-depth=n fixes the maximum level.
 -}
 
 data SubGoalCounter = CountConstraints | CountTyFunApps
