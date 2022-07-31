@@ -992,7 +992,7 @@ mkFCallId dflags uniq fcall ty
 
     strict_sig      = mkClosedStrictSig (replicate arity topDmd) topRes
     -- the call does not claim to be strict in its arguments, since they
-    -- may be lifted (foreign import prim) and the called code doen't
+    -- may be lifted (foreign import prim) and the called code doesn't
     -- necessarily force them. See Trac #11076.
 {-
 ************************************************************************
