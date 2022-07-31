@@ -944,7 +944,7 @@ mkReflCo :: Role -> Type -> Coercion
 mkReflCo = Refl
 
 mkAxInstCo :: Role -> CoAxiom br -> BranchIndex -> [Type] -> Coercion
--- mkAxInstCo can legitimately be called over-staturated;
+-- mkAxInstCo can legitimately be called over-saturated;
 -- i.e. with more type arguments than the coercion requires
 mkAxInstCo role ax index tys
   | arity == n_tys = downgradeRole role ax_role $ AxiomInstCo ax_br index rtys
