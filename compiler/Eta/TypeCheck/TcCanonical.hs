@@ -209,7 +209,7 @@ canClass, canClassNC
 -- The canClassNC version is used on non-canonical constraints
 -- and adds superclasses.  The plain canClass version is used
 -- for already-canonical class constraints (but which might have
--- been subsituted or something), and hence do not need superclasses
+-- been substituted or something), and hence do not need superclasses
 
 canClassNC ev cls tys
   = canClass ev cls tys
