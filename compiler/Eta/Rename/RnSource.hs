@@ -770,7 +770,7 @@ with LHSs with a complicated desugaring (and hence unlikely to match);
 (e.g. a case expression is not allowed: too elaborate.)
 
 But there are legitimate non-trivial args ei, like sections and
-lambdas.  So it seems simmpler not to check at all, and that is why
+lambdas.  So it seems simpler not to check at all, and that is why
 check_e is commented out.
 -}
 
