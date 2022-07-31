@@ -793,7 +793,7 @@ like that.  Here's how it's processed:
 
  * 'qReport' forces the message to ensure any exception hidden in unevaluated
    thunk doesn't get into the bag of errors. Otherwise the following splice
-   will triger panic (Trac #8987):
+   will trigger panic (Trac #8987):
         $(fail undefined)
    See also Note [Concealed TH exceptions]
 
