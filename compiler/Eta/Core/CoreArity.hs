@@ -257,7 +257,7 @@ Or, to put it another way
    there is no work lost in duplicating the partial
    application (e x1 .. x(n-1))
 
-In the divegent case, no work is lost by duplicating because if the thing
+In the divergent case, no work is lost by duplicating because if the thing
 is evaluated once, that's the end of the program.
 
 Or, to put it another way, in any context C
