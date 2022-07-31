@@ -458,7 +458,7 @@ mkBigLHsPatTup = mkChunkified mkLHsPatTup
 -- #big_tuples#
 --
 -- GHCs built in tuples can only go up to 'mAX_TUPLE_SIZE' in arity, but
--- we might concievably want to build such a massive tuple as part of the
+-- we might conceivably want to build such a massive tuple as part of the
 -- output of a desugaring stage (notably that for list comprehensions).
 --
 -- We call tuples above this size \"big tuples\", and emulate them by
@@ -473,7 +473,7 @@ mkBigLHsPatTup = mkChunkified mkLHsPatTup
 -- and 'mkTupleCase' functions to do all your work with tuples you should be
 -- fine, and not have to worry about the arity limitation at all.
 
--- | Lifts a \"small\" constructor into a \"big\" constructor by recursive decompositon
+-- | Lifts a \"small\" constructor into a \"big\" constructor by recursive decomposition
 mkChunkified :: ([a] -> a)      -- ^ \"Small\" constructor function, of maximum input arity 'mAX_TUPLE_SIZE'
              -> [a]             -- ^ Possible \"big\" list of things to construct from
              -> a               -- ^ Constructed thing made possible by recursive decomposition
@@ -676,7 +676,7 @@ collectLocalBinders (HsIPBinds _)      = []
 collectLocalBinders EmptyLocalBinds    = []
 
 collectHsIdBinders, collectHsValBinders :: HsValBindsLR idL idR -> [idL]
--- Collect Id binders only, or Ids + pattern synonmys, respectively
+-- Collect Id binders only, or Ids + pattern synonyms, respectively
 collectHsIdBinders  = collect_hs_val_binders True
 collectHsValBinders = collect_hs_val_binders False
 

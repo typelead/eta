@@ -386,7 +386,7 @@ public class StgContext {
     public final void dump() {
         System.out.println("Context Dump");
         System.out.println("currentTSO: " + currentTSO);
-        System.out.println("myCapabilitymyCapability: " + myCapability);
+        System.out.println("myCapability: " + myCapability);
     }
 
     public final Closure R(final int index) {

@@ -337,7 +337,7 @@ simplifyInfer rhs_tclvl apply_mr name_taus wanteds
              ]
 
               -- Historical note: Before step 2 we used to have a
-              -- HORRIBLE HACK described in Note [Avoid unecessary
+              -- HORRIBLE HACK described in Note [Avoid unnecessary
               -- constraint simplification] but, as described in Trac
               -- #4361, we have taken in out now.  That's why we start
               -- with step 2!
@@ -509,8 +509,8 @@ quantifyPred qtvs pred
       IrredPred ty          -> tyVarsOfType ty `intersectsVarSet` qtvs
       TuplePred {}          -> False
   where
-    -- Only quantify over (F tys ~ ty) if tys mentions a quantifed variable
-    -- In particular, quanitifying over (F Int ~ ty) is a bit like quantifying
+    -- Only quantify over (F tys ~ ty) if tys mentions a quantified variable
+    -- In particular, quantifying over (F Int ~ ty) is a bit like quantifying
     -- over (Eq Int); the instance should kick in right here
     quant_fun ty
       = case tcSplitTyConApp_maybe ty of
@@ -637,7 +637,7 @@ mkMinimalBySCs does. Then, simplifyInfer uses the minimal constraint
 to check the original wanted.
 
 
-Note [Avoid unecessary constraint simplification]
+Note [Avoid unnecessary constraint simplification]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     -------- NB NB NB (Jun 12) -------------
     This note not longer applies; see the notes with Trac #4361.
@@ -681,8 +681,8 @@ Deciding which equalities to quantify over is tricky:
    F is a type function.
 
 The difficulty is that it's hard to tell what is insoluble!
-So we see whether the simplificaiotn step yielded any type errors,
-and if so refrain from quantifying over *any* equalites.
+So we see whether the simplification step yielded any type errors,
+and if so refrain from quantifying over *any* equalities.
 -}
 
 simplifyRule :: RuleName
@@ -781,7 +781,7 @@ solveWantedsTcMWithEvBinds :: EvBindsVar
 -- Returns a *zonked* result
 -- We zonk when we finish primarily to un-flatten out any
 -- flatten-skolems etc introduced by canonicalisation of
--- types involving type funuctions.  Happily the result
+-- types involving type functions.  Happily the result
 -- is typically much smaller than the input, indeed it is
 -- often empty.
 solveWantedsTcMWithEvBinds ev_binds_var wc tcs_action
@@ -988,7 +988,7 @@ of progress.  Trac #8474 is a classic example:
        ?yn:betan => [W] ?x:Int
     because we'll just get the same [D] again
 
-  * If we *do* re-solve, we'll get an ininite loop. It is cut off by
+  * If we *do* re-solve, we'll get an infinite loop. It is cut off by
     the fixed bound of 10, but solving the next takes 10*10*...*10 (ie
     exponentially many) iterations!
 
@@ -1015,12 +1015,12 @@ tcCheckSatisfiability :: Bag EvVar -> TcM Bool
 tcCheckSatisfiability givens
   = do { lcl_env <- TcM.getLclEnv
        ; let given_loc = mkGivenLoc topTcLevel UnkSkol lcl_env
-       ; traceTc "checkSatisfiabilty {" (ppr givens)
+       ; traceTc "checkSatisfiability {" (ppr givens)
        ; (res, _ev_binds) <- runTcS $
              do { solveSimpleGivens given_loc (bagToList givens)
                 ; insols <- getInertInsols
                 ; return (not (isEmptyBag insols)) }
-       ; traceTc "checkSatisfiabilty }" (ppr res)
+       ; traceTc "checkSatisfiability }" (ppr res)
        ; return (not res) }
 
 promoteTyVar :: TcLevel -> TcTyVar  -> TcS ()
@@ -1100,7 +1100,7 @@ the top-level simple constraints are plausible, but we also float constraints
 out from inside, if they are not captured by skolems.
 
 The same function is used when doing type-class defaulting (see the call
-to applyDefaultingRules) to extract constraints that that might be defaulted.
+to applyDefaultingRules) to extract constraints that might be defaulted.
 
 There are two caveats:
 
@@ -1334,7 +1334,7 @@ floatEqualities skols no_given_eqs wanteds@(WC { wc_simple = simples })
     (float_eqs, remaining_simples) = partitionBag float_me simples
 
     float_me :: Ct -> Bool
-    float_me ct   -- The constraint is un-flattened and de-cannonicalised
+    float_me ct   -- The constraint is un-flattened and de-canonicalised
        | let pred = ctPred ct
        , EqPred NomEq ty1 ty2 <- classifyPredType pred
        , tyVarsOfType pred `disjointVarSet` skol_set
@@ -1409,7 +1409,7 @@ to beta[1], and that means the (a ~ beta[1]) will be stuck, as it should be.
 
 *********************************************************************************
 *                                                                               *
-*                          Defaulting and disamgiguation                        *
+*                          Defaulting and disambiguation                        *
 *                                                                               *
 *********************************************************************************
 -}
@@ -1481,7 +1481,7 @@ findDefaultableGroups (default_tys, (ovl_strings, extended_defaults)) wanteds
         | otherwise         = all is_std_class clss && (any is_num_class clss)
 
     -- In interactive mode, or with -XExtendedDefaultRules,
-    -- we default Show a to Show () to avoid graututious errors on "show []"
+    -- we default Show a to Show () to avoid gratuitous errors on "show []"
     isInteractiveClass cls
         = is_num_class cls || (classKey cls `elem` [showClassKey, eqClassKey, ordClassKey])
 

@@ -492,7 +492,7 @@ data TyClDecl name
 
     -- For details on above see note [Api annotations] in ApiAnnotation
     DataDecl { tcdLName    :: Located name        -- ^ Type constructor
-             , tcdTyVars   :: LHsTyVarBndrs name  -- ^ Type variables; for an assoicated type
+             , tcdTyVars   :: LHsTyVarBndrs name  -- ^ Type variables; for an associated type
                                                   --   these include outer binders
                                                   -- Eg  class T a where
                                                   --       type F a :: *
@@ -528,7 +528,7 @@ deriving instance (DataId id) => Data (TyClDecl id)
 
  -- This is used in TcTyClsDecls to represent
  -- strongly connected components of decls
- -- No familiy instances in here
+ -- No family instances in here
  -- The role annotations must be grouped with their decls for the
  -- type-checker to infer roles correctly
 data TyClGroup name
@@ -907,7 +907,7 @@ data ConDecl name
         -- ^ TEMPORARY field; True <=> user has employed now-deprecated syntax for
         --                             GADT-style record decl   C { blah } :: T a b
         -- Remove this when we no longer parse this stuff, and hence do not
-        -- need to report decprecated use
+        -- need to report deprecated use
     } deriving (Typeable)
 deriving instance (DataId name) => Data (ConDecl name)
 

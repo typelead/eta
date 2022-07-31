@@ -61,7 +61,7 @@ Global bindings (where clauses)
 -}
 
 -- During renaming, we need bindings where the left-hand sides
--- have been renamed but the the right-hand sides have not.
+-- have been renamed but the right-hand sides have not.
 -- the ...LR datatypes are parametrized by two id types,
 -- one for the left and one for the right.
 -- Other than during renaming, these will be the same.
@@ -329,7 +329,7 @@ This ultimately desugars to something like this:
                (fm::a->a,gm:Any->Any) -> fm
    ...similarly for g...
 
-The abe_wrap field deals with impedence-matching between
+The abe_wrap field deals with impedance-matching between
     (/\a b. case tup a b of { (f,g) -> f })
 and the thing we really want, which may have fewer type
 variables.  The action happens in TcBinds.mkExport.

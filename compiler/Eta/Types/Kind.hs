@@ -211,7 +211,7 @@ isKind k = isSuperKind (typeKind k)
 isSubKind :: Kind -> Kind -> Bool
 -- ^ @k1 \`isSubKind\` k2@ checks that @k1@ <: @k2@
 -- Sub-kinding is extremely simple and does not look
--- under arrrows or type constructors
+-- under arrows or type constructors
 
 -- If you edit this function, you may need to update the GHC formalism
 -- See Note [GHC Formalism] in coreSyn/CoreLint.lhs
@@ -248,7 +248,7 @@ isSubKindCon kc1 kc2
 -- a sub-kind of OpenTypeKind.  It must be a sub-kind of OpenTypeKind
 -- *after* the typechecker
 --   a) So that (Ord a -> Eq a) is a legal type
---   b) So that the simplifer can generate (error (Eq a) "urk")
+--   b) So that the simplifier can generate (error (Eq a) "urk")
 -- Moreover, after the type checker, Constraint and *
 -- are identical; see Note [Kind Constraint and kind *]
 --

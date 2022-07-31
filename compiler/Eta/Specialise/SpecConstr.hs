@@ -214,7 +214,7 @@ This only makes sense if either
   b) the type variable 'a' is an argument to f (and hence fs)
 
 Actually, (a) may hold for value arguments too, in which case
-we may not want to pass them.  Supose 'x' is in scope at f's
+we may not want to pass them.  Suppose 'x' is in scope at f's
 defn, but xs is not.  Then we'd like
 
         f_spec xs = let p = (:) [a] x xs in ....as before....
@@ -1090,10 +1090,10 @@ instance Outputable ArgOcc where
 evalScrutOcc :: ArgOcc
 evalScrutOcc = ScrutOcc emptyUFM
 
--- Experimentally, this vesion of combineOcc makes ScrutOcc "win", so
+-- Experimentally, this version of combineOcc makes ScrutOcc "win", so
 -- that if the thing is scrutinised anywhere then we get to see that
 -- in the overall result, even if it's also used in a boxed way
--- This might be too agressive; see Note [Reboxing] Alternative 3
+-- This might be too aggressive; see Note [Reboxing] Alternative 3
 combineOcc :: ArgOcc -> ArgOcc -> ArgOcc
 combineOcc NoOcc         occ           = occ
 combineOcc occ           NoOcc         = occ
@@ -1660,7 +1660,7 @@ the passed-in RuleInfo, unless there are no calls at all to the function.
 The caller can, indeed must, assume this.  He should not combine in rhs_usg
 himself, or he'll get rhs_usg twice -- and that can lead to an exponential
 blowup of duplicates in the CallEnv.  This is what gave rise to the massive
-performace loss in Trac #8852.
+performance loss in Trac #8852.
 
 Note [Specialise original body]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1684,7 +1684,7 @@ that specialisations didn't fire inside wrappers; see test
 simplCore/should_compile/spec-inline.
 
 So now I just use the inline-activation of the parent Id, as the
-activation for the specialiation RULE, just like the main specialiser;
+activation for the specialisation RULE, just like the main specialiser;
 
 This in turn means there is no point in specialising NOINLINE things,
 so we test for that.

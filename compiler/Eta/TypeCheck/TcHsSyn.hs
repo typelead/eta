@@ -1344,7 +1344,7 @@ zonkTyVarOcc env@(ZonkEnv zonk_unbound_tyvar tv_env _) tv
                                             zonkTcTypeToType env (tyVarKind tv)
                                   ; zonk_unbound_tyvar (setTyVarKind tv kind) }
                       Indirect ty -> do { zty <- zonkTcTypeToType env ty
-                                        -- Small optimisation: shortern-out indirect steps
+                                        -- Small optimisation: shorten-out indirect steps
                                         -- so that the old type may be more easily collected.
                                         ; writeMutVar ref (Indirect zty)
                                         ; return zty } }

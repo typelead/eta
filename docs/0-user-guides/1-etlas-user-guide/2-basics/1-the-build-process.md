@@ -4,7 +4,7 @@
 
 In the last section, we ran the `etlas run` command which runs the `etlas build` command for you and executes your program's launcher script as a final step. In this section, we will cover in detail what happens when you build a project.
 
-## Teminology
+## Terminology
 
 A **project** is a group of packages that may have inter-dependencies.
 

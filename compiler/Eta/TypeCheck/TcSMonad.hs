@@ -594,7 +594,7 @@ implications.  Consider
    a ~ F b, forall c. b~Int => blah
 If we have F b ~ fsk in the flat-cache, and we push that into the
 nested implication, we might miss that F b can be rewritten to F Int,
-and hence perhpas solve it.  Moreover, the fsk from outside is
+and hence perhaps solve it.  Moreover, the fsk from outside is
 flattened out after solving the outer level, but and we don't
 do that flattening recursively.
 
@@ -613,7 +613,7 @@ could help to solve a constraint. For example
 If we pushed the (C Int alpha) inwards, as a given, it can produce a
 fundep (alpha~a) and this can float out again and be used to fix
 alpha.  (In general we can't float class constraints out just in case
-(C d blah) might help to solve (C Int a).)  But we ignore this possiblity.
+(C d blah) might help to solve (C Int a).)  But we ignore this possibility.
 
 For Derived constraints we don't have evidence, so we do not turn
 them into Givens.  There can *be* deriving CFunEqCans; see Trac #8129.
@@ -685,7 +685,7 @@ getNoGivenEqs tclvl skol_tvs
   where
     eqs_given_here :: VarSet -> EqualCtList -> Bool
     eqs_given_here local_fsks [CTyEqCan { cc_tyvar = tv, cc_ev = ev }]
-                              -- Givens are always a sigleton
+                              -- Givens are always a singleton
       = not (skolem_bound_here local_fsks tv) && ev_given_here ev
     eqs_given_here _ _ = False
 
@@ -1525,7 +1525,7 @@ sites.  Not only do we want an error message for each, but with
 *derived* insolubles, we only want to report each one once.  Why?
 
 (a) A constraint (C r s t) where r -> s, say, may generate the same fundep
-    equality many times, as the original constraint is sucessively rewritten.
+    equality many times, as the original constraint is successively rewritten.
 
 (b) Ditto the successive iterations of the main solver itself, as it traverses
     the constraint tree. See example below.

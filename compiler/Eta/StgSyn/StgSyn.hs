@@ -126,7 +126,7 @@ isDllConApp _dflags _this_mod _con _args = False
 
 -- | Type of an @StgArg@
 --
--- Very half baked becase we have lost the type arguments.
+-- Very half baked because we have lost the type arguments.
 stgArgType :: StgArg -> Type
 stgArgType (StgVarArg v)   = idType v
 stgArgType (StgLitArg lit) = literalType lit
@@ -485,7 +485,7 @@ Very like in @CoreSyntax@ (except no type-world stuff).
 The type constructor is guaranteed not to be abstract; that is, we can
 see its representation. This is important because the code generator
 uses it to determine return conventions etc. But it's not trivial
-where there's a moduule loop involved, because some versions of a type
+where there's a module loop involved, because some versions of a type
 constructor might not have all the constructors visible. So
 mkStgAlgAlts (in CoreToStg) ensures that it gets the TyCon from the
 constructors or literals (which are guaranteed to have the Real McCoy)

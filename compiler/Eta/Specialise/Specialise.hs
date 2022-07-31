@@ -145,8 +145,8 @@ becomes
                          in
                          fl
 
-We still have recusion for non-overloaded functions which we
-speciailise, but the recursive call should get specialised to the
+We still have recursion for non-overloaded functions which we
+specialise, but the recursive call should get specialised to the
 same recursive version.
 
 
@@ -194,7 +194,7 @@ the two instances of +.sel weren't originally at the same type.
 Further notes on (b)
 
 * There are quite a few variations here.  For example, the defn of
-  +.sel could be floated ouside the \y, to attempt to gain laziness.
+  +.sel could be floated outside the \y, to attempt to gain laziness.
   It certainly mustn't be floated outside the \d because the d has to
   be in scope too.
 
@@ -289,7 +289,7 @@ only it knows how to build the dictionaries d1 and d2!  For example
 Here, the specialised version of g is an application of g's rhs to the
 Ord dictionary for (Tree Int), which only the type checker can conjure
 up.  There might not even *be* one, if (Tree Int) is not an instance of
-Ord!  (All the other specialision has suitable dictionaries to hand
+Ord!  (All the other specialisation has suitable dictionaries to hand
 from actual calls.)
 
 Problem.  The type checker doesn't have to hand a convenient <f_rhs>, because
@@ -400,7 +400,7 @@ Seems quite reasonable.  Similar things could be done with instance decls:
 Ho hum.  Things are complex enough without this.  I pass.
 
 
-Requirements for the simplifer
+Requirements for the simplifier
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The simplifier has to be able to take advantage of the specialisation.
 
@@ -852,7 +852,7 @@ specCase env scrut' case_bndr [(con, args, rhs)]
                        | sc_arg' <- sc_args' ]
 
              -- Extend the substitution for RHS to map the *original* binders
-             -- to their floated verions.
+             -- to their floated versions.
              mb_sc_flts :: [Maybe DictId]
              mb_sc_flts = map (lookupVarEnv clone_env) args'
              clone_env  = zipVarEnv sc_args' sc_args_flt
@@ -1146,7 +1146,7 @@ specCalls mb_mod env rules_for_me calls_for_me fn rhs
       = ASSERT( call_ts `lengthIs` n_tyvars  && call_ds `lengthIs` n_dicts )
 
         -- Suppose f's defn is  f = /\ a b c -> \ d1 d2 -> rhs
-        -- Supppose the call is for f [Just t1, Nothing, Just t3] [dx1, dx2]
+        -- Supposed the call is for f [Just t1, Nothing, Just t3] [dx1, dx2]
 
         -- Construct the new binding
         --      f1 = SUBST[a->t1,c->t3, d1->d1', d2->d2'] (/\ b -> rhs)
@@ -1195,7 +1195,7 @@ specCalls mb_mod env rules_for_me calls_for_me fn rhs
                 herald = case mb_mod of
                            Nothing        -- Specialising local fn
                                -> ptext (sLit "SPEC")
-                           Just this_mod  -- Specialising imoprted fn
+                           Just this_mod  -- Specialising imported fn
                                -> ptext (sLit "SPEC/") <> ppr this_mod
 
                 rule_name = mkFastString $ showSDocForUser dflags neverQualify $
@@ -1407,7 +1407,7 @@ So we use the following heuristic:
   * Then go through the block a second time, feeding call-info from
     the RHSs back in the bottom, as it were
 
-In effect, the ordering maxmimises the effectiveness of each sweep,
+In effect, the ordering maximises the effectiveness of each sweep,
 and we do just two sweeps.   This should catch almost every case of
 monomorphic recursion -- the exception could be a very knotted-up
 recursion with multiple cycles tied up together.
@@ -1483,7 +1483,7 @@ This doesn't always work.  One example I came across was this:
 
         oneof = choose (1::Int)
 
-It's a silly exapmle, but we get
+It's a silly example, but we get
         choose = /\a. g `cast` co
 where choose doesn't have any dict arguments.  Thus far I have not
 tried to fix this (wait till there's a real example).
@@ -1562,7 +1562,7 @@ have the big, un-optimised of f (albeit specialised) captured in an
 INLINABLE pragma for f_spec, we won't get that optimisation.
 
 So we simply drop INLINABLE pragmas when specialising. It's not really
-a complete solution; ignoring specalisation for now, INLINABLE functions
+a complete solution; ignoring specialisation for now, INLINABLE functions
 don't get properly strictness analysed, for example. But it works well
 for examples involving specialisation, which is the dominant use of
 INLINABLE.  See Trac #4874.
@@ -1739,7 +1739,7 @@ Note [Type determines value]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Only specialise if all overloading is on non-IP *class* params,
 because these are the ones whose *type* determines their *value*.  In
-parrticular, with implicit params, the type args *don't* say what the
+particular, with implicit params, the type args *don't* say what the
 value of the implicit param is!  See Trac #7101
 
 However, consider
@@ -2106,12 +2106,12 @@ is used:
 
 Now give it to the simplifier and the _Lifting will be optimised away.
 
-The benfit is that we have given the specialised "unboxed" values a
+The benefit is that we have given the specialised "unboxed" values a
 very simplep lifted semantics and then leave it up to the simplifier to
 optimise it --- knowing that the overheads will be removed in nearly
 all cases.
 
-In particular, the value will only be evaluted in the branches of the
+In particular, the value will only be evaluated in the branches of the
 program which use it, rather than being forced at the point where the
 value is bound. For example:
 

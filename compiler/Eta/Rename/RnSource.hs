@@ -86,7 +86,7 @@ rnSrcDecls group@(HsGroup { hs_valds   = val_decls,
  = do {
    -- (A) Process the fixity declarations, creating a mapping from
    --     FastStrings to FixItems.
-   --     Also checks for duplcates.
+   --     Also checks for duplicates.
    local_fix_env <- makeMiniFixityEnv fix_decls ;
 
    -- (B) Bring top level binders (and their fixities) into scope,
@@ -97,7 +97,7 @@ rnSrcDecls group@(HsGroup { hs_valds   = val_decls,
    --          because they do not have value declarations.
    --          Aso step (C) depends on datacons and record fields
    --
-   --        * Pattern synonyms, becuase they (and data constructors)
+   --        * Pattern synonyms, because they (and data constructors)
    --          are needed for rnTopBindLHS (Trac #9889)
    --
    --        * For hs-boot files, include the value signatures
@@ -415,7 +415,7 @@ rnHsForeignDecl (ForeignExport name ty _ spec)
 
 -- | For Windows DLLs we need to know what packages imported symbols are from
 --      to generate correct calls. Imported symbols are tagged with the current
---      package, so if they get inlined across a package boundry we'll still
+--      package, so if they get inlined across a package boundary we'll still
 --      know where they're from.
 --
 patchForeignImport :: UnitId -> ForeignImport -> ForeignImport
@@ -770,7 +770,7 @@ with LHSs with a complicated desugaring (and hence unlikely to match);
 (e.g. a case expression is not allowed: too elaborate.)
 
 But there are legitimate non-trivial args ei, like sections and
-lambdas.  So it seems simmpler not to check at all, and that is why
+lambdas.  So it seems simpler not to check at all, and that is why
 check_e is commented out.
 -}
 
@@ -939,7 +939,7 @@ See also Note [Grouping of type and class declarations] in TcTyClsDecls.
 
 rnTyClDecls :: [TyClGroup RdrName]
             -> RnM ([TyClGroup Name], FreeVars)
--- Rename the declarations and do depedency analysis on them
+-- Rename the declarations and do dependency analysis on them
 rnTyClDecls tycl_ds
   = do { ds_w_fvs <- mapM (wrapLocFstM rnTyClDecl) (tyClGroupConcat tycl_ds)
        ; let decl_names = mkNameSet (map (tcdName . unLoc . fst) ds_w_fvs)
@@ -1191,7 +1191,7 @@ rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_metaData = (cType, _java_an
 badGadtStupidTheta :: HsDocContext -> SDoc
 badGadtStupidTheta _
   = vcat [ptext (sLit "No context is allowed on a GADT-style data declaration"),
-          ptext (sLit "(You can put a context on each contructor, though.)")]
+          ptext (sLit "(You can put a context on each constructor, though.)")]
 
 rnFamDecl :: Maybe Name
                     -- Just cls => this FamilyDecl is nested

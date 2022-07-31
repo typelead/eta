@@ -83,7 +83,7 @@ core2core hsc_env guts
     hpt_rule_base  = mkRuleBase home_pkg_rules
     mod            = mg_module guts
     -- mod: get the module out of the current HscEnv so we can retrieve it from the monad.
-    -- This is very convienent for the users of the monad (e.g. plugins do not have to
+    -- This is very convenient for the users of the monad (e.g. plugins do not have to
     -- consume the ModGuts to find the module) but somewhat ugly because mg_module may
     -- _theoretically_ be changed during the Core pipeline (it's part of ModGuts), which
     -- would mean our cached value would go out of date.
@@ -241,7 +241,7 @@ getCoreToDo dflags
 
                 -- At least 3 iterations because otherwise we land up with
                 -- huge dead expressions because of an infelicity in the
-                -- simpifier.
+                -- simplifier.
                 --      let k = BIG in foldr k z xs
                 -- ==>  let k = BIG in letrec go = \xs -> ...(k x).... in go xs
                 -- ==>  let k = BIG in letrec go = \xs -> ...(BIG x).... in go xs
@@ -289,7 +289,7 @@ getCoreToDo dflags
             CoreLiberateCase,
             simpl_phase 0 ["post-liberate-case"] max_iter
             ]),         -- Run the simplifier after LiberateCase to vastly
-                        -- reduce the possiblility of shadowing
+                        -- reduce the possibility of shadowing
                         -- Reason: see Note [Shadowing] in SpecConstr.lhs
 
         runWhen spec_constr CoreDoSpecConstr,
@@ -709,7 +709,7 @@ the final phase, but it's tidier to do it here.
 
 Note [Transferring IdInfo]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-We want to propagage any useful IdInfo on x_local to x_exported.
+We want to propagate any useful IdInfo on x_local to x_exported.
 
 STRICTNESS: if we have done strictness analysis, we want the strictness info on
 x_local to transfer to x_exported.  Hence the copyIdInfo call.
@@ -805,7 +805,7 @@ Hence,there's a possibility of leaving unchanged something like this:
 By the time we've thrown away the types in STG land this
 could be eliminated.  But I don't think it's very common
 and it's dangerous to do this fiddling in STG land
-because we might elminate a binding that's mentioned in the
+because we might eliminate a binding that's mentioned in the
 unfolding for something.
 
 Note [Indirection zapping and ticks]
@@ -822,7 +822,7 @@ Which we want to become:
         x_exported =  tick<x> <expression>
 
 As it makes no sense to keep the tick and the expression on separate
-bindings. Note however that that this might increase the ticks scoping
+bindings. Note however that this might increase the ticks scoping
 over the execution of x_local, so we can only do this for floatable
 ticks. More often than not, other references will be unfoldings of
 x_exported, and therefore carry the tick anyway.

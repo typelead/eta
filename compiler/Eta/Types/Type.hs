@@ -360,7 +360,7 @@ Note [Decomposing fat arrow c=>t]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Can we unify (a b) with (Eq a => ty)?   If we do so, we end up with
 a partial application like ((=>) Eq a) which doesn't make sense in
-source Haskell.  In constrast, we *can* unify (a b) with (t1 -> t2).
+source Haskell.  In contrast, we *can* unify (a b) with (t1 -> t2).
 Here's an example (Trac #9858) of how you might do it:
    i :: (Typeable a, Typeable b) => Proxy (a b) -> TypeRep
    i p = typeRep p
@@ -500,7 +500,7 @@ pprUserTypeErrorTy ty =
       | tyConName tc == typeErrorVAppendDataConName ->
         pprUserTypeErrorTy t1 $$ pprUserTypeErrorTy t2
 
-    -- An uneavaluated type function
+    -- An unevaluated type function
     _ -> ppr ty
 
 
@@ -940,7 +940,7 @@ splitForAllTy_maybe ty = splitFAT_m ty
     splitFAT_m _                            = Nothing
 
 -- | Attempts to take a forall type apart, returning all the immediate such bound
--- type variables and the remainder of the type. Always suceeds, even if that means
+-- type variables and the remainder of the type. Always succeeds, even if that means
 -- returning an empty list of 'TyVar's
 splitForAllTys :: Type -> ([TyVar], Type)
 splitForAllTys ty = split ty ty []

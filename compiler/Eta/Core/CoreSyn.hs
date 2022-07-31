@@ -405,7 +405,7 @@ Here's another example:
 Since T has no data constructors, the case alternatives are of course
 empty.  However note that 'x' is not bound to a visibly-bottom value;
 it's the *type* that tells us it's going to diverge.  Its a bit of a
-degnerate situation but we do NOT want to replace
+degenerate situation but we do NOT want to replace
    case x of Bool {}   -->   error Bool "Inaccessible case"
 because x might raise an exception, and *that*'s what we want to see!
 (Trac #6067 is an example.) To preserve semantics we'd have to say
@@ -495,7 +495,7 @@ data Tickish id =
   -- valid. Note that it is still undesirable though, as this reduces
   -- their usefulness for debugging and profiling. Therefore we will
   -- generally try only to make use of this property where it is
-  -- neccessary to enable optimizations.
+  -- necessary to enable optimizations.
   | SourceNote
     { sourceSpan :: RealSrcSpan -- ^ Source covered
     , sourceName :: String      -- ^ Name for source location
@@ -554,7 +554,7 @@ data TickishScoping =
     --     ==>
     --   tick<...> case foo of x -> bar
     --
-    -- While this is always leagl, we want to make a best effort to
+    -- While this is always legal, we want to make a best effort to
     -- only make us of this where it exposes transformation
     -- opportunities.
   | SoftScope
@@ -738,7 +738,7 @@ notOrphan _ = False
 chooseOrphanAnchor :: NameSet -> IsOrphan
 -- Something (rule, instance) is relate to all the Names in this
 -- list. Choose one of them to be an "anchor" for the orphan.  We make
--- the choice deterministic to avoid gratuitious changes in the ABI
+-- the choice deterministic to avoid gratuitous changes in the ABI
 -- hash (Trac #4012).  Specifically, use lexicographic comparison of
 -- OccName rather than comparing Uniques
 --
@@ -773,8 +773,8 @@ its left hand side mentions nothing defined in this module.  Orphan-hood
 has two major consequences
 
  * A module that contains orphans is called an "orphan module".  If
-   the module being compiled depends (transitively) on an oprhan
-   module M, then M.hi is read in regardless of whether M is oherwise
+   the module being compiled depends (transitively) on an orphan
+   module M, then M.hi is read in regardless of whether M is otherwise
    needed. This is to ensure that we don't miss any instance decls in
    M.  But it's painful, because it means we need to keep track of all
    the orphan modules below us.
@@ -784,9 +784,9 @@ has two major consequences
    mentions on the LHS.  For example
       data T = T1 | T2
       instance Eq T where ....
-   The instance (Eq T) is incorprated as part of T's fingerprint.
+   The instance (Eq T) is incorporated as part of T's fingerprint.
 
-   In constrast, orphans are all fingerprinted together in the
+   In contrast, orphans are all fingerprinted together in the
    mi_orph_hash field of the ModIface.
 
    See MkIface.addFingerprints.
@@ -1170,7 +1170,7 @@ unfoldingTemplate :: Unfolding -> CoreExpr
 unfoldingTemplate = uf_tmpl
 
 -- | Retrieves the template of an unfolding if possible
--- maybeUnfoldingTemplate is used mainly wnen specialising, and we do
+-- maybeUnfoldingTemplate is used mainly when specialising, and we do
 -- want to specialise DFuns, so it's important to return a template
 -- for DFunUnfoldings
 maybeUnfoldingTemplate :: Unfolding -> Maybe CoreExpr
@@ -1305,7 +1305,7 @@ In unfoldings and rules, we guarantee that the template is occ-analysed,
 so that the occurrence info on the binders is correct.  This is important,
 because the Simplifier does not re-analyse the template when using it. If
 the occurrence info is wrong
-  - We may get more simpifier iterations than necessary, because
+  - We may get more simplifier iterations than necessary, because
     once-occ info isn't there
   - More seriously, we may get an infinite loop if there's a Rec
     without a loop breaker marked
@@ -1635,7 +1635,7 @@ collectNBinders orig_n orig_expr
     go _ _  _         = pprPanic "collectNBinders" $ int orig_n
 
 
--- | Takes a nested application expression and returns the the function
+-- | Takes a nested application expression and returns the function
 -- being applied and the arguments to which it is applied
 collectArgs :: Expr b -> (Expr b, [Arg b])
 collectArgs expr
@@ -1738,7 +1738,7 @@ data AnnBind bndr annot
   = AnnNonRec bndr (AnnExpr bndr annot)
   | AnnRec    [(bndr, AnnExpr bndr annot)]
 
--- | Takes a nested application expression and returns the the function
+-- | Takes a nested application expression and returns the function
 -- being applied and the arguments to which it is applied
 collectAnnArgs :: AnnExpr b a -> (AnnExpr b a, [AnnExpr b a])
 collectAnnArgs expr

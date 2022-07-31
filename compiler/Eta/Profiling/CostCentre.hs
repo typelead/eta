@@ -320,7 +320,7 @@ instance Binary CostCentre where
                       return (AllCafsCC ae noSrcSpan)
 
     -- We ignore the SrcSpans in CostCentres when we serialise them,
-    -- and set the SrcSpans to noSrcSpan when deserialising.  This is
+    -- and set the SrcSpans to noSrcSpan when deserializing.  This is
     -- ok, because we only need the SrcSpan when declaring the
     -- CostCentre in the original module, it is not used by importing
     -- modules.

@@ -37,7 +37,7 @@ getLeakIndicators HscEnv{..} =
       return $ LeakModIndicators{..}
 
 -- | Look at the LeakIndicators collected by an earlier call to
--- `getLeakIndicators`, and print messasges if any of them are still
+-- `getLeakIndicators`, and print messages if any of them are still
 -- alive.
 checkLeakIndicators :: DynFlags -> LeakIndicators -> IO ()
 checkLeakIndicators dflags (LeakIndicators leakmods)  = do

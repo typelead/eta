@@ -231,8 +231,8 @@ addExclusions u getClass colors graph
         = foldr (addExclusion u getClass) graph colors
 
 
--- | Add a coalescence edge to the graph, creating nodes if requried.
---      It is considered adventageous to assign the same color to nodes in a coalesence.
+-- | Add a coalescence edge to the graph, creating nodes if required.
+--      It is considered advantageous to assign the same color to nodes in a coalescence.
 addCoalesce
         :: Uniquable k
         => (k, cls) -> (k, cls)
@@ -470,7 +470,7 @@ freezeNode k
          = if elementOfUniqSet k (nodeCoalesce node)
                 then node { nodeCoalesce = delOneFromUniqSet (nodeCoalesce node) k }
                 else node       -- panic "GraphOps.freezeNode: edge to freeze wasn't in the coalesce set"
-                                -- If the edge isn't actually in the coelesce set then just ignore it.
+                                -- If the edge isn't actually in the coalesce set then just ignore it.
 
         fm2     = nonDetFoldUniqSet (adjustUFM_C (freezeEdge k)) fm1
                     -- It's OK to use nonDetFoldUFM here because the operation
@@ -567,7 +567,7 @@ validateGraph doc isColored graph
         , badEdges      <- minusUniqSet edges nodes
         , not $ isEmptyUniqSet badEdges
         = pprPanic "GraphOps.validateGraph"
-                (  text "Graph has edges that point to non-existent nodes"
+                (  text "Graph has edges that point to nonexistent nodes"
                 $$ text "  bad edges: " <> pprUFM (getUniqSet badEdges) (vcat . map ppr)
                 $$ doc )
 

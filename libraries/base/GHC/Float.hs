@@ -14,7 +14,7 @@
 -- |
 -- Module      :  GHC.Float
 -- Copyright   :  (c) The University of Glasgow 1994-2002
---                Portions obtained from hbc (c) Lennart Augusstson
+--                Portions obtained from hbc (c) Lennart Augustsson
 -- License     :  see libraries/base/LICENSE
 --
 -- Maintainer  :  cvs-ghc@haskell.org
@@ -232,7 +232,7 @@ class  (RealFrac a, Floating a) => RealFloat a  where
                                  -- to wrong results, hence we clamp the
                                  -- scaling parameter.
                                  -- If n + k would be larger than h,
-                                 -- n + clamp b k must be too, simliar
+                                 -- n + clamp b k must be too, similar
                                  -- for smaller than l - d.
                                  -- Add a little extra to keep clear
                                  -- from the boundary cases.
@@ -1225,7 +1225,7 @@ word2Float (W# w) = F# (word2Float# w)
 {-
 Note [realToFrac int-to-float]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Don found that the RULES for realToFrac/Int->Double and simliarly
+Don found that the RULES for realToFrac/Int->Double and similarly
 Float made a huge difference to some stream-fusion programs.  Here's
 an example
 
@@ -1287,7 +1287,7 @@ clamp bd k = max (-bd) (min bd k)
 Note [Casting from integral to floating point types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To implement something like `reinterpret_cast` from C++ to go from a
-floating-point type to an integral type one might niavely think that the
+floating-point type to an integral type one might naively think that the
 following should work:
 
       cast :: Float -> Word32
@@ -1300,7 +1300,7 @@ that performs an integer/word operation on a floating-point register, which
 results in a compile error.
 
 The correct way of implementing `reinterpret_cast` to implement a primpop, but
-that requires a unique implementation for all supported archetectures. The next
+that requires a unique implementation for all supported architectures. The next
 best solution is to write the value from the source register to memory and then
 read it from memory into the destination register and the best way to do that
 is using CMM.

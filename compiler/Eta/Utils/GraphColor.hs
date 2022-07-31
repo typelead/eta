@@ -27,7 +27,7 @@ import Data.List
 
 -- | Try to color a graph with this set of colors.
 --      Uses Chaitin's algorithm to color the graph.
---      The graph is scanned for nodes which are deamed 'trivially colorable'. These nodes
+--      The graph is scanned for nodes which are deemed 'trivially colorable'. These nodes
 --      are pushed onto a stack and removed from the graph.
 --      Once this process is complete the graph can be colored by removing nodes from
 --      the stack (ie in reverse order) and assigning them colors different to their neighbors.
@@ -74,7 +74,7 @@ colorGraph iterative spinCount colors triv spill graph0
         --      We need to apply all the coalescences found by the scanner to the original
         --      graph before doing assignColors.
         --
-        --      Because we've got the whole, non-pruned graph here we turn on aggressive coalecing
+        --      Because we've got the whole, non-pruned graph here we turn on aggressive coalescing
         --      to force all the (conservative) coalescences found during scanning.
         --
         (graph_scan_coalesced, _)
@@ -114,7 +114,7 @@ colorGraph iterative spinCount colors triv spill graph0
 -- | Scan through the conflict graph separating out trivially colorable and
 --      potentially uncolorable (problem) nodes.
 --
---      Checking whether a node is trivially colorable or not is a resonably expensive operation,
+--      Checking whether a node is trivially colorable or not is a reasonably expensive operation,
 --      so after a triv node is found and removed from the graph it's no good to return to the 'start'
 --      of the graph and recheck a bunch of nodes that will probably still be non-trivially colorable.
 --

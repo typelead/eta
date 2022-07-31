@@ -115,7 +115,7 @@ If we don't take care, after typechecking we get
                                in
                                \ys:[a] -> ...f'...
 
-Notice the the stupid construction of (f a d), which is of course
+Notice the stupid construction of (f a d), which is of course
 identical to the function we're executing.  In this case, the
 polymorphic recursion isn't being used (but that's a very common case).
 This can lead to a massive space leak, from the following top-level defn
@@ -137,7 +137,7 @@ up with a chain of identical values all hung onto by the CAF ff.
 
 Etc.
 
-NOTE: a bit of arity anaysis would push the (f a d) inside the (\ys...),
+NOTE: a bit of arity analysis would push the (f a d) inside the (\ys...),
 which would make the space leak go away in this case
 
 Solution: when typechecking the RHSs we always have in hand the
@@ -248,7 +248,7 @@ tcLocalBinds (HsIPBinds (IPBinds ip_binds _)) thing_inside
             ; return (ip_id, (IPBind (Right ip_id) d)) }
     tc_ip_bind _ (IPBind (Right {}) _) = panic "tc_ip_bind"
 
-    -- Coerces a `t` into a dictionry for `IP "x" t`.
+    -- Coerces a `t` into a dictionary for `IP "x" t`.
     -- co : t -> IP "x" t
     toDict ipClass x ty = HsWrap $ mkWpCast $ TcCoercion $
                           wrapIP $ mkClassPred ipClass [x,ty]
@@ -280,7 +280,7 @@ Consider this (Trac #9161)
 Here, the type signature for b mentions A.  But A is a pattern
 synonym, which is typechecked (for very good reasons; a view pattern
 in the RHS may mention a value binding) as part of a group of
-bindings.  It is entirely resonable to reject this, but to do so
+bindings.  It is entirely reasonable to reject this, but to do so
 we need A to be in the kind environment when kind-checking the signature for B.
 
 Hence the tcExtendKindEnv2 patsyn_placeholder_kinds, which adds a binding
@@ -330,7 +330,7 @@ tcBindGroups :: TopLevelFlag -> TcSigFun -> PragFun
              -> TcM ([(RecFlag, LHsBinds TcId)], thing)
 -- Typecheck a whole lot of value bindings,
 -- one strongly-connected component at a time
--- Here a "strongly connected component" has the strightforward
+-- Here a "strongly connected component" has the straightforward
 -- meaning of a group of bindings that mention each other,
 -- ignoring type signatures (that part comes later)
 
@@ -651,13 +651,13 @@ mkExport prag_fn qtvs inferred_theta (poly_name, mb_sig, mono_id)
         ; traceTc "mkExport: check sig"
                   (vcat [ ppr poly_name, ppr sel_poly_ty, ppr (idType poly_id) ])
 
-        -- Perform the impedence-matching and ambiguity check
+        -- Perform the impedance-matching and ambiguity check
         -- right away.  If it fails, we want to fail now (and recover
         -- in tcPolyBinds).  If we delay checking, we get an error cascade.
         -- Remember we are in the tcPolyInfer case, so the type envt is
         -- closed (unless we are doing NoMonoLocalBinds in which case all bets
         -- are off)
-        -- See Note [Impedence matching]
+        -- See Note [Impedance matching]
         ; (wrap, wanted) <- addErrCtxtM (mk_bind_msg inferred True poly_name (idType poly_id)) $
                             captureConstraints $
                             tcSubType_NC sig_ctxt sel_poly_ty (idType poly_id)
@@ -807,13 +807,13 @@ Examples that might fail:
  - an inferred type that includes unboxed tuples
 
 However we don't do the ambiguity check (checkValidType omits it for
-InfSigCtxt) because the impedence-matching stage, which follows
+InfSigCtxt) because the impedance-matching stage, which follows
 immediately, will do it and we don't want two error messages.
-Moreover, because of the impedence matching stage, the ambiguity-check
-suggestion of -XAllowAmbiguiousTypes will not work.
+Moreover, because of the impedance matching stage, the ambiguity-check
+suggestion of -XAllowAmbiguousTypes will not work.
 
 
-Note [Impedence matching]
+Note [Impedance matching]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider
    f 0 x = x
@@ -833,7 +833,7 @@ The types we really want for f and g are
    f :: forall a. (Eq a, Num a) => a -> Bool -> Bool
    g :: forall b. [b] -> Bool -> Bool
 
-We can get these by "impedence matching":
+We can get these by "impedance matching":
    tuple :: forall a b. (Eq a, Num a) => (a -> Bool -> Bool, [b] -> Bool -> Bool)
    tuple a b d1 d1 = let ...bind f_mono, g_mono in (f_mono, g_mono)
 
@@ -843,9 +843,9 @@ We can get these by "impedence matching":
 Suppose the shared quantified tyvars are qtvs and constraints theta.
 Then we want to check that
    f's polytype  is more polymorphic than   forall qtvs. theta => f_mono_ty
-and the proof is the impedence matcher.
+and the proof is the impedance matcher.
 
-Notice that the impedence matcher may do defaulting.  See Trac #7173.
+Notice that the impedance matcher may do defaulting.  See Trac #7173.
 
 It also cleverly does an ambiguity check; for example, rejecting
    f :: F a -> a
@@ -886,7 +886,7 @@ lhsBindArity _ env = env        -- PatBind/VarBind
 ------------------
 tcSpecPrags :: Id -> [LSig Name]
             -> TcM [LTcSpecPrag]
--- Add INLINE and SPECIALSE pragmas
+-- Add INLINE and SPECIALISE pragmas
 --    INLINE prags are added to the (polymorphic) Id directly
 --    SPECIALISE prags are passed to the desugarer via TcSpecPrags
 -- Pre-condition: the poly_id is zonked
@@ -947,7 +947,7 @@ tcImpPrags prags
     -- Ignore SPECIALISE pragmas for imported things
     -- when we aren't specialising, or when we aren't generating
     -- code.  The latter happens when Haddocking the base library;
-    -- we don't wnat complaints about lack of INLINABLE pragmas
+    -- we don't want complaints about lack of INLINABLE pragmas
     not_specialising dflags
       | not (gopt Opt_Specialise dflags) = True
       | otherwise = case hscTarget dflags of
@@ -1368,7 +1368,7 @@ it's all cool; each signature has distinct type variables from the renamer.)
 
 Note [Fail eagerly on bad signatures]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If a type signaure is wrong, fail immediately:
+If a type signature is wrong, fail immediately:
 
  * the type sigs may bind type variables, so proceeding without them
    can lead to a cascade of errors
@@ -1472,7 +1472,7 @@ data GeneralisationPlan
                         -- Explicit generalisation; there is an AbsBinds
 
 -- A consequence of the no-AbsBinds choice (NoGen) is that there is
--- no "polymorphic Id" and "monmomorphic Id"; there is just the one
+-- no "polymorphic Id" and "monomorphic Id"; there is just the one
 
 instance Outputable GeneralisationPlan where
   ppr NoGen          = ptext (sLit "NoGen")
@@ -1541,7 +1541,7 @@ decideGeneralisationPlan dflags type_env bndr_names lbinds sig_fn
       | otherwise
       = Nothing
 
-    -- The Haskell 98 monomorphism resetriction
+    -- The Haskell 98 monomorphism restriction
     restricted (PatBind {})                              = True
     restricted (VarBind { var_id = v })                  = no_sig v
     restricted (FunBind { fun_id = v, fun_matches = m }) = restricted_match m

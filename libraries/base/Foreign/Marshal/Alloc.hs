@@ -104,7 +104,7 @@ calloc = doCalloc undefined
 mallocBytes      :: Int -> IO (Ptr a)
 mallocBytes size  = failWhenNULL "malloc" (_malloc (fromIntegral size))
 
--- |Llike 'mallocBytes' but memory is filled with bytes of value zero.
+-- |Like 'mallocBytes' but memory is filled with bytes of value zero.
 --
 callocBytes :: Int -> IO (Ptr a)
 callocBytes size = failWhenNULL "calloc" $ _calloc 1 (fromIntegral size)
@@ -198,7 +198,7 @@ free :: Ptr a -> IO ()
 free  = _free
 
 
--- auxilliary routines
+-- auxiliary routines
 -- -------------------
 
 -- asserts that the pointer returned from the action in the second argument is

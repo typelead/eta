@@ -108,7 +108,7 @@ mkTyCon :: Word64# -> Word64# -> String -> String -> String -> TyCon
 mkTyCon high# low# pkg modl name
   = TyCon (Fingerprint (W64# high#) (W64# low#)) pkg modl name
 
--- | Applies a polymorhic type constructor to a sequence of kinds and types
+-- | Applies a polymorphic type constructor to a sequence of kinds and types
 mkPolyTyConApp :: TyCon -> [KindRep] -> [TypeRep] -> TypeRep
 mkPolyTyConApp tc@(TyCon tc_k _ _ _) [] [] = TypeRep tc_k tc [] []
 mkPolyTyConApp tc@(TyCon tc_k _ _ _) kinds types =
@@ -126,7 +126,7 @@ mkFunTy  :: TypeRep -> TypeRep -> TypeRep
 mkFunTy f a = mkTyConApp funTc [f,a]
 
 -- | Splits a type constructor application.
--- Note that if the type construcotr is polymorphic, this will
+-- Note that if the type constructor is polymorphic, this will
 -- not return the kinds that were used.
 -- See 'splitPolyTyConApp' if you need all parts.
 splitTyConApp :: TypeRep -> (TyCon,[TypeRep])

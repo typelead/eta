@@ -11,7 +11,7 @@ By default the target repository will be inferred from the GIT repository name, 
 This behavior can be changed by setting `DOCKER_REPO` env variable to override the default setting. For example, setting `DOCKER_REPO` to `quay.io/jdoe/myrepo` will result pushing to that docker repository.
 
 ## Results and tags
-The contaner is pushed as:
+The container is pushed as:
 
 - `<docker-repo>:<git-hash>` - is pushed always
 - `<docker-repo>:<git-tag>` - is pushed if the commit that is being built is tagged

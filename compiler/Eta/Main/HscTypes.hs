@@ -559,7 +559,7 @@ emptyPackageIfaceTable :: PackageIfaceTable
 emptyPackageIfaceTable = emptyModuleEnv
 
 pprHPT :: HomePackageTable -> SDoc
--- A bit aribitrary for now
+-- A bit arbitrary for now
 pprHPT hpt = pprUDFM hpt $ \hms ->
     vcat [ hang (ppr (mi_module (hm_iface hm)))
               2 (ppr (md_types (hm_details hm)))
@@ -1340,7 +1340,7 @@ data ForeignStubs
       --  2) C stubs to use when calling
       --     "foreign exported" functions
       --
-      --  3) Map of class strings to method defintions:
+      --  3) Map of class strings to method definitions:
       --     "place.Garage extends place.Home" --> [defs...]
 
 foreignExportsList :: ExportMethods -> [(Text, ([MethodDef], [FieldDef]))]
@@ -1515,7 +1515,7 @@ It's exactly the same for type-family instances.  See Trac #7102
 data InteractiveContext
   = InteractiveContext {
          ic_dflags     :: DynFlags,
-             -- ^ The 'DynFlags' used to evaluate interative expressions
+             -- ^ The 'DynFlags' used to evaluate interactive expressions
              -- and statements.
 
          ic_mod_index :: Int,
@@ -1941,7 +1941,7 @@ implicitTyConThings tc
     implicitCoTyCon tc ++
 
       -- for each data constructor in order,
-      --   the contructor, worker, and (possibly) wrapper
+      --   the constructor, worker, and (possibly) wrapper
     concatMap (extras_plus . AConLike . RealDataCon) (tyConDataCons tc)
       -- NB. record selectors are *not* implicit, they have fully-fledged
       -- bindings that pass through the compilation pipeline as normal.
@@ -2544,7 +2544,7 @@ data ExternalPackageState
         eps_mod_fam_inst_env :: !(ModuleEnv FamInstEnv), -- ^ The family instances accumulated from external
                                                          -- packages, keyed off the module that declared them
 
-        eps_stats :: !EpsStats                 -- ^ Stastics about what was loaded from external packages
+        eps_stats :: !EpsStats                 -- ^ Statistics about what was loaded from external packages
   }
 
 -- | Accumulated statistics about what we are putting into the 'ExternalPackageState'.
@@ -2792,7 +2792,7 @@ showModMsg dflags target recomp mod_summary
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Recmpilation}
+\subsection{Recompilation}
 *                                                                      *
 ************************************************************************
 -}
@@ -2973,7 +2973,7 @@ primarily about storing under what trust type a module has been compiled.
 type IsSafeImport = Bool
 
 -- | Safe Haskell information for 'ModIface'
--- Simply a wrapper around SafeHaskellMode to sepperate iface and flags
+-- Simply a wrapper around SafeHaskellMode to separate iface and flags
 newtype IfaceTrustInfo = TrustInfo SafeHaskellMode
 
 getSafeMode :: IfaceTrustInfo -> SafeHaskellMode
@@ -2999,7 +2999,7 @@ numToTrustInfo 1 = setSafeMode Sf_Unsafe
 numToTrustInfo 2 = setSafeMode Sf_Trustworthy
 numToTrustInfo 3 = setSafeMode Sf_Safe
 numToTrustInfo 4 = setSafeMode Sf_Safe -- retained for backwards compat, used
-                                       -- to be Sf_SafeInfered but we no longer
+                                       -- to be Sf_SafeInferred but we no longer
                                        -- differentiate.
 numToTrustInfo n = error $ "numToTrustInfo: bad input number! (" ++ show n ++ ")"
 

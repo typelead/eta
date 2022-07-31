@@ -28,7 +28,7 @@
 -- table is known as the Static Pointer Table. The reference can then be
 -- dereferenced to obtain the value.
 --
--- The various communicating processes need to aggree on the keys used to refer
+-- The various communicating processes need to agree on the keys used to refer
 -- to the values in the Static Pointer Table, or lookups will fail. Only
 -- processes launched from the same program binary are guaranteed to use the
 -- same set of keys.
@@ -82,7 +82,7 @@ unsafeLookupStaticPtr :: StaticKey -> IO (Maybe (StaticPtr a))
 unsafeLookupStaticPtr (Fingerprint w1 w2) =
   errorWithoutStackTrace "unsafeLookupStaticPtr: Static pointers not implemented in the Eta RTS."
 
--- | Miscelaneous information available for debugging purposes.
+-- | Miscellaneous information available for debugging purposes.
 data StaticPtrInfo = StaticPtrInfo
     { -- | Package key of the package where the static pointer is defined
       spInfoPackageKey  :: String

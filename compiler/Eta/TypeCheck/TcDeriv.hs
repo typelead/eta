@@ -354,7 +354,7 @@ tcDeriving tycl_decls inst_decls deriv_decls
         ; early_specs <- makeDerivSpecs is_boot tycl_decls inst_decls deriv_decls
         ; traceTc "tcDeriving 1" (ppr early_specs)
 
-        -- for each type, determine the auxliary declarations that are common
+        -- for each type, determine the auxiliary declarations that are common
         -- to multiple derivations involving that type (e.g. Generic and
         -- Generic1 should use the same TcGenGenerics.MetaTyCons)
         ; (commonAuxs, auxDerivStuff) <- commonAuxiliaries $ map forgetTheta early_specs
@@ -558,7 +558,7 @@ Consider this (see Trac #1954):
   newtype P a = MkP (IO a) deriving Monad
 
 If you compile with -fwarn-unused-binds you do not expect the warning
-"Defined but not used: data consructor MkP". Yet the newtype deriving
+"Defined but not used: data constructor MkP". Yet the newtype deriving
 code does not explicitly mention MkP, but it should behave as if you
 had written
   instance Monad P where
@@ -931,7 +931,7 @@ When there are no type families, it's quite easy:
     instance Eq [a] => Eq (S a)         -- by coercion sym (Eq (:CoS a)) : Eq [a] ~ Eq (S a)
     instance Monad [] => Monad S        -- by coercion sym (Monad :CoS)  : Monad [] ~ Monad S
 
-When type familes are involved it's trickier:
+When type families are involved it's trickier:
 
     data family T a b
     newtype instance T Int a = MkT [a] deriving( Eq, Monad )
@@ -1129,7 +1129,7 @@ The DeriveAnyClass extension adds a third way to derive instances, based on
 empty instance declarations.
 
 The canonical use case is in combination with GHC.Generics and default method
-signatures. These allow us have have instance declarations be empty, but still
+signatures. These allow us to have instance declarations be empty, but still
 useful, e.g.
 
   data T a = ...blah..blah... deriving( Generic )
@@ -1602,7 +1602,7 @@ mkNewTypeEqn dflags overlap_mode tvs
             substTheta (zipOpenTvSubst cls_tyvars inst_tys) (classSCTheta cls)
 
 
-        -- Next we collect Coercible constaints between
+        -- Next we collect Coercible constraints between
         -- the Class method types, instantiated with the representation and the
         -- newtype type; precisely the constraints required for the
         -- calls to coercible that we are going to generate.
@@ -1658,7 +1658,7 @@ e.g.    newtype S1 = S1 [T1 ()]
         newtype T1 a = T1 (StateT S1 IO a ) deriving( Monad )
 Remember, too, that type families are currently (conservatively) given
 a recursive flag, so this also allows newtype deriving to work
-for type famillies.
+for type families.
 
 We used to exclude recursive types, because we had a rather simple
 minded way of generating the instance decl:
@@ -1697,7 +1697,7 @@ variable, tv.
 
 \item
 The (k,TyVarTy tv) pairs in a solution are canonically
-ordered by sorting on type varible, tv, (major key) and then class, k,
+ordered by sorting on type variable, tv, (major key) and then class, k,
 (minor key)
 \end{itemize}
 -}
@@ -2074,7 +2074,7 @@ a)) will be solved by the explicit Eq (N a) instance.  We do *not*
 create the superclasses by casting the superclass dictionaries for the
 representation type.
 
-See the paper "Safe zero-cost coercions for Hsakell".
+See the paper "Safe zero-cost coercions for Haskell".
 
 
 ************************************************************************

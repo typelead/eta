@@ -424,7 +424,7 @@ extendPackageConfigMap (PackageConfigMap pkg_map closure) new_pkgs
   where add pkg_map p = addToUDFM (addToUDFM pkg_map (expandedPackageConfigId p) p)
                                   (installedPackageConfigId p) p
 
--- | Looks up the package with the given id in the package state, panicing if it is
+-- | Looks up the package with the given id in the package state, panicking if it is
 -- not found
 getPackageDetails :: DynFlags -> UnitId -> PackageConfig
 getPackageDetails dflags pid =

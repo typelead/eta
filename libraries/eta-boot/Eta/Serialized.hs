@@ -10,7 +10,7 @@
 -- Maintainer  :  typeleadhq@gmail.com
 -- Portability :  portable
 --
--- Serialization for IPC architecture for external interpeter
+-- Serialization for IPC architecture for external interpreter
 
 module Eta.Serialized (
     -- * Main Serialized data type

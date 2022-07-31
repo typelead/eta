@@ -21,7 +21,7 @@ Version 3.0     28 May 1997
     quadratic behaviour with left-associated (++) chains.
 
     This is really bad news.  One thing a pretty-printer abstraction should
-    certainly guarantee is insensivity to associativity.  It matters: suddenly
+    certainly guarantee is insensitivity to associativity.  It matters: suddenly
     GHC's compilation times went up by a factor of 100 when I switched to the
     new pretty printer.
 
@@ -101,8 +101,8 @@ Relative to John's original paper, there are the following new features:
 
         sep (separate) is either like hsep or like vcat, depending on what fits
 
-        cat  is behaves like sep,  but it uses <> for horizontal conposition
-        fcat is behaves like fsep, but it uses <> for horizontal conposition
+        cat  is behaves like sep,  but it uses <> for horizontal composition
+        fcat is behaves like fsep, but it uses <> for horizontal composition
 
         These new ones do the obvious things:
                 char, semi, comma, colon, space,
@@ -335,7 +335,7 @@ Laws for oneLiner
 \end{verbatim}
 
 
-You might think that the following verion of <m1> would
+You might think that the following version of <m1> would
 be neater:
 \begin{verbatim}
 <3 NO>  (text s <> x) $$ y = text s <> ((empty <> x)) $$
@@ -448,7 +448,7 @@ The argument of @NilAbove@ is never @Empty@. Therefore
 a @NilAbove@ occupies at least two lines.
 
 \item
-The arugment of @TextBeside@ is never @Nest@.
+The argument of @TextBeside@ is never @Nest@.
 
 \item
 The layouts of the two arguments of @Union@ both flatten to the same string.
@@ -579,7 +579,7 @@ above p@(Beside _ _ _) g  q  = aboveNest (reduceDoc p) g (_ILIT(0)) (reduceDoc q
 above p g q                  = aboveNest p             g (_ILIT(0)) (reduceDoc q)
 
 aboveNest :: RDoc -> Bool -> FastInt -> RDoc -> RDoc
--- Specfication: aboveNest p g k q = p $g$ (nest k q)
+-- Specification: aboveNest p g k q = p $g$ (nest k q)
 
 aboveNest NoDoc               _ _ _ = NoDoc
 aboveNest (p1 `Union` p2)     g k q = aboveNest p1 g k q `union_`

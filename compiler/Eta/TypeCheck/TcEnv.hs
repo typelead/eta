@@ -418,7 +418,7 @@ getScopedTyVarBinds
 {-
 Note [Initialising the type environment for GHCi]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tcExtendGhciIdEnv extends the local type environemnt with GHCi
+tcExtendGhciIdEnv extends the local type environment with GHCi
 identifiers (from ic_tythings), bound earlier in the interaction.
 They may have free type variables (RuntimeUnk things), and if we don't
 register these free TyVars as global TyVars then the typechecker will
@@ -433,7 +433,7 @@ Note especially that
    That's important because some are not closed (ie have free tyvars)
    and the compiler assumes that the global type env (tcg_type_env) has
    no free tyvars.  Actually, only ones with Internal names can be non-closed
-   so we jsut add those
+   so we just add those
 
  * The tct_closed flag depends on whether the thing has free (RuntimeUnk)
    type variables
@@ -471,7 +471,7 @@ tcExtendGhciIdEnv ids thing_inside
               | otherwise                                = NotTopLevel
 
 tcExtendLetEnv :: TopLevelFlag -> TopLevelFlag -> [TcId] -> TcM a -> TcM a
--- Used for both top-level value bindings and and nested let/where-bindings
+-- Used for both top-level value bindings and nested let/where-bindings
 tcExtendLetEnv top_lvl closed ids thing_inside
   = do  { stage <- getStage
         ; tc_extend_local_env (top_lvl, thLevel stage)
@@ -657,7 +657,7 @@ topIdLvl :: Id -> ThLevel
 -- E.g. this is bad:
 --      x = [| foo |]
 --      $( f x )
--- By the time we are prcessing the $(f x), the binding for "x"
+-- By the time we are processing the $(f x), the binding for "x"
 -- will be in the global env, not the local one.
 topIdLvl id | isLocalId id = outerLevel
             | otherwise    = impLevel
@@ -714,7 +714,7 @@ tcGetDefaultTys
 {-
 Note [Default unitTy]
 ~~~~~~~~~~~~~~~~~~~~~
-In interative mode (or with -XExtendedDefaultRules) we add () as the first type we
+In interactive mode (or with -XExtendedDefaultRules) we add () as the first type we
 try when defaulting.  This has very little real impact, except in the following case.
 Consider:
         Text.Printf.printf "hello"
@@ -797,7 +797,7 @@ simpleInstInfoTyCon inst = tcTyConAppTyCon (simpleInstInfoTy inst)
 
 {-
 Make a name for the dict fun for an instance decl.  It's an *external*
-name, like otber top-level names, and hence must be made with newGlobalBinder.
+name, like other top-level names, and hence must be made with newGlobalBinder.
 -}
 
 newDFunName :: Class -> [Type] -> SrcSpan -> TcM Name
@@ -809,7 +809,7 @@ newDFunName clas tys loc
 
 {-
 It may be advantageous at some point to build a string for a type which actually
-encompasses the structure of the type like parethesizing.
+encompasses the structure of the type like parenthesizing.
 Even in the new mkInfoString something like `a (b c)` and `(a b) c` will result
 in the same string "a_b_c".
 -}

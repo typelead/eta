@@ -354,7 +354,7 @@ Note [Rules and inlining]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 Common special case: no type or dictionary abstraction
 This is a bit less trivial than you might suppose
-The naive way woudl be to desguar to something like
+The naive way would be to desguar to something like
         f_lcl = ...f_lcl...     -- The "binds" from AbsBinds
         M.f = f_lcl             -- Generated from "exports"
 But we don't want that, because if M.f isn't exported,
@@ -445,7 +445,7 @@ happen as a result of method sharing), there's a danger that we never
 get to do the inlining, which is a Terribly Bad thing given that the
 user said "inline"!
 
-To avoid this we pre-emptively eta-expand the definition, so that foo
+To avoid this we preemptively eta-expand the definition, so that foo
 has the arity with which it is declared in the source code.  In this
 example it has arity 2 (one for the Eq and one for x). Doing this
 should mean that (foo d) is a PAP and we don't share it.
@@ -522,7 +522,7 @@ if there is no variable in the pattern desugaring looks like
   With `Strict`, we want to force `tm`, but NOT `fm` or `gm`.
   Alas, `tm` isn't in scope in the `in <body>` part.
 
-  The simplest thing is to return it in the polymoprhic
+  The simplest thing is to return it in the polymorphic
   tuple `t`, thus:
 
     let t = /\a. letrec tm = rhs[fm,gm]
@@ -608,7 +608,7 @@ dsSpec mb_poly_rhs (L loc (SpecPrag poly_id spec_co spec_inl))
   = putSrcSpanDs loc $
     do { warnDs NoReason (text "Ignoring useless SPECIALISE pragma for NOINLINE function:"
                           <+> quotes (ppr poly_id))
-       ; return Nothing  }  -- Function is NOINLINE, and the specialiation inherits that
+       ; return Nothing  }  -- Function is NOINLINE, and the specialisation inherits that
                             -- See Note [Activation pragmas for SPECIALISE]
 
   | otherwise
@@ -700,7 +700,7 @@ From a user SPECIALISE pragma for f, we generate
 We need two pragma-like things:
 
 * spec_fn's inline pragma: inherited from f's inline pragma (ignoring
-                           activation on SPEC), unless overriden by SPEC INLINE
+                           activation on SPEC), unless overridden by SPEC INLINE
 
 * Activation of RULE: from SPECIALISE pragma (if activation given)
                       otherwise from f's inline pragma
@@ -753,7 +753,7 @@ decomposeRuleLhs orig_bndrs orig_lhs
 
   | Just (fn_id, args) <- decompose fun2 args2
   , let extra_dict_bndrs = mk_extra_dict_bndrs fn_id args
-  = -- pprTrace "decmposeRuleLhs" (vcat [ ptext (sLit "orig_bndrs:") <+> ppr orig_bndrs
+  = -- pprTrace "decomposeRuleLhs" (vcat [ ptext (sLit "orig_bndrs:") <+> ppr orig_bndrs
     --                                  , ptext (sLit "orig_lhs:") <+> ppr orig_lhs
     --                                  , ptext (sLit "lhs1:")     <+> ppr lhs1
     --                                  , ptext (sLit "extra_dict_bndrs:") <+> ppr extra_dict_bndrs
@@ -872,7 +872,7 @@ drop_dicts drops dictionary bindings on the LHS where possible.
              RULE forall s (d :: MonadBstractIOST (ReaderT s)).
                 useAbstractMonad (ReaderT s) d = $suseAbstractMonad s
 
-   Trac #8848 is a good example of where there are some intersting
+   Trac #8848 is a good example of where there are some interesting
    dictionary bindings to discard.
 
 The drop_dicts algorithm is based on these observations:

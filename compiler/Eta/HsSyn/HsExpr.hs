@@ -525,7 +525,7 @@ HsPar (and ParPat in patterns, HsParTy in types) is used as follows
     necessary.  Eg (HsApp f (HsApp g x)) is fine, and prints 'f (g x)'
 
   * HsPars are pretty printed as '( .. )' regardless of whether
-    or not they are strictly necssary
+    or not they are strictly necessary
 
   * HsPars are respected when rearranging operator fixities.
     So   a * (b + c)  means what it says (where the parens are an HsPar)
@@ -777,7 +777,7 @@ However, some code is internally generated, and in some places
 parens are absolutely required; so for these places we use
 pprParendExpr (but don't print double parens of course).
 
-For operator applications we don't add parens, because the oprerator
+For operator applications we don't add parens, because the operator
 fixities should do the job, except in debug mode (-dppr-debug) so we
 can see the structure of the parse tree.
 -}

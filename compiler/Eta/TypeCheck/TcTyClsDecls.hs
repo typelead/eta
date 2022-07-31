@@ -146,7 +146,7 @@ tcTyClGroup tyclds
 
                  -- Populate environment with knot-tied ATyCon for TyCons
                  -- NB: if the decls mention any ill-staged data cons
-                 -- (see Note [Recusion and promoting data constructors]
+                 -- (see Note [Recursion and promoting data constructors]
                  -- we will have failed already in kcTyClGroup, so no worries here
            ; tcExtendRecEnv (zipRecTyClss names_w_poly_kinds rec_tyclss) $
 
@@ -255,7 +255,7 @@ Open type families
 This treatment of type synonyms only applies to Haskell 98-style synonyms.
 General type functions can be recursive, and hence, appear in `alg_decls'.
 
-The kind of an open type family is solely determinded by its kind signature;
+The kind of an open type family is solely determined by its kind signature;
 hence, only kind signatures participate in the construction of the initial
 kind environment (as constructed by `getInitialKind'). In fact, we ignore
 instances of families altogether in the following. However, we need to include
@@ -564,7 +564,7 @@ However, during tcTyClDecl of T (above) we will be in a recursive
 "knot". So we aren't allowed to look at the TyCon T itself; we are only
 allowed to put it (lazily) in the returned structures.  But when
 kind-checking the RHS of T's decl, we *do* need to know T's kind (so
-that we can correctly elaboarate (T k f a).  How can we get T's kind
+that we can correctly elaborate (T k f a).  How can we get T's kind
 without looking at T?  Delicate answer: during tcTyClDecl, we extend
 
   *Global* env with T -> ATyCon (the (not yet built) TyCon for T)
@@ -579,7 +579,7 @@ Then:
     the *global* env to get the TyCon. But we must be careful not to
     force the TyCon or we'll get a loop.
 
-This fancy footwork (with two bindings for T) is only necesary for the
+This fancy footwork (with two bindings for T) is only necessary for the
 TyCons or Classes of this recursive group.  Earlier, finished groups,
 live in the global env only.
 -}
@@ -650,7 +650,7 @@ tcTyClDecl1 _parent rec_info
 
        ; return (ATyCon (classTyCon clas) : gen_dm_ids ++ class_ats ) }
          -- NB: Order is important due to the call to `mkGlobalThings' when
-         --     tying the the type and class declaration type checking knot.
+         --     tying the type and class declaration type checking knot.
   where
     tc_fundep (tvs1, tvs2) = do { tvs1' <- mapM (tc_fd_tyvar . unLoc) tvs1 ;
                                 ; tvs2' <- mapM (tc_fd_tyvar . unLoc) tvs2 ;
@@ -1503,7 +1503,7 @@ checkValidTyCon tc
         ts1 = mkVarSet tvs1
         fty1 = dataConFieldType con1 label
 
-        checkOne (_, con2)    -- Do it bothways to ensure they are structurally identical
+        checkOne (_, con2)    -- Do it both ways to ensure they are structurally identical
             = do { checkFieldCompat label con1 con2 ts1 res1 res2 fty1 fty2
                  ; checkFieldCompat label con2 con1 ts2 res2 res1 fty2 fty1 }
             where
@@ -2043,7 +2043,7 @@ For naughty selectors we make a dummy binding
    sel = ()
 for naughty selectors, so that the later type-check will add them to the
 environment, and they'll be exported.  The function is never called, because
-the tyepchecker spots the sel_naughty field.
+the typechecker spots the sel_naughty field.
 
 Note [GADT record selectors]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2062,7 +2062,7 @@ Details: the "real" types of T1,T2 are:
    T1 :: forall r a.   (r~[a]) => a -> T r
    T2 :: forall r a b. (r~[a]) => a -> b -> T r
 
-So the selector loooks like this:
+So the selector looks like this:
    f :: forall a. T [a] -> Maybe a
    f (a:*) (t:T [a])
      = case t of
@@ -2098,7 +2098,7 @@ The selector we want for fld looks like this:
                 T1 (x::b) -> x
 
 The scrutinee of the case has type :R7T (Maybe b), which can be
-gotten by appying the eq_spec to the univ_tvs of the data con.
+gotten by applying the eq_spec to the univ_tvs of the data con.
 
 ************************************************************************
 *                                                                      *

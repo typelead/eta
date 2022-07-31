@@ -178,7 +178,7 @@ initSysTools mbMinusB
        let platform = Platform { platformWordSize = 4
                           , platformArch = undefined
                           , platformOS = undefined
-                          , platformUnregisterised = undefined
+                          , platformUnregistered = undefined
                           , platformHasGnuNonexecStack = undefined
                           , platformHasIdentDirective = undefined
                           , platformHasSubsectionsViaSymbols = undefined
@@ -406,9 +406,9 @@ readProcessEnvWithExitCode
 readProcessEnvWithExitCode prog args env_update = do
     current_env <- getEnvironment
     let new_env = env_update ++ [ (k, v)
-                                | let overriden_keys = map fst env_update
+                                | let overridden_keys = map fst env_update
                                 , (k, v) <- current_env
-                                , k `notElem` overriden_keys
+                                , k `notElem` overridden_keys
                                 ]
         p       = proc prog args
 

@@ -53,7 +53,7 @@ public class Runtime {
 
     /* Parameter: minTSOIdleTime (int)
        The minimum amount of time (in ms) the runtime should wait to spawn a new Worker
-       Capabiliity to handle an idle TSO in the Global Run Queue if the
+       Capability to handle an idle TSO in the Global Run Queue if the
        maxWorkerCapabilities requirement is satisfied. */
     private static int minTSOIdleTime;
 

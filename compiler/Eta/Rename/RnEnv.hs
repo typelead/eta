@@ -413,7 +413,7 @@ lookupConstructorFields :: Name -> RnM [Name]
 --      data type decls
 --
 --    * For constructors from imported modules, use the *type* environment
---      since imported modles are already compiled, the info is conveniently
+--      since imported models are already compiled, the info is conveniently
 --      right there
 
 lookupConstructorFields con_name
@@ -485,7 +485,7 @@ greRdrName gre
       = unqual_rdr  -- An unqualified import is available
       | otherwise
       =             -- Only qualified imports available, so make up
-                    -- a suitable qualifed name from the first imp_spec
+                    -- a suitable qualified name from the first imp_spec
         ASSERT( not (null imp_specs) )
         mkRdrQual (is_as (is_decl (head imp_specs))) occ
 
@@ -541,7 +541,7 @@ of 'G' in the 'instance C S' decl is unambiguous, because C has only
 one associated type called G. This is exactly what happens for methods,
 and it is only consistent to do the same thing for types. That's the
 role of the function lookupTcdName; the (Maybe Name) give the class of
-the encloseing instance decl, if any.
+the enclosing instance decl, if any.
 
 Note [Looking up Exact RdrNames]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -612,7 +612,7 @@ But when adding to the UsedRdrNames we must make that qualification
 explicit (saying "used  M.f"), otherwise we get "Redundant import of M.f".
 
 So we make up a suitable (fake) RdrName.  But be careful
-   import qualifed M
+   import qualified M
    import M( C(f) )
    instance C T where
      f x = x
@@ -851,7 +851,7 @@ Note [Handling of deprecations]
 * We report deprecations at each *occurrence* of the deprecated thing
   (see Trac #5867)
 
-* We do not report deprectations for locally-definded names. For a
+* We do not report deprectations for locally-defined names. For a
   start, we may be exporting a deprecated thing. Also we may use a
   deprecated thing in the defn of another deprecated things.  We may
   even use a deprecated thing in the defn of a non-deprecated thing,
@@ -876,7 +876,7 @@ addUsedRdrName warnIfDeprec gre rdr
 addUsedRdrNames :: [RdrName] -> RnM ()
 -- Record used sub-binders
 -- We don't check for imported-ness here, because it's inconvenient
--- and not stritly necessary.
+-- and not strictly necessary.
 -- NB: no call to warnIfDeprecated; see Note [Handling of deprecations]
 addUsedRdrNames rdrs
   = do { env <- getGblEnv
@@ -1038,10 +1038,10 @@ data HsSigCtxt
   = TopSigCtxt    NameSet    -- At top level, binding these names
                              -- See Note [Signatures for top level things]
                              -- Bool <=> ok to give sig for
-                             --          class method or record selctor
+                             --          class method or record selector
   | LocalBindCtxt NameSet    -- In a local binding, binding these names
   | ClsDeclCtxt   Name       -- Class decl for this class
-  | InstDeclCtxt  Name       -- Intsance decl for this class
+  | InstDeclCtxt  Name       -- Instance decl for this class
   | HsBootCtxt    NameSet           -- Top level of a hs-boot file
   | RoleAnnotCtxt NameSet    -- A role annotation, with the names of all types
                              -- in the group
@@ -1218,7 +1218,7 @@ type MiniFixityEnv = FastStringEnv (Located Fixity)
         --
         -- It is keyed by the *FastString*, not the *OccName*, because
         -- the single fixity decl       infix 3 T
-        -- affects both the data constructor T and the type constrctor T
+        -- affects both the data constructor T and the type constructor T
         --
         -- We keep the location so that if we find
         -- a duplicate, we can report it sensibly

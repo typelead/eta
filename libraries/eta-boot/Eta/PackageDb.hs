@@ -30,12 +30,12 @@
 -- the internal package format which is specialised just for Eta.
 --
 -- Eta the compiler only needs some of the information which is kept about
--- registerd packages, such as module names, various paths etc. On the other
+-- registered packages, such as module names, various paths etc. On the other
 -- hand eta-pkg has to keep all the information from Etlas packages and be able
 -- to regurgitate it for users and other tools.
 --
 -- The first trick is that we duplicate some of the information in the package
--- database. We essentially keep two versions of the datbase in one file, one
+-- database. We essentially keep two versions of the database in one file, one
 -- version used only by eta-pkg which keeps the full information (using the
 -- serialised form of the 'InstalledPackageInfo' type defined by the Etlas
 -- library); and a second version written by eta-pkg and read by Eta which has

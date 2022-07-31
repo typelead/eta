@@ -120,7 +120,7 @@ public class Stg {
             }
         }
         if (debug) {
-            debugTailCalls("Exiting trampoline sucessfully with result " +
+            debugTailCalls("Exiting trampoline successfully with result " +
                            Print.classAndIdentity(ret) + " after " + context.tailCalls +
                            " tail calls.");
         }

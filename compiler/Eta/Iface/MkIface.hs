@@ -716,7 +716,7 @@ When we specialise an INLINEABLE function, or when we have
 We don't want to warn about these, at least not by default, or we'd
 generate a lot of warnings.  Hence -fwarn-auto-orphans.
 
-Indeed, we don't even treat the module as an oprhan module if it has
+Indeed, we don't even treat the module as an orphan module if it has
 auto-generated *rule* orphans.  Orphan modules are read every time we
 compile, so they are pretty obtrusive and slow down every compilation,
 even non-optimised ones.  (Reason: for type class instances it's a
@@ -1041,8 +1041,8 @@ recompileRequired _ = True
 -- is equivalent to the current source file the user asked us to compile.
 -- If the same, we can avoid recompilation. We return a tuple where the
 -- first element is a bool saying if we should recompile the object file
--- and the second is maybe the interface file, where Nothng means to
--- rebuild the interface file not use the exisitng one.
+-- and the second is maybe the interface file, where Nothing means to
+-- rebuild the interface file not use the existing one.
 checkOldIface
   :: HscEnv
   -> ModSummary
@@ -1127,7 +1127,7 @@ check_old_iface hsc_env mod_summary src_modified maybe_iface
 -- two things may have changed that mean we should recompile M:
 --   * The interface export by a dependency of M has changed.
 --   * The compiler flags specified this time for M have changed
---     in a manner that is significant for recompilaiton.
+--     in a manner that is significant for recompilation.
 -- We return not just if we should recompile the object file but also
 -- if we should rebuild the interface file.
 checkVersions :: HscEnv

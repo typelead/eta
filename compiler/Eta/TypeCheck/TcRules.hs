@@ -100,7 +100,7 @@ Consider
        f b True = ...
     #-}
 Here we *must* solve the wanted (Eq a) from the given (Eq a)
-resulting from skolemising the agument type of g.  So we
+resulting from skolemising the argument type of g.  So we
 revert to SimplCheck when going under an implication.
 
 
@@ -159,7 +159,7 @@ tcRule (HsRule name act hs_bndrs lhs fv_lhs rhs fv_rhs)
         --      RULE:  forall v. fst (ss v) = fst v
         -- The type of the rhs of the rule is just a, but v::(a,(b,c))
         --
-        -- We also need to get the completely-uconstrained tyvars of
+        -- We also need to get the completely-unconstrained tyvars of
         -- the LHS, lest they otherwise get defaulted to Any; but we do that
         -- during zonking (see TcHsSyn.zonkRule)
 
@@ -223,7 +223,7 @@ tcRuleBndrs (L _ (RuleBndrSig (L _ name) rn_ty) : rule_bndrs)
         ; let id  = mkLocalId name id_ty
               tvs = map snd tv_prs
                     -- tcHsPatSigType returns (Name,TyVar) pairs
-                    -- for for RuleSigCtxt their Names are not
+                    -- for RuleSigCtxt their Names are not
                     -- cloned, so we get (n, tv-with-name-n) pairs
                     -- See Note [Pattern signature binders] in TcHsType
 

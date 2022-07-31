@@ -272,10 +272,10 @@ A FamInstEnv maps a family name to the list of known instances for that family.
 
 The same FamInstEnv includes both 'data family' and 'type family' instances.
 Type families are reduced during type inference, but not data families;
-the user explains when to use a data family instance by using contructors
+the user explains when to use a data family instance by using constructors
 and pattern matching.
 
-Neverthless it is still useful to have data families in the FamInstEnv:
+Nevertheless it is still useful to have data families in the FamInstEnv:
 
  - For finding overlaps and conflicts
 
@@ -301,7 +301,7 @@ Then we get a data type for each instance, and an axiom:
    axiom ax8 a :: T Bool [a] ~ TBoolList a
 
 These two axioms for T, one with one pattern, one with two.  The reason
-for this eta-reduction is decribed in TcInstDcls
+for this eta-reduction is described in TcInstDcls
    Note [Eta reduction for data family axioms]
 -}
 
@@ -789,7 +789,7 @@ reduceTyFamApp_maybe :: FamInstEnvs
 --    but *not* newtypes
 -- Works on type-synonym families always; data-families only if
 --     the role we seek is representational
--- It does *not* normlise the type arguments first, so this may not
+-- It does *not* normalise the type arguments first, so this may not
 --     go as far as you want. If you want normalised type arguments,
 --     use normaliseTcArgs first.
 --
@@ -951,7 +951,7 @@ normaliseType :: FamInstEnvs            -- environment with family instances
 -- Normalise the input type, by eliminating *all* type-function redexes
 -- but *not* newtypes (which are visible to the programmer)
 -- Returns with Refl if nothing happens
--- Try to not to disturb type syonyms if possible
+-- Try to not to disturb type synonyms if possible
 
 normaliseType env role (TyConApp tc tys)
   = normaliseTcApp env role tc tys

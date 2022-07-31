@@ -13,7 +13,7 @@
 -- @mpz_*()@ functions using @long@ types, which is smaller than
 -- @mp_limb_t@ on IL32P64. The @mpn_*()@ functions are often safe to
 -- use, as they use @mb_limb_t@ instead of @long@.
--- (look out for @#if SIZEOF_HSWORD == SIZEOF_LONG@ occurences)
+-- (look out for @#if SIZEOF_HSWORD == SIZEOF_LONG@ occurrences)
 --
 
 #define INT_MINBOUND (-2147483648#)
@@ -240,7 +240,7 @@ operations are more efficient. See Trac #8638.
 'smartJ#' is the smart constructor for J# that performs the necessary
 tests.  When returning a nested result, we always use smartJ# strictly,
 thus
-       let !r = smartJ# a b in (# r, somthing_else #)
+       let !r = smartJ# a b in (# r, something_else #)
 to avoid creating a thunk that is subsequently evaluated to a J#.
 smartJ# itself does a pretty small amount of work, so it's not worth
 thunking it.
@@ -732,7 +732,7 @@ recipModInteger j@(S# _) m@(J# _) = recipModInteger (toBig j) m
 recipModInteger j@(J# _) m@(S# _) = recipModInteger j (toBig m)
 recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 
--- | Probalistic Miller-Rabin primality test.
+-- | Probabilistic Miller-Rabin primality test.
 --
 -- \"@'testPrimeInteger' /n/ /k/@\" determines whether @/n/@ is prime
 -- and returns one of the following results:
@@ -755,7 +755,7 @@ testPrimeInteger :: Integer -> Int# -> Int#
 testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
 testPrimeInteger (J# o#)  reps = jbool2int# (testPrimeInteger# o# reps)
 
--- | Compute next prime greater than @/n/@ probalistically.
+-- | Compute next prime greater than @/n/@ probabilistically.
 --
 -- According to the GMP documentation, the underlying function
 -- @mpz_nextprime()@ \"uses a probabilistic algorithm to identify
@@ -775,7 +775,7 @@ nextPrimeInteger (J# o#)  = smartJ# (nextPrimeInteger# o#)
 -- integers in order to call @mpz_sizeinbase()@.
 --
 -- This function wraps @mpz_sizeinbase()@ which has some
--- implementation pecularities to take into account:
+-- implementation peculiarities to take into account:
 --
 -- * \"@'sizeInBaseInteger' 0 /base/ = 1@\" (see also comment in 'exportIntegerToMutableByteArray').
 --

@@ -88,7 +88,7 @@ public final class Capability implements LocalHeap {
             && workerCapabilitiesSize() == 0;
     }
 
-    /* This object is used to sychronize among all the idle worker capabilities. */
+    /* This object is used to synchronize among all the idle worker capabilities. */
     private static Object blockedLock = new Object();
 
     /* The current number of worker capabilities waiting for work */
@@ -278,7 +278,7 @@ public final class Capability implements LocalHeap {
                 /* Thread is done executing, awaken the blocked exception queue. */
                 awakenBlockedExceptionQueue(t);
 
-                /* If an unhandled exception occured, throw it so that the caller
+                /* If an unhandled exception occurred, throw it so that the caller
                    can handle it if they so choose. */
                 if (pendingException != null) {
                     /* Cleanup resources in the Runtime before throwing the exception
@@ -425,7 +425,7 @@ public final class Capability implements LocalHeap {
         }
     }
 
-    /* Asychronous Exceptions */
+    /* Asynchronous Exceptions */
 
     public final boolean maybePerformBlockedException(TSO tso) {
         final Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;

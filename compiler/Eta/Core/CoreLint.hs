@@ -115,7 +115,7 @@ That is, use a type let.   See Note [Type let] in CoreSyn.
 
 However, when linting <body> we need to remember that a=Int, else we might
 reject a correct program.  So we carry a type substitution (in this example
-[a -> Int]) and apply this substitution before comparing types.  The functin
+[a -> Int]) and apply this substitution before comparing types.  The function
         lintInTy :: Type -> LintM Type
 returns a substituted type; that's the only reason it returns anything.
 
@@ -133,7 +133,7 @@ find an occurrence of an Id, we fetch it from the in-scope set.
 ************************************************************************
 
 These functions are not CoreM monad stuff, but they probably ought to
-be, and it makes a conveneint place.  place for them.  They print out
+be, and it makes a convenient place.  place for them.  They print out
 stuff before and after core passes, and do Core Lint when necessary.
 -}
 
@@ -355,7 +355,7 @@ lintCoreBindings pass local_in_scope binds
     (_, dups) = removeDups compare binders
 
     -- dups_ext checks for names with different uniques
-    -- but but the same External name M.n.  We don't
+    -- but the same External name M.n.  We don't
     -- allow this at top level:
     --    M.n{r3}  = ...
     --    M.n{r29} = ...
@@ -793,7 +793,7 @@ checkCaseAlts :: CoreExpr -> OutType -> [CoreAlt] -> LintM ()
 -- b2) Check that the others are in increasing order
 -- c) Check that there's a default for infinite types
 -- NB: Algebraic cases are not necessarily exhaustive, because
---     the simplifer correctly eliminates case that can't
+--     the simplifier correctly eliminates case that can't
 --     possibly match.
 
 checkCaseAlts e ty alts =
@@ -1506,7 +1506,7 @@ checkInScope loc_msg var =
 checkTys :: OutType -> OutType -> MsgDoc -> LintM ()
 -- check ty2 is subtype of ty1 (ie, has same structure but usage
 -- annotations need only be consistent, not equal)
--- Assumes ty1,ty2 are have alrady had the substitution applied
+-- Assumes ty1,ty2 are have already had the substitution applied
 checkTys ty1 ty2 msg = checkL (ty1 `eqType` ty2) msg
 
 checkRole :: Coercion
@@ -1588,7 +1588,7 @@ mkScrutMsg var var_ty scrut_ty subst
 
 mkNonDefltMsg, mkNonIncreasingAltsMsg :: CoreExpr -> MsgDoc
 mkNonDefltMsg e
-  = hang (text "Case expression with DEFAULT not at the beginnning") 4 (ppr e)
+  = hang (text "Case expression with DEFAULT not at the beginning") 4 (ppr e)
 mkNonIncreasingAltsMsg e
   = hang (text "Case expression with badly-ordered alternatives") 4 (ppr e)
 

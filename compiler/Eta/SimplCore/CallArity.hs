@@ -26,7 +26,7 @@ import Control.Arrow ( first, second )
 {-
 %************************************************************************
 %*                                                                      *
-              Call Arity Analyis
+              Call Arity Analysis
 %*                                                                      *
 %************************************************************************
 
@@ -76,7 +76,7 @@ correct.
 What we want to know from an expression
 ---------------------------------------
 
-In order to obtain that information for variables, we analyize expression and
+In order to obtain that information for variables, we analyze expression and
 obtain bits of information:
 
  I.  The arity analysis:
@@ -95,7 +95,7 @@ For efficiency reasons, we gather this information only for a set of
 The two analysis are not completely independent, as a higher arity can improve
 the information about what variables are being called once or multiple times.
 
-Note [Analysis I: The arity analyis]
+Note [Analysis I: The arity analysis]
 ------------------------------------
 
 The arity analysis is quite straight forward: The information about an
@@ -104,8 +104,8 @@ expression is an
 where absent variables are bound to Nothing and otherwise to a lower bound to
 their arity.
 
-When we analyize an expression, we analyize it with a given context arity.
-Lambdas decrease and applications increase the incoming arity. Analysizing a
+When we analyze an expression, we analyze it with a given context arity.
+Lambdas decrease and applications increase the incoming arity. Analyzing a
 variable will put that arity in the environment. In lets or cases all the
 results from the various subexpressions are lubed, which takes the point-wise
 minimum (considering Nothing an infinity).
@@ -115,7 +115,7 @@ Note [Analysis II: The Co-Called analysis]
 ------------------------------------------
 
 The second part is more sophisticated. For reasons explained below, it is not
-sufficient to simply know how often an expression evalutes a variable. Instead
+sufficient to simply know how often an expression evaluates a variable. Instead
 we need to know which variables are possibly called together.
 
 The data structure here is an undirected graph of variables, which is provided
@@ -147,10 +147,10 @@ The interesting cases of the analysis:
    any useful co-call information.
    Return (fv e)²
  * Case alternatives alt₁,alt₂,...:
-   Only one can be execuded, so
+   Only one can be executed, so
    Return (alt₁ ∪ alt₂ ∪...)
  * App e₁ e₂ (and analogously Case scrut alts), with non-trivial e₂:
-   We get the results from both sides, with the argument evaluted at most once.
+   We get the results from both sides, with the argument evaluated at most once.
    Additionally, anything called by e₁ can possibly be called with anything
    from e₂.
    Return: C(e₁) ∪ C(e₂) ∪ (fv e₁) × (fv e₂)
@@ -160,7 +160,7 @@ The interesting cases of the analysis:
    Return: C(e₁) ∪ (fv e₁) × {x} ∪ {(x,x)}
  * Let v = rhs in body:
    In addition to the results from the subexpressions, add all co-calls from
-   everything that the body calls together with v to everthing that is called
+   everything that the body calls together with v to everything that is called
    by v.
    Return: C'(rhs) ∪ C(body) ∪ (fv rhs) × {v'| {v,v'} ∈ C(body)}
  * Letrec v₁ = rhs₁ ... vₙ = rhsₙ in body
@@ -274,7 +274,7 @@ together with what other functions.
 Note [Analysis type signature]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The work-hourse of the analysis is the function `callArityAnal`, with the
+The work-horse of the analysis is the function `callArityAnal`, with the
 following type:
 
     type CallArityRes = (UnVarGraph, VarEnv Arity)
@@ -321,7 +321,7 @@ everytime we would be lookup up `x` in the analysis result of `e2`.
     that this variable might be called many times with no variables.
   * Instead of checking `calledWith x`, we assume that everything can be called
     with it.
-  * In the recursive case, when calclulating the `cross_calls`, if there is
+  * In the recursive case, when calculating the `cross_calls`, if there is
     any boring variable in the recursive group, we ignore all co-call-results
     and directly go to a very conservative assumption.
 
@@ -340,9 +340,9 @@ For a mutually recursive let, we begin by
  3. We combine the analysis result from the body and the memoized results for
     the arguments (if already present).
  4. For each variable, we find out the incoming arity and whether it is called
-    once, based on the the current analysis result. If this differs from the
+    once, based on the current analysis result. If this differs from the
     memoized results, we re-analyse the rhs and update the memoized table.
- 5. If nothing had to be reanalized, we are done.
+ 5. If nothing had to be reanalyzed, we are done.
     Otherwise, repeat from step 3.
 
 
@@ -350,10 +350,10 @@ Note [Thunks in recursive groups]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We never eta-expand a thunk in a recursive group, on the grounds that if it is
-part of a recursive group, then it will be called multipe times.
+part of a recursive group, then it will be called multiple times.
 
 This is not necessarily true, e.g.  it would be safe to eta-expand t2 (but not
-t1) in the follwing code:
+t1) in the following code:
 
   let go x = t1
       t1 = if ... then t2 else ...
@@ -371,7 +371,7 @@ Note [Analysing top-level binds]
 We can eta-expand top-level-binds if they are not exported, as we see all calls
 to them. The plan is as follows: Treat the top-level binds as nested lets around
 a body representing “all external calls”, which returns a pessimistic
-CallArityRes (the co-call graph is the complete graph, all arityies 0).
+CallArityRes (the co-call graph is the complete graph, all arities 0).
 
 Note [Trimming arity]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -468,7 +468,7 @@ callArityAnal arity int (Lam v e)
   where
     (ae, e') = callArityAnal (arity - 1) (int `delVarSet` v) e
 
--- Application. Increase arity for the called expresion, nothing to know about
+-- Application. Increase arity for the called expression, nothing to know about
 -- the second
 callArityAnal arity int (App e (Type t))
     = second (\e -> App e (Type t)) $ callArityAnal arity int e
@@ -599,11 +599,11 @@ callArityBind boring_vars ae_body int b@(Rec binds)
             | Just (old_called_once, old_arity, _) <- mbLastRun
             , called_once == old_called_once
             , new_arity == old_arity
-            -- No change, no need to re-analize
+            -- No change, no need to reanalyze
             = (False, (i, mbLastRun, rhs))
 
             | otherwise
-            -- We previously analized this with a different arity (or not at all)
+            -- We previously analyzed this with a different arity (or not at all)
             = let is_thunk = not (exprIsHNF rhs)
 
                   safe_arity | is_thunk    = 0  -- See Note [Thunks in recursive groups]
@@ -677,7 +677,7 @@ trimArity v a = minimum [a, max_arity_by_type, max_arity_by_strsig]
 ---------------------------------------
 
 -- Result type for the two analyses.
--- See Note [Analysis I: The arity analyis]
+-- See Note [Analysis I: The arity analysis]
 -- and Note [Analysis II: The Co-Called analysis]
 type CallArityRes = (UnVarGraph, VarEnv Arity)
 

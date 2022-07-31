@@ -178,7 +178,7 @@ module Eta.Main.GHC (
         isRecordSelector,
         isPrimOpId, isFCallId, isClassOpId_maybe,
         isDataConWorkId, idDataCon,
-        isBottomingId, isDictonaryId,
+        isBottomingId, isDictionaryId,
         recordSelectorFieldLabel,
 
         -- ** Type constructors
@@ -584,7 +584,7 @@ setProgramDynFlags dflags = do
 -- that the next downsweep will think that all the files have changed
 -- and preprocess them again.  This won't necessarily cause everything
 -- to be recompiled, because by the time we check whether we need to
--- recopmile a module, we'll have re-summarised the module and have a
+-- recompile a module, we'll have re-summarised the module and have a
 -- correct ModSummary.
 --
 invalidateModSummaryCache :: GhcMonad m => m ()
@@ -1169,8 +1169,8 @@ modInfoModBreaks :: ModuleInfo -> ModBreaks
 modInfoModBreaks = minf_modBreaks
 #endif
 
-isDictonaryId :: Id -> Bool
-isDictonaryId id
+isDictionaryId :: Id -> Bool
+isDictionaryId id
   = case tcSplitSigmaTy (idType id) of { (_tvs, _theta, tau) -> isDictTy tau }
 
 -- | Looks up a global name: that is, any top-level name in any
@@ -1276,7 +1276,7 @@ pprParenSymName a = parenSymOcc (getOccName a) (ppr (getName a))
 
 #endif
 
--- Extract the filename, stringbuffer content and dynflags associed to a module
+-- Extract the filename, stringbuffer content and dynflags associated to a module
 --
 -- XXX: Explain pre-conditions
 getModuleSourceAndFlags :: GhcMonad m => Module -> m (String, StringBuffer, DynFlags)

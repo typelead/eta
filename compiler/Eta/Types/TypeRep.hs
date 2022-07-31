@@ -111,7 +111,7 @@ data Type
   | TyConApp      -- See Note [AppTy invariant]
         TyCon
         [KindOrType]    -- ^ Application of a 'TyCon', including newtypes /and/ synonyms.
-                        -- Invariant: saturated appliations of 'FunTyCon' must
+                        -- Invariant: saturated applications of 'FunTyCon' must
                         -- use 'FunTy' and saturated synonyms must use their own
                         -- constructors. However, /unsaturated/ 'FunTyCon's
                         -- do appear as 'TyConApp's.
@@ -380,7 +380,7 @@ as ATyCon.  You can tell the difference, and get to the class, with
 The Class and its associated TyCon have the same Name.
 -}
 
--- | A typecheckable-thing, essentially anything that has a name
+-- | A typechecked-thing, essentially anything that has a name
 data TyThing
   = AnId     Id
   | AConLike ConLike
@@ -509,9 +509,9 @@ works just by setting the initial context precedence very high.
 Note [Precedence in types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 We don't keep the fixity of type operators in the operator. So the pretty printer
-operates the following precedene structre:
+operates the following precedence structure:
    Type constructor application   binds more tightly than
-   Oerator applications           which bind more tightly than
+   Operator applications           which bind more tightly than
    Function arrow
 
 So we might see  a :+: T b -> c
@@ -522,7 +522,7 @@ Maybe operator applications should bind a bit less tightly?
 Anyway, that's the current story, and it is used consistently for Type and HsType
 -}
 
-data TyPrec   -- See Note [Prededence in types]
+data TyPrec   -- See Note [Precedence in types]
 
   = TopPrec         -- No parens
   | FunPrec         -- Function args; no parens for tycon apps
@@ -701,7 +701,7 @@ So I'm trying out this rule: print explicit foralls if
   b) Any of the quantified type variables has a kind
      that mentions a kind variable
 
-This catches common situations, such as a type siguature
+This catches common situations, such as a type signature
      f :: m a
 which means
       f :: forall k. forall (m :: k->*) (a :: k). m a
@@ -787,7 +787,7 @@ pprTupleApp p pp tc tys
     tupleParens (tupleTyConSort tc) (sep (punctuate comma (map (pp TopPrec) tys)))
 
 pprTcApp_help :: TyPrec -> (TyPrec -> a -> SDoc) -> TyCon -> [a] -> DynFlags -> SDoc
--- This one has accss to the DynFlags
+-- This one has access to the DynFlags
 pprTcApp_help p pp tc tys dflags
   | not (isSymOcc (nameOccName (tyConName tc)))
   = pprPrefixApp p (ppr tc) (map (pp TyConPrec) tys_wo_kinds)

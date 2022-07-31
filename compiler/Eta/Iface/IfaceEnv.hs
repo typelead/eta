@@ -47,7 +47,7 @@ import Control.Exception
 
 Note [The Name Cache]
 ~~~~~~~~~~~~~~~~~~~~~
-The Name Cache makes sure that, during any invovcation of GHC, each
+The Name Cache makes sure that, during any invocation of GHC, each
 External Name "M.x" has one, and only one globally-agreed Unique.
 
 * The first time we come across M.x we make up a Unique and record that
@@ -66,7 +66,7 @@ newGlobalBinder :: Module -> OccName -> SrcSpan -> TcRnIf a b Name
 -- Name for a thing, given its Module and OccName
 -- See Note [The Name Cache]
 --
--- The cache may already already have a binding for this thing,
+-- The cache may already have a binding for this thing,
 -- because we may have seen an occurrence before, but now is the
 -- moment when we know its Module and SrcLoc in their full glory
 
@@ -96,7 +96,7 @@ allocateGlobalBinder name_supply mod occ loc
         -- of the Name, so we set this field in the Name we return.
         --
         -- Then (bogus) multiple bindings of the same Name
-        -- get different SrcLocs can can be reported as such.
+        -- get different SrcLocs can be reported as such.
         --
         -- Possible other reason: it might be in the cache because we
         --      encountered an occurrence before the binding site for an
@@ -132,7 +132,7 @@ newImplicitBinder :: Name                       -- Base name
                   -> TcRnIf m n Name            -- Implicit name
 -- Called in BuildTyCl to allocate the implicit binders of type/class decls
 -- For source type/class decls, this is the first occurrence
--- For iface ones, the LoadIface has alrady allocated a suitable name in the cache
+-- For iface ones, the LoadIface has already allocated a suitable name in the cache
 newImplicitBinder base_name mk_sys_occ
   | Just mod <- nameModule_maybe base_name
   = newGlobalBinder mod occ loc

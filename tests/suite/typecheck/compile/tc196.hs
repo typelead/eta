@@ -1,6 +1,6 @@
 
 -- Test the refined dependency analysis of bindings
--- with -fglagow-exts
+-- with -fglasgow-exts
 
 module ShouldCompile where
 

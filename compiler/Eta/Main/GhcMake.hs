@@ -139,7 +139,7 @@ depanal excluded_mods allow_dup_roots = do
 -- when building a library, so that GHC warns user about modules, not listed
 -- neither in `exposed-modules`, nor in `other-modules`.
 --
--- Here "home module" means a module, that doesn't come from an other package.
+-- Here "home module" means a module, that doesn't come from another package.
 --
 -- For example, if GHC is invoked with modules "A" and "B" as targets,
 -- but "A" imports some other module "C", then GHC will issue a warning
@@ -542,7 +542,7 @@ guessOutputFile = modifySession $ \env ->
 
         name_exe = do
 -- #if defined(mingw32_HOST_OS)
---           -- we must add the .exe extention unconditionally here, otherwise
+--           -- we must add the .exe extension unconditionally here, otherwise
 --           -- when name has an extension of its own, the .exe extension will
 --           -- not be added by DriverPipeline.exeFileName.  See #2248
 --           name' <- fmap (<.> "exe") name
@@ -629,7 +629,7 @@ findPartiallyCompletedCycles modsDone theGraph
 --
 -- | Unloading
 unload :: HscEnv -> [Linkable] -> IO ()
-unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
+unload hsc_env stable_linkables -- Unload everything *except* 'stable_linkables'
   = case ghcLink (hsc_dflags hsc_env) of
         LinkInMemory -> Linker.unload hsc_env stable_linkables
         _other -> return ()
@@ -734,7 +734,7 @@ checkStability hpt sccs all_home_mods =
                                  -> isObjectLinkable l && t == linkableTime l
                                 _other  -> True
                 -- why '>=' rather than '>' above?  If the filesystem stores
-                -- times to the nearset second, we may occasionally find that
+                -- times to the nearest second, we may occasionally find that
                 -- the object & source have the same modification time,
                 -- especially if the source was automatically generated
                 -- and compiled.  Using >= is slightly unsafe, but it matches
@@ -845,7 +845,7 @@ parUpsweep n_jobs mHscMessage old_hpt stable_mods cleanup sccs = do
     hsc_env_var <- liftIO $ newMVar hsc_env
 
     -- The old HPT is used for recompilation checking in upsweep_mod. When a
-    -- module sucessfully gets compiled, its HMI is pruned from the old HPT.
+    -- module successfully gets compiled, its HMI is pruned from the old HPT.
     old_hpt_var <- liftIO $ newIORef old_hpt
 
     -- What we use to limit parallelism with.
@@ -1934,7 +1934,7 @@ summariseFile hsc_env old_summaries file mb_phase obj_allowed maybe_buf
     get_src_timestamp = case maybe_buf of
                            Just (_,t) -> return t
                            Nothing    -> liftIO $ getModificationUTCTime file
-                        -- getMofificationUTCTime may fail
+                        -- getModificationUTCTime may fail
 
     new_summary src_timestamp = do
         let dflags = hsc_dflags hsc_env
@@ -2165,7 +2165,7 @@ preprocessFile hsc_env src_fn mb_phase (Just (buf, _time))
                 | otherwise                     = False
 
         when needs_preprocessing $
-           throwGhcExceptionIO (ProgramError "buffer needs preprocesing; interactive check disabled")
+           throwGhcExceptionIO (ProgramError "buffer needs preprocessing; interactive check disabled")
 
         return (dflags', src_fn, buf)
 

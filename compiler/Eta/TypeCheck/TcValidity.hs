@@ -122,7 +122,7 @@ to a Type, performing kind checking, and then check various things that should
 be true about it.  We don't want to perform these checks at the same time
 as the initial translation because (a) they are unnecessary for interface-file
 types and (b) when checking a mutually recursive group of type and class decls,
-we can't "look" at the tycons/classes yet.  Also, the checks are are rather
+we can't "look" at the tycons/classes yet.  Also, the checks are rather
 diverse, and used to really mess up the other code.
 
 One thing we check for is 'rank'.
@@ -439,7 +439,7 @@ expand S first, then T we get just
 which is fine.
 
 IMPORTANT: suppose T is a type synonym.  Then we must do validity
-checking on an appliation (T ty1 ty2)
+checking on an application (T ty1 ty2)
 
         *either* before expansion (i.e. check ty1, ty2)
         *or* after expansion (i.e. expand T ty1 ty2, and then check)
@@ -706,17 +706,17 @@ and fail.
 
 So in fact we use this as our *definition* of ambiguity.  We use a
 very similar test for *inferred* types, to ensure that they are
-unambiguous. See Note [Impedence matching] in TcBinds.
+unambiguous. See Note [Impedance matching] in TcBinds.
 
 This test is very conveniently implemented by calling
     tcSubType <type> <type>
-This neatly takes account of the functional dependecy stuff above,
+This neatly takes account of the functional dependency stuff above,
 and implicit parameter (see Note [Implicit parameters and ambiguity]).
 
 What about this, though?
    g :: C [a] => Int
 Is every call to 'g' ambiguous?  After all, we might have
-   intance C [a] where ...
+   instance C [a] where ...
 at the call site.  So maybe that type is ok!  Indeed even f's
 quintessentially ambiguous type might, just possibly be callable:
 with -XFlexibleInstances we could have
@@ -725,7 +725,7 @@ and now a call could be legal after all!  Well, we'll reject this
 unless the instance is available *here*.
 
 Side note: the ambiguity check is only used for *user* types, not for
-types coming from inteface files.  The latter can legitimately have
+types coming from interface files.  The latter can legitimately have
 ambiguous types. Example
 
    class S a where s :: a -> (Int,Int)
@@ -743,7 +743,7 @@ Only a *class* predicate can give rise to ambiguity
 An *implicit parameter* cannot.  For example:
         foo :: (?x :: [a]) => Int
         foo = length ?x
-is fine.  The call site will suppply a particular 'x'
+is fine.  The call site will supply a particular 'x'
 
 Furthermore, the type variables fixed by an implicit parameter
 propagate to the others.  E.g.
@@ -818,7 +818,7 @@ checkValidInstHead ctxt clas cls_args
                  (instTypeErr clas cls_args abstract_class_msg)
 
            -- Check language restrictions;
-           -- but not for SPECIALISE isntance pragmas
+           -- but not for SPECIALISE instance pragmas
        ; let ty_args = dropWhile isKind cls_args
        ; unless spec_inst_prag $
          do { checkTc (xopt LangExt.TypeSynonymInstances dflags ||
@@ -917,7 +917,7 @@ checkValidInstance ctxt hs_type ty
   = do  { setSrcSpan head_loc (checkValidInstHead ctxt clas inst_tys)
         ; checkValidTheta ctxt theta
 
-        -- The Termination and Coverate Conditions
+        -- The Termination and Coverage Conditions
         -- Check that instance inference will terminate (if we care)
         -- For Haskell 98 this will already have been done by checkValidTheta,
         -- but as we may be using other extensions we need to check.
@@ -952,7 +952,7 @@ checkValidInstance ctxt hs_type ty
 Note [Paterson conditions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Termination test: the so-called "Paterson conditions" (see Section 5 of
-"Understanding functionsl dependencies via Constraint Handling Rules,
+"Understanding functional dependencies via Constraint Handling Rules,
 JFP Jan 2007).
 
 We check that each assertion in the context satisfies:
@@ -1048,11 +1048,11 @@ So we
   * Look at the tyvars a,x,b of the type family constructor T
     (it shares tyvars with the class C)
 
-  * Apply the mini-evnt to them, and check that the result is
+  * Apply the mini-event to them, and check that the result is
     consistent with the instance types [p] y Int
 
-We do *not* assume (at this point) the the bound variables of
-the assoicated type instance decl are the same as for the parent
+We do *not* assume (at this point) the bound variables of
+the associated type instance decl are the same as for the parent
 instance decl. So, for example,
 
   instance C [p] Int
@@ -1121,7 +1121,7 @@ checkConsistentFamInst (Just (clas, mini_env)) fam_tc at_tvs at_tys
            Just subst | all_distinct subst -> return subst
            _ -> failWithTc $ wrongATArgErr at_ty inst_ty
                 -- No need to instantiate here, because the axiom
-                -- uses the same type variables as the assocated class
+                -- uses the same type variables as the associated class
       | otherwise
       = return subst   -- Allow non-type-variable instantiation
                        -- See Note [Associated type instances]
@@ -1327,7 +1327,7 @@ sizeTypes xs = sum (map sizeType tys)
 --
 -- We are considering whether class constraints terminate.
 -- Equality constraints and constraints for the implicit
--- parameter class always termiante so it is safe to say "size 0".
+-- parameter class always terminate so it is safe to say "size 0".
 -- (Implicit parameter constraints always terminate because
 -- there are no instances for them---they are only solved by
 -- "local instances" in expressions).

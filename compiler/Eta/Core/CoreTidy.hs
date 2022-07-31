@@ -189,7 +189,7 @@ tidyLetBndr rec_tidy_env env@(tidy_env, var_env) (id,rhs)
         --
         -- Similarly arity info for eta expansion in CorePrep
         --
-        -- Set inline-prag info so that we preseve it across
+        -- Set inline-prag info so that we preserve it across
         -- separate compilation boundaries
         old_info = idInfo id
         new_info = vanillaIdInfo

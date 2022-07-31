@@ -743,7 +743,7 @@ data EvTerm
 -- | Instructions on how to make a 'Typeable' dictionary.
 data EvTypeable
   = EvTypeableTyCon TyCon [Kind]
-    -- ^ Dicitionary for concrete type constructors.
+    -- ^ Dictionary for concrete type constructors.
 
   | EvTypeableTyApp (EvTerm,Type) (EvTerm,Type)
     -- ^ Dictionary for type applications;  this is used when we have
@@ -830,7 +830,7 @@ Conceptually, this class has infinitely many instances:
   ...
 
 In practice, we solve `KnownNat` predicates in the type-checker
-(see typecheck/TcInteract.hs) because we can't have infinately many instances.
+(see typecheck/TcInteract.hs) because we can't have infinitely many instances.
 The evidence (aka "dictionary") for `KnownNat` is of the form `EvLit (EvNum n)`.
 
 We make the following assumptions about dictionaries in GHC:
@@ -851,7 +851,7 @@ a more convenient function, defined in terms of `natSing`:
 
 The reason we don't use this directly in the class is that it is simpler
 and more efficient to pass around an integer rather than an entier function,
-especialy when the `KnowNat` evidence is packaged up in an existential.
+especially when the `KnowNat` evidence is packaged up in an existential.
 
 The story for kind `Symbol` is analogous:
   * class KnownSymbol
@@ -937,7 +937,7 @@ Important Details:
    [G] d :: IP "stk" CallStack
 
   in scope. In the interaction phase, GHC would normally solve the use of ?stk
-  directly from the given, i.e. re-using the dicionary. But this is NOT what we
+  directly from the given, i.e. re-using the dictionary. But this is NOT what we
   want! We want to generate a *new* CallStack with ?loc's SrcLoc pushed onto
   the given CallStack. So we must take care in TcInteract.interactDict to
   prioritize solving wanted CallStacks.

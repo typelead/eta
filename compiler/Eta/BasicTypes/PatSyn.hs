@@ -56,7 +56,7 @@ data PatSyn
         psArity       :: Arity,       -- == length psArgs
         psInfix       :: Bool,        -- True <=> declared infix
 
-        psUnivTyVars  :: [TyVar],     -- Universially-quantified type variables
+        psUnivTyVars  :: [TyVar],     -- Universally-quantified type variables
         psReqTheta    :: ThetaType,   -- Required dictionaries
         psExTyVars    :: [TyVar],     -- Existentially-quantified type vars
         psProvTheta   :: ThetaType,   -- Provided dictionaries
@@ -237,7 +237,7 @@ instance Data.Data PatSyn where
 -- | Build a new pattern synonym
 mkPatSyn :: Name
          -> Bool                 -- ^ Is the pattern synonym declared infix?
-         -> ([TyVar], ThetaType) -- ^ Universially-quantified type variables
+         -> ([TyVar], ThetaType) -- ^ Universally-quantified type variables
                                  --   and required dicts
          -> ([TyVar], ThetaType) -- ^ Existentially-quantified type variables
                                  --   and provided dicts

@@ -19,7 +19,7 @@ import eta.runtime.thunk.Ap3VUpd;
 import eta.runtime.thunk.Ap4VUpd;
 import static eta.runtime.stg.TSO.WhatNext.*;
 
-/* - Utilies for working with Closures from the Java side.
+/* - Utilities for working with Closures from the Java side.
    - Standard closures used throughout the runtime system. */
 
 public class Closures {

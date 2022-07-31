@@ -140,7 +140,7 @@ exprsSomeFreeVars :: InterestingVarFun  -- Says which 'Var's are interesting
 exprsSomeFreeVars fv_cand es =
   fvVarSet $ filterFV fv_cand $ foldr (unionFV . expr_fvs) emptyFV es
 
---      Comment about obselete code
+--      Comment about obsolete code
 -- We used to gather the free variables the RULES at a variable occurrence
 -- with the following cryptic comment:
 --     "At a variable occurrence, add in any free variables of its rule rhss
@@ -175,7 +175,7 @@ someVars vars = foldr (unionFV . oneVar) emptyFV vars
 addBndr :: CoreBndr -> FV -> FV
 addBndr bndr fv fv_cand in_scope acc
   = (varTypeTyFVs bndr `unionFV`
-        -- Include type varibles in the binder's type
+        -- Include type variables in the binder's type
         --      (not just Ids; coercion variables too!)
     FV.delFV bndr fv) fv_cand in_scope acc
 

@@ -257,7 +257,7 @@ Or, to put it another way
    there is no work lost in duplicating the partial
    application (e x1 .. x(n-1))
 
-In the divegent case, no work is lost by duplicating because if the thing
+In the divergent case, no work is lost by duplicating because if the thing
 is evaluated once, that's the end of the program.
 
 Or, to put it another way, in any context C
@@ -307,7 +307,7 @@ do so; it improves some programs significantly, and increasing convergence
 isn't a bad thing.  Hence the ABot/ATop in ArityType.
 
 So these two transformations aren't always the Right Thing, and we
-have several tickets reporting unexpected bahaviour resulting from
+have several tickets reporting unexpected behaviour resulting from
 this transformation.  So we try to limit it as much as possible:
 
  (1) Do NOT move a lambda outside a known-bottom case expression
@@ -346,7 +346,7 @@ we want to get:                  coerce T (\x::[T] -> (coerce ([T]->Int) e) x)
   HOWEVER, note that if you use coerce bogusly you can ge
         coerce Int negate
   And since negate has arity 2, you might try to eta expand.  But you can't
-  decopose Int to a function type.   Hence the final case in eta_expand.
+  decompose Int to a function type.   Hence the final case in eta_expand.
 
 Note [The state-transformer hack]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -387,7 +387,7 @@ Extrude the g2
   f' = \p. \s. ((error "...") |> g1) s
   f = f' |> (String -> g2)
 
-Discard args for bottomming function
+Discard args for bottoming function
 
   f' = \p. \s. ((error "...") |> g1 |> g3
   g3 :: (S -> (S,T)) ~ (S,T)
@@ -442,7 +442,7 @@ ArityType 'at', then
    assuming the calls of f respect the one-shot-ness of of
    its definition.
 
-   NB 'f' is an arbitary expression, eg (f = g e1 e2).  This 'f'
+   NB 'f' is an arbitrary expression, eg (f = g e1 e2).  This 'f'
    can have ArityType as ATop, with length as > 0, only if e1 e2 are
    themselves.
 
@@ -674,7 +674,7 @@ Consider
                            False -> \s(one-shot). e1
            in go2 x
 We *really* want to eta-expand go and go2.
-When combining the barnches of the case we have
+When combining the branches of the case we have
      ATop [] `andAT` ATop [OneShotLam]
 and we want to get ATop [OneShotLam].  But if the inner
 lambda wasn't one-shot we don't want to do this.
@@ -749,7 +749,7 @@ arityType env (Case scrut _ _ alts)
   | otherwise
   = case alts_type of
      ABot n  | n>0       -> ATop []    -- Don't eta expand
-             | otherwise -> ABot 0     -- if RHS is bottomming
+             | otherwise -> ABot 0     -- if RHS is bottoming
                                        -- See Note [Dealing with bottom (2)]
 
      ATop as | not (ae_ped_bot env)    -- See Note [Dealing with bottom (3)]
@@ -814,7 +814,7 @@ returns a CoreExpr satisfying the same invariant. See Note [Eta
 expansion and the CorePrep invariants] in CorePrep.
 
 This means the eta-expander has to do a bit of on-the-fly
-simplification but it's not too hard.  The alernative, of relying on
+simplification but it's not too hard.  The alternative, of relying on
 a subsequent clean-up phase of the Simplifier to de-crapify the result,
 means you can't really use it in CorePrep, which is painful.
 
@@ -995,7 +995,7 @@ mkEtaWW orig_n orig_expr in_scope orig_ty
                          -- but its type isn't a function.
        = WARN( True, (ppr orig_n <+> ppr orig_ty) $$ ppr orig_expr )
          (getTvInScope subst, reverse eis)
-        -- This *can* legitmately happen:
+        -- This *can* legitimately happen:
         -- e.g.  coerce Int (\x. x) Essentially the programmer is
         -- playing fast and loose with types (Happy does this a lot).
         -- So we simply decline to eta-expand.  Otherwise we'd end up

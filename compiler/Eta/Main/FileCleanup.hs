@@ -235,7 +235,7 @@ removeWith :: DynFlags -> (FilePath -> IO ()) -> FilePath -> IO ()
 removeWith dflags remover f = remover f `catchIO`
   (\e ->
    let msg = if isDoesNotExistError e
-             then text "Warning: deleting non-existent" <+> text f
+             then text "Warning: deleting nonexistent" <+> text f
              else text "Warning: exception raised when deleting"
                                             <+> text f <> colon
                $$ text (show e)

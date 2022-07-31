@@ -133,7 +133,7 @@ rnExpr (OpApp e1 (L op_loc (HsVar op_rdr)) _ e2)
         ; op_name <- setSrcSpan op_loc (lookupOccRn op_rdr)
         ; (op', fv_op) <- finishHsVar op_name
                 -- NB: op' is usually just a variable, but might be
-                --     an applicatoin (assert "Foo.hs:47")
+                --     an application (assert "Foo.hs:47")
         -- Deal with fixity
         -- When renaming code synthesised from "deriving" declarations
         -- we used to avoid fixity stuff, but we can't easily tell any
@@ -663,7 +663,7 @@ transformation loses the ability to do A and C in parallel.
 
 The algorithm works by first splitting the sequence of statements into
 independent "segments", and a separate "tail" (the final statement). In
-our example above, the segements would be
+our example above, the segments would be
 
      [ x <- A
      , y <- B x ]
@@ -1007,7 +1007,7 @@ allowed this to be transformed into
 
   (\(x,y) -> \z -> C) <$> A <*> B
 
-then it could be lazier than the standard desuraging using >>=.  See #13875
+then it could be lazier than the standard desugaring using >>=.  See #13875
 for more examples.
 
 Thus, whenever we have a strict pattern match, we treat it as a
@@ -1373,7 +1373,7 @@ rnStmt ctxt _ (L loc (TransStmt { trS_stmts = stmts, trS_by = by, trS_form = for
                    ; (thing, fvs_thing) <- thing_inside bndrs
                    ; let fvs = fvs_by `plusFV` fvs_thing
                          used_bndrs = filter (`elemNameSet` fvs) bndrs
-                         -- The paper (Fig 5) has a bug here; we must treat any free varaible
+                         -- The paper (Fig 5) has a bug here; we must treat any free variable
                          -- of the "thing inside", **or of the by-expression**, as used
                    ; return ((by', used_bndrs, thing), fvs) }
 
@@ -1469,7 +1469,7 @@ Note that
   (c) The 'bs' in the second group must obviously not be captured by
       the binding in the first group
 
-To satisfy (a) we nest the segements.
+To satisfy (a) we nest the segments.
 To satisfy (b) we check for duplicates just before thing_inside.
 To satisfy (c) we reset the LocalRdrEnv each time.
 

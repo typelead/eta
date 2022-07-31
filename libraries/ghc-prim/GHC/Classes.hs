@@ -30,7 +30,7 @@
 -----------------------------------------------------------------------------
 
 module GHC.Classes(
-    -- * Implicit paramaters
+    -- * Implicit parameters
     IP(..),
 
     -- * Equality and ordering

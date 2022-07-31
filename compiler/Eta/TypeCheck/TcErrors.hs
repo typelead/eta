@@ -162,7 +162,7 @@ data ReportErrCtxt
                                        -- ic_skols and givens are tidied, rest are not
           , cec_tidy  :: TidyEnv
           , cec_binds :: Maybe EvBindsVar
-                         -- Nothinng <=> Report all errors, including holes; no bindings
+                         -- Nothing <=> Report all errors, including holes; no bindings
                          -- Just ev  <=> make some errors (depending on cec_defer)
                          --              into warnings, and emit evidence bindings
                          --              into 'ev' for unsolved constraints
@@ -249,7 +249,7 @@ reportWanteds ctxt wanted@(WC { wc_simple = simples, wc_insol = insols, wc_impl 
     ctxt2     = ctxt { cec_suppress = suppress2 }
 
 reportSimples :: ReportErrCtxt -> Cts -> TcM ()
-reportSimples ctxt simples    -- Here 'simples' includes insolble goals
+reportSimples ctxt simples    -- Here 'simples' includes insoluble goals
   =  traceTc "reportSimples" (vcat [ ptext (sLit "Simples =") <+> ppr simples
                                    , ptext (sLit "Suppress =") <+> ppr (cec_suppress ctxt)])
   >> tryReporters
@@ -1072,7 +1072,7 @@ mkExpectedActualMsg ty1 ty2 (TypeEqOrigin { uo_actual = act, uo_expected = exp }
     msg = vcat [ text "Expected type:" <+> ppr exp
                , text "  Actual type:" <+> ppr act ]
 
-mkExpectedActualMsg _ _ _ = panic "mkExprectedAcutalMsg"
+mkExpectedActualMsg _ _ _ = panic "mkExprectedActualMsg"
 
 sameOccExtra :: TcType -> TcType -> SDoc
 -- See Note [Disambiguating (X ~ X) errors]
@@ -1136,7 +1136,7 @@ But nowadays when inferring the type of a function with no type signature,
 even if there are errors inside, we still generalise its signature and
 carry on. For example
    f x = x:x
-Here we will infer somethiing like
+Here we will infer something like
    f :: forall a. a -> [a]
 with a suspended error of (a ~ [a]).  So 'a' is now a skolem, but not
 one bound by the programmer!  Here we really should report an occurs check.
@@ -1459,7 +1459,7 @@ mkAmbigMsg ct
         | not (null ambig_tvs)
         = pp_ambig (ptext (sLit "type")) ambig_tvs
 
-        | otherwise  -- All ambiguous kind variabes; suggest -fprint-explicit-kinds
+        | otherwise  -- All ambiguous kind variables; suggest -fprint-explicit-kinds
         = vcat [ pp_ambig (ptext (sLit "kind")) ambig_kvs
                , sdocWithDynFlags suggest_explicit_kinds ]
 
@@ -1571,7 +1571,7 @@ relevantBindings want_filtering ctxt ct
 
               else if run_out n_left && id_tvs `subVarSet` tvs_seen
                        -- We've run out of n_left fuel and this binding only
-                       -- mentions aleady-seen type variables, so discard it
+                       -- mentions already-seen type variables, so discard it
               then go tidy_env n_left tvs_seen docs True tc_bndrs
 
                        -- Keep this binding, decrement fuel

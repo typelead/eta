@@ -125,7 +125,7 @@ Note [Overall plumbing for rules]
      (b) from the ModGuts,
      (c) from the CoreMonad, and
      (d) from its mutable variable
-  [Of coures this means that we won't see new EPS rules that come in
+  [Of course this means that we won't see new EPS rules that come in
   during a single simplifier iteration, but that probably does not
   matter.]
 
@@ -321,7 +321,7 @@ but that isn't quite right:
 
 -- | Gathers a collection of 'CoreRule's. Maps (the name of) an 'Id' to its rules
 type RuleBase = NameEnv [CoreRule]
-        -- The rules are are unordered;
+        -- The rules are unordered;
         -- we sort out any overlaps on lookup
 
 emptyRuleBase :: RuleBase
@@ -394,7 +394,7 @@ lookupRule dflags in_scope is_active fn args rules
 findBest :: (Id, [CoreExpr])
          -> (CoreRule,CoreExpr) -> [(CoreRule,CoreExpr)] -> (CoreRule,CoreExpr)
 -- All these pairs matched the expression
--- Return the pair the the most specific rule
+-- Return the pair the most specific rule
 -- The (fn,args) is just for overlap reporting
 
 findBest _      (rule,ans)   [] = (rule,ans)
@@ -673,7 +673,7 @@ match _ _ e@Tick{} _
 -- Consider matching
 --      \x->f      against    \f->f
 -- When we meet the lambdas we must remember to rename f to f' in the
--- second expresion.  The RnEnv2 does that.
+-- second expression.  The RnEnv2 does that.
 --
 -- Consider matching
 --      forall a. \b->b    against   \a->3

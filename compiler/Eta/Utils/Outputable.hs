@@ -36,7 +36,7 @@ module Eta.Utils.Outputable (
 
         colored, keyword,
 
-        -- * Converting 'SDoc' into strings and outputing it
+        -- * Converting 'SDoc' into strings and outputting it
         printForC, printForAsm, printForUser, printForUserColored, printForUserPartWay,
         pprCode, mkCodeStyle,
         showSDoc, showSDocUnsafe, showSDocOneLine,
@@ -161,7 +161,7 @@ data PrintUnqualified = QueryQualify {
 -- | given an /original/ name, this function tells you which module
 -- name it should be qualified with when printing for the user, if
 -- any.  For example, given @Control.Exception.catch@, which is in scope
--- as @Exception.catch@, this fuction will return @Just "Exception"@.
+-- as @Exception.catch@, this function will return @Just "Exception"@.
 -- Note that the return value is a ModuleName, not a Module, because
 -- in source code, names are qualified by ModuleNames.
 type QueryQualifyName = Module -> OccName -> QualifyName
@@ -633,7 +633,7 @@ fsep :: [SDoc] -> SDoc
 -- ^ A paragraph-fill combinator. It's much like sep, only it
 -- keeps fitting things on one line until it can't fit any more.
 fcat :: [SDoc] -> SDoc
--- ^ This behaves like 'fsep', but it uses '<>' for horizontal conposition rather than '<+>'
+-- ^ This behaves like 'fsep', but it uses '<>' for horizontal composition rather than '<+>'
 
 
 hcat ds = SDoc $ \sty -> Pretty.hcat [runSDoc d sty | d <- ds]
@@ -1084,7 +1084,7 @@ warnPprTrace True   file  line  msg x
     heading = hsep [text "WARNING: file", text file <> comma, text "line", int line]
 
 assertPprPanic :: String -> Int -> SDoc -> a
--- ^ Panic with an assertation failure, recording the given file and line number.
+-- ^ Panic with an assertion failure, recording the given file and line number.
 -- Should typically be accessed with the ASSERT family of macros
 assertPprPanic file line msg
   = pprPanic "ASSERT failed!" doc

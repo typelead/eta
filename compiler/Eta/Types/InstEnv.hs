@@ -438,10 +438,10 @@ deleteFromInstEnv inst_env ins_item@(ClsInst { is_cls_nm = cls_nm })
     adjust (ClsIE items) = ClsIE (filterOut (identicalClsInstHead ins_item) items)
 
 identicalClsInstHead :: ClsInst -> ClsInst -> Bool
--- ^ True when when the instance heads are the same
+-- ^ True when the instance heads are the same
 -- e.g.  both are   Eq [(a,b)]
 -- Used for overriding in GHCi
--- Obviously should be insenstive to alpha-renaming
+-- Obviously should be insensitive to alpha-renaming
 identicalClsInstHead (ClsInst { is_cls_nm = cls_nm1, is_tcs = rough1, is_tvs = tvs1, is_tys = tys1 })
                      (ClsInst { is_cls_nm = cls_nm2, is_tcs = rough2, is_tvs = tvs2, is_tys = tys2 })
   =  cls_nm1 == cls_nm2
@@ -926,7 +926,7 @@ not incoherent, but we still want this to compile. Hence the
 "all-but-one-logic".
 
 The implementation is in insert_overlapping, where we remove matching
-incoherent instances as long as there are are others.
+incoherent instances as long as there are others.
 
 
 

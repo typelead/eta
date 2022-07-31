@@ -422,7 +422,7 @@ data UserTypeCtxt
 
 ************************************************************************
 *                                                                      *
-                Untoucable type variables
+                Untouchable type variables
 *                                                                      *
 ************************************************************************
 -}
@@ -584,7 +584,7 @@ pprSigCtxt ctxt extra pp_ty
 ************************************************************************
 -}
 
--- | Finds outermost type-family applications occuring in a type,
+-- | Finds outermost type-family applications occurring in a type,
 -- after expanding synonyms.
 tcTyFamInsts :: Type -> [(TyCon, [Type])]
 tcTyFamInsts ty
@@ -753,7 +753,7 @@ isReturnTyVar tv
 
 -- isAmbiguousTyVar is used only when reporting type errors
 -- It picks out variables that are unbound, namely meta
--- type variables and the RuntimUnk variables created by
+-- type variables and the RuntimeUnk variables created by
 -- RtClosureInspect.zonkRTTIType.  These are "ambiguous" in
 -- the sense that they stand for an as-yet-unknown type
 isAmbiguousTyVar tv
@@ -844,7 +844,7 @@ mkTcEqPred :: TcType -> TcType -> Type
 --
 -- But for now we call mkTyConApp, not mkEqPred, because the invariants
 -- of the latter might not be satisfied during type checking.
--- Notably when we form an equalty   (a : OpenKind) ~ (Int : *)
+-- Notably when we form an equality   (a : OpenKind) ~ (Int : *)
 --
 -- But this is horribly delicate: what about type variables
 -- that turn out to be bound to Int#?

@@ -8,7 +8,7 @@ Utility functions on @Core@ syntax
 
 {-# LANGUAGE CPP #-}
 
--- | Commonly useful utilites for manipulating the Core language
+-- | Commonly useful utilities for manipulating the Core language
 module Eta.Core.CoreUtils (
         -- * Constructing expressions
         mkCast,
@@ -132,7 +132,7 @@ coreAltsType []      = panic "corAltsType"
 Note [Type bindings]
 ~~~~~~~~~~~~~~~~~~~~
 Core does allow type bindings, although such bindings are
-not much used, except in the output of the desuguarer.
+not much used, except in the output of the desugarer.
 Example:
      let a = Int in (\x:a. x)
 Given this, exprType must be careful to substitute 'a' in the
@@ -352,7 +352,7 @@ stripTicksTop p = go []
         go ts other            = (reverse ts, other)
 
 -- | Strip ticks satisfying a predicate from top of an expression,
--- returning the remaining expresion
+-- returning the remaining expression
 stripTicksTopE :: (Tickish Id -> Bool) -> Expr b -> Expr b
 stripTicksTopE p = go
   where go (Tick t e) | p t = go e
@@ -475,7 +475,7 @@ isDefaultAlt _               = False
 -- | Find the case alternative corresponding to a particular
 -- constructor: panics if no such constructor exists
 findAlt :: AltCon -> [(AltCon, a, b)] -> Maybe (AltCon, a, b)
-    -- A "Nothing" result *is* legitmiate
+    -- A "Nothing" result *is* legitimate
     -- See Note [Unreachable code]
 findAlt con alts
   = case alts of
@@ -510,7 +510,7 @@ trimConArgs :: AltCon -> [CoreArg] -> [CoreArg]
 -- >        C b x y -> ...
 --
 -- We want to drop the leading type argument of the scrutinee
--- leaving the arguments to match agains the pattern
+-- leaving the arguments to match against the pattern
 
 trimConArgs DEFAULT      args = ASSERT( null args ) []
 trimConArgs (LitAlt _)   args = ASSERT( null args ) []
@@ -613,7 +613,7 @@ that cannot match.  For example:
 
 Suppose that for some silly reason, x isn't substituted in the case
 expression.  (Perhaps there's a NOINLINE on it, or profiling SCC stuff
-gets in the way; cf Trac #3118.)  Then the full-lazines pass might produce
+gets in the way; cf Trac #3118.)  Then the full-laziness pass might produce
 this
 
      x = Red
@@ -924,7 +924,7 @@ exprIsCheap' good_app other_expr        -- Applications and variables
     go (Var _) [] = True
          -- Just a type application of a variable
          -- (f t1 t2 t3) counts as WHNF
-         -- This case is probably handeld by the good_app case
+         -- This case is probably handled by the good_app case
          -- below, which should have a case for n=0, but putting
          -- it here too is belt and braces; and it's such a common
          -- case that checking for null directly seems like a
@@ -1137,7 +1137,7 @@ app_ok primop_ok fun args
 
 -----------------------------
 altsAreExhaustive :: [Alt b] -> Bool
--- True  <=> the case alternatives are definiely exhaustive
+-- True  <=> the case alternatives are definitely exhaustive
 -- False <=> they may or may not be
 altsAreExhaustive []
   = False    -- Should not happen
@@ -1367,7 +1367,7 @@ dataConInstPat :: [FastString]          -- A long enough list of FSs to use for 
 --
 --   ex_tvs are intended to be used as binders for existential type args
 --
---   arg_ids are indended to be used as binders for value arguments,
+--   arg_ids are intended to be used as binders for value arguments,
 --     and their types have been instantiated with inst_tys and ex_tys
 --     The arg_ids include both evidence and
 --     programmer-specified arguments (both after rep-ing)
@@ -1406,7 +1406,7 @@ dataConInstPat fss uniqs con inst_tys
       -- Make the instantiating substitution for universals
     univ_subst = zipOpenTvSubst univ_tvs inst_tys
 
-      -- Make existential type variables, applyingn and extending the substitution
+      -- Make existential type variables, applying and extending the substitution
     (full_subst, ex_bndrs) = mapAccumL mk_ex_var univ_subst
                                        (zip3 ex_tvs ex_fss ex_uniqs)
 
@@ -1590,7 +1590,7 @@ diffExpr _  _ e1 e2
 -- all possible mappings, which would be seriously expensive. So
 -- instead we simply match single bindings as far as we can. This
 -- leaves us just with mutually recursive and/or mismatching bindings,
--- which we then specuatively match by ordering them. It's by no means
+-- which we then speculatively match by ordering them. It's by no means
 -- perfect, but gets the job done well enough.
 diffBinds :: Bool -> RnEnv2 -> [(Var, CoreExpr)] -> [(Var, CoreExpr)]
           -> ([SDoc], RnEnv2)
@@ -1828,7 +1828,7 @@ There are some particularly delicate points here:
   says f=bottom, and replaces the (f `seq` True) with just
   (f `cast` unsafe-co).  BUT, as thing stand, 'f' got arity 1, and it
   *keeps* arity 1 (perhaps also wrongly).  So CorePrep eta-expands
-  the definition again, so that it does not termninate after all.
+  the definition again, so that it does not terminate after all.
   Result: seg-fault because the boolean case actually gets a function value.
   See Trac #1947.
 
@@ -2029,7 +2029,7 @@ rhsIsStatic :: Platform
 --
 -- (ii) We treat partial applications as redexes, because in fact we
 --      make a thunk for them that runs and builds a PAP
---      at run-time.  The only appliations that are treated as
+--      at run-time.  The only applications that are treated as
 --      static are *saturated* applications of constructors.
 
 -- We used to try to be clever with nested structures like this:
@@ -2061,7 +2061,7 @@ rhsIsStatic :: Platform
 -- This is a bit like CoreUtils.exprIsHNF, with the following differences:
 --    a) scc "foo" (\x -> ...) is updatable (so we catch the right SCC)
 --
---    b) (C x xs), where C is a contructor is updatable if the application is
+--    b) (C x xs), where C is a constructor is updatable if the application is
 --         dynamic
 --
 --    c) don't look through unfolding of f in (f x).

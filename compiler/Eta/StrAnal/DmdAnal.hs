@@ -145,7 +145,7 @@ dmdAnalStar env dmd e
   , (dmd_ty, e')        <- dmdAnal env cd e
   = (postProcessDmdType defer_and_use dmd_ty, e')
 
--- Main Demand Analsysis machinery
+-- Main Demand Analysis machinery
 dmdAnal, dmdAnal' :: AnalEnv
         -> CleanDemand         -- The main one takes a *CleanDemand*
         -> CoreExpr -> (DmdType, CoreExpr)
@@ -514,7 +514,7 @@ dmdFix :: TopLevelFlag
        -> AnalEnv                            -- Does not include bindings for this binding
        -> CleanDemand
        -> [(Id,CoreExpr)]
-       -> (AnalEnv, DmdEnv, [(Id,CoreExpr)]) -- Binders annotated with stricness info
+       -> (AnalEnv, DmdEnv, [(Id,CoreExpr)]) -- Binders annotated with strictness info
 
 dmdFix top_lvl env let_dmd orig_pairs
   = loop 1 initial_pairs
@@ -1001,7 +1001,7 @@ by dmdAnalTopBind.
 
 Note [NOINLINE and strictness]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The strictness analyser used to have a HACK which ensured that NOINLNE
+The strictness analyser used to have a HACK which ensured that NOINLINE
 things were not strictness-analysed.  The reason was unsafePerformIO.
 Left to itself, the strictness analyser would discover this strictness
 for unsafePerformIO:
@@ -1438,7 +1438,7 @@ point: all of these functions can have the CPR property.
 
     ------- f3 -----------
     -- h is strict in x, so x will be unboxed before it
-    -- is rerturned in the otherwise case.
+    -- is returned in the otherwise case.
 
     data T3 = MkT3 Int Int
 

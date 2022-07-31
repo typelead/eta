@@ -564,12 +564,12 @@ a user-written type or function name
    $f...        Dict-fun identifiers (from inst decls)
    $dmop        Default method for 'op'
    $pnC         n'th superclass selector for class C
-   $wf          Worker for functtoin 'f'
+   $wf          Worker for function 'f'
    $sf..        Specialised version of f
    T:C          Tycon for dictionary for class C
    D:C          Data constructor for dictionary for class C
    NTCo:T       Coercion connecting newtype T with its representation type
-   TFCo:R       Coercion connecting a data family to its respresentation type R
+   TFCo:R       Coercion connecting a data family to its representation type R
 
 In encoded form these appear as Zdfxxx etc
 
@@ -851,7 +851,7 @@ tidyOccName env occ@(OccName occ_sp fs)
     find !k !n
       = case lookupUFM env new_fs of
           Just {} -> find (k+1 :: Int) (n+k)
-                       -- By using n+k, the n arguemt to find goes
+                       -- By using n+k, the n argument to find goes
                        --    1, add 1, add 2, add 3, etc which
                        -- moves at quadratic speed through a dense patch
 
@@ -859,7 +859,7 @@ tidyOccName env occ@(OccName occ_sp fs)
        where
          new_fs = mkFastString (base ++ show n)
          new_env = addToUFM (addToUFM env new_fs 1) base1 (n+1)
-                     -- Update:  base_fs, so that next time we'll start whwere we left off
+                     -- Update:  base_fs, so that next time we'll start where we left off
                      --          new_fs,  so that we know it is taken
                      -- If they are the same (n==1), the former wins
                      -- See Note [TidyOccEnv]

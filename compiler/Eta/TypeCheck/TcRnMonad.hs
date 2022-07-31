@@ -877,7 +877,7 @@ tryTc m
 -----------------------
 tryTcErrs :: TcRn a -> TcRn (Messages, Maybe a)
 -- Run the thing, returning
---      Just r,  if m succceeds with no error messages
+--      Just r,  if m succeeds with no error messages
 --      Nothing, if m fails, or if it succeeds but has error messages
 -- Either way, the messages are returned; even in the Just case
 -- there might be warnings
@@ -1362,7 +1362,7 @@ constraints might be "variable out of scope" Hole constraints, and that
 might have been the actual original cause of the exception!  For
 example (Trac #12529):
    f = p @ Int
-Here 'p' is out of scope, so we get an insolube Hole constraint. But
+Here 'p' is out of scope, so we get an insoluble Hole constraint. But
 the visible type application fails in the monad (thows an exception).
 We must not discard the out-of-scope error.
 
@@ -1371,7 +1371,7 @@ Hence:
   - insolublesOnly in tryCaptureConstraints
   - emitConstraints in the Left case of captureConstraints
 
-Hover note that fresly-generated constraints like (Int ~ Bool), or
+Hover note that freshly-generated constraints like (Int ~ Bool), or
 ((a -> b) ~ Int) are all CNonCanonical, and hence won't be flagged as
 insoluble.  The constraint solver does that.  So they'll be discarded.
 That's probably ok; but see th/5358 as a not-so-good example:

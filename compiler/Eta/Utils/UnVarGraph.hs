@@ -8,7 +8,7 @@ A data structure for undirected graphs of variables
 
 This is very specifically tailored for the use in CallArity. In particular it
 stores the graph as a union of complete and complete bipartite graph, which
-would be very expensive to store as sets of edges or as adjanceny lists.
+would be very expensive to store as sets of edges or as adjacent lists.
 
 It does not normalize the graphs. This means that g `unionUnVarGraph` g is
 equal to g, but twice as expensive and large.
@@ -42,7 +42,7 @@ import qualified Data.IntSet as S
 -- at hand, and we do not have that when we turn the domain of a VarEnv into a UnVarSet.
 -- Therefore, use a IntSet directly (which is likely also a bit more efficient).
 
--- Set of uniques, i.e. for adjancet nodes
+-- Set of uniques, i.e. for adjacent nodes
 newtype UnVarSet = UnVarSet (S.IntSet)
     deriving Eq
 

@@ -208,7 +208,7 @@ checkWiredInTyCon tc
         ; ASSERT( isExternalName tc_name )
           when (mod /= nameModule tc_name)
                (initIfaceTcRn (loadWiredInHomeIface tc_name))
-                -- Don't look for (non-existent) Float.hi when
+                -- Don't look for (nonexistent) Float.hi when
                 -- compiling Float.lhs, which mentions Float of course
                 -- A bit yukky to call initIfaceTcRn here
         }
@@ -677,7 +677,7 @@ When dynamically loading a plugin (via loadPluginInterface) we
 populate the same External Package State (EPS), even though plugin
 modules are to link with the compiler itself, and not with the
 compiled program.  That's fine: mostly the EPS is just a cache for
-the interace files on disk.
+the interface files on disk.
 
 But it's NOT ok for the RULES or instance environment.  We do not want
 to fire a RULE from the plugin on the code we are compiling, otherwise

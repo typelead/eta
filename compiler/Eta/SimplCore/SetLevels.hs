@@ -342,7 +342,7 @@ lvlExpr env expr@(_, AnnLam {})
     (bndrs, body)        = collectAnnBndrs expr
     (env1, bndrs1)       = substBndrsSL NonRecursive env bndrs
     (new_env, new_bndrs) = lvlLamBndrs env1 (le_ctxt_lvl env) bndrs1
-        -- At one time we called a special verion of collectBinders,
+        -- At one time we called a special version of collectBinders,
         -- which ignored coercions, because we don't want to split
         -- a lambda like this (\x -> coerce t (\s -> ...))
         -- This used to happen quite a bit in state-transformer programs,
@@ -391,7 +391,7 @@ lvlCase env scrut_fvs scrut' case_bndr ty alts
   where
       incd_lvl = incMinorLvl (le_ctxt_lvl env)
       dest_lvl = maxFvLevel (const True) env scrut_fvs
-              -- Don't abstact over type variables, hence const True
+              -- Don't abstract over type variables, hence const True
 
       lvl_alt alts_env (con, bs, rhs)
         = do { rhs' <- lvlMFE True new_env rhs
@@ -514,13 +514,13 @@ lvlMFE strict_ctxt env ann_expr@(fvs, _)
           --    concat = /\ a -> lvl a
           -- which is pretty stupid.  Hence the strict_ctxt test
           --
-          -- Also a strict contxt includes uboxed values, and they
+          -- Also a strict contxt includes unboxed values, and they
           -- can't be bound at top level
 
 {-
 Note [Unlifted MFEs]
 ~~~~~~~~~~~~~~~~~~~~
-We don't float unlifted MFEs, which potentially loses big opportunites.
+We don't float unlifted MFEs, which potentially loses big opportunities.
 For example:
         \x -> f (h y)
 where h :: Int -> Int# is expensive. We'd like to float the (h y) outside
@@ -536,7 +536,7 @@ we'd like to float the call to error, to get
 Furthermore, we want to float a bottoming expression even if it has free
 variables:
         f = \x. g (let v = h x in error ("urk" ++ v))
-Then we'd like to abstact over 'x' can float the whole arg of g:
+Then we'd like to abstract over 'x' can float the whole arg of g:
         lvl = \x. let v = h x in error ("urk" ++ v)
         f = \x. g (lvl x)
 See Maessen's paper 1999 "Bottom extraction: factoring error handling out
@@ -995,7 +995,7 @@ lookupVar le v = case lookupVarEnv (le_env le) v of
                     _              -> Var v
 
 abstractVars :: Level -> LevelEnv -> DVarSet -> [OutVar]
-        -- Find the variables in fvs, free vars of the target expresion,
+        -- Find the variables in fvs, free vars of the target expression,
         -- whose level is greater than the destination level
         -- These are the ones we are going to abstract out
         --
@@ -1115,7 +1115,7 @@ zap_demand_info v
 Note [Zapping the demand info]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 VERY IMPORTANT: we must zap the demand info if the thing is going to
-float out, becuause it may be less demanded than at its original
+float out, because it may be less demanded than at its original
 binding site.  Eg
    f :: Int -> Int
    f x = let v = 3*4 in v+x

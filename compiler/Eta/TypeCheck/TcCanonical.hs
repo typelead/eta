@@ -63,7 +63,7 @@ The execution plan for canonicalization is the following:
 
   2) If, when we decompose, we discover a variable on the head then we
      look at inert_eqs from the current inert for a substitution for this
-     variable and contine decomposing. Hence we lazily apply the inert
+     variable and continue decomposing. Hence we lazily apply the inert
      substitution if it is needed.
 
   3) If no more decomposition is possible, we deeply apply the substitution
@@ -209,7 +209,7 @@ canClass, canClassNC
 -- The canClassNC version is used on non-canonical constraints
 -- and adds superclasses.  The plain canClass version is used
 -- for already-canonical class constraints (but which might have
--- been subsituted or somthing), and hence do not need superclasses
+-- been substituted or something), and hence do not need superclasses
 
 canClassNC ev cls tys
   = canClass ev cls tys
@@ -255,7 +255,7 @@ For Wanteds:
        Generally speaking we want to be able to add superclasses of
        wanteds for two reasons:
 
-       (1) Oportunities for improvement. Example:
+       (1) Opportunities for improvement. Example:
                   class (a ~ b) => C a b
            Wanted constraint is: C alpha beta
            We'd like to simply have C alpha alpha. Similar
@@ -486,7 +486,7 @@ can_eq_nc' _rdr_env _envs ev eq_rel s1@(ForAllTy {}) _ s2@(ForAllTy {}) _
              ; setEvBind orig_ev ev_term
              ; stopWith ev "Deferred polytype equality" } }
  | otherwise
- = do { traceTcS "Ommitting decomposition of given polytype equality" $
+ = do { traceTcS "Omitting decomposition of given polytype equality" $
         pprEq s1 s2    -- See Note [Do not decompose given polytype equalities]
       ; stopWith ev "Discard given polytype equality" }
 
@@ -842,7 +842,7 @@ If we see (T s1 t1 ~ T s2 t2), then we can just decompose to
   (s1 ~ s2, t1 ~ t2)
 and push those back into the work list.  But if
   s1 = K k1    s2 = K k2
-then we will jus decomopose s1~s2, and it might be better to
+then we will jus decompose s1~s2, and it might be better to
 do so on the spot.  An important special case is where s1=s2,
 and we get just Refl.
 
@@ -1235,12 +1235,12 @@ canEqTyVarTyVar, are these
    gets eliminated (improves error messages)
 
  * If one is a flatten-skolem, put it on the left so that it is
-   substituted out  Note [Elminate flat-skols]
+   substituted out  Note [Eliminate flat-skols]
         fsk ~ a
 
 Note [Avoid unnecessary swaps]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If we swap without actually improving matters, we can get an infnite loop.
+If we swap without actually improving matters, we can get an infinite loop.
 Consider
     work item:  a ~ b
    inert item:  b ~ c
@@ -1583,7 +1583,7 @@ rewriteEqEvidence :: CtEvidence         -- Old evidence :: olhs ~ orhs (not swap
 -- If swapped
 --      w : orhs ~ olhs = sym rhs_co ; sym w1 ; lhs_co
 --
--- It's all a form of rewwriteEvidence, specialised for equalities
+-- It's all a form of rewriteEvidence, specialised for equalities
 rewriteEqEvidence old_ev eq_rel swapped nlhs nrhs lhs_co rhs_co
   | CtDerived {} <- old_ev
   = do { mb <- newDerived loc' new_pred

@@ -16,7 +16,7 @@ import Eta.Types.Type hiding      ( substTy, extendTvSubst, substTyVar )
 import Eta.SimplCore.SimplEnv
 import Eta.SimplCore.SimplUtils
 import Eta.Types.FamInstEnv       ( FamInstEnv )
-import Eta.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporalily commented out. See #8326
+import Eta.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporarily commented out. See #8326
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.MkId             ( seqId, voidPrimId )
 import Eta.Core.MkCore           ( mkImpossibleExpr, castBottomExpr )
@@ -27,7 +27,7 @@ import Eta.Types.OptCoercion      ( optCoercion )
 import Eta.Types.FamInstEnv       ( topNormaliseType_maybe )
 import Eta.BasicTypes.DataCon          ( DataCon, dataConWorkId, dataConRepStrictness
                         , isMarkedStrict ) --, dataConTyCon, dataConTag, fIRST_TAG )
---import Eta.Types.TyCon            ( isEnumerationTyCon ) -- temporalily commented out. See #8326
+--import Eta.Types.TyCon            ( isEnumerationTyCon ) -- temporarily commented out. See #8326
 import Eta.SimplCore.CoreMonad        ( Tick(..), SimplifierMode(..) )
 import Eta.Core.CoreSyn
 import Eta.BasicTypes.Demand           ( StrictSig(..), dmdTypeDepth, isStrictDmd )
@@ -35,13 +35,13 @@ import Eta.Core.PprCore          ( pprCoreExpr )
 import Eta.Core.CoreUnfold
 import Eta.Core.CoreUtils
 import Eta.Core.CoreArity
---import Eta.Prelude.PrimOp           ( tagToEnumKey ) -- temporalily commented out. See #8326
+--import Eta.Prelude.PrimOp           ( tagToEnumKey ) -- temporarily commented out. See #8326
 import Eta.Specialise.Rules            ( mkRuleInfo, lookupRule, getRules )
-import Eta.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporalily commented out. See #8326
+import Eta.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporarily commented out. See #8326
 import Eta.BasicTypes.BasicTypes       ( TopLevelFlag(..), isTopLevel, RecFlag(..) )
 import Eta.Utils.MonadUtils       ( foldlM, mapAccumLM, liftIO )
 import Eta.Utils.Maybes           ( orElse )
---import Eta.BasicTypes.Unique           ( hasKey ) -- temporalily commented out. See #8326
+--import Eta.BasicTypes.Unique           ( hasKey ) -- temporarily commented out. See #8326
 import Control.Monad
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
@@ -88,7 +88,7 @@ simplExpr (Let (NonRec ...) ..) ==> simplNonRecBind
 simplExpr (Let (Rec ...)    ..) ==> simplify binders; simplRecBind
 
         ------------------------------
-simplRecBind    [binders already simplfied]
+simplRecBind    [binders already simplified]
   - use simplRecOrTopPair on each pair in turn
 
 simplRecOrTopPair [binder already simplified]
@@ -136,7 +136,7 @@ simplLazyBind:  [binder already simplified, RHS not]
 
 
 completeNonRecX:        [binder and rhs both simplified]
-  - if the the thing needs case binding (unlifted and not ok-for-spec)
+  - if the thing needs case binding (unlifted and not ok-for-spec)
         build a Case
    else
         completeBind
@@ -410,14 +410,14 @@ completeNonRecX top_lvl env is_strict old_bndr new_bndr new_rhs
 {-
 {- No, no, no!  Do not try preInlineUnconditionally in completeNonRecX
    Doing so risks exponential behaviour, because new_rhs has been simplified once already
-   In the cases described by the folowing commment, postInlineUnconditionally will
+   In the cases described by the following comment, postInlineUnconditionally will
    catch many of the relevant cases.
         -- This happens; for example, the case_bndr during case of
         -- known constructor:  case (a,b) of x { (p,q) -> ... }
         -- Here x isn't mentioned in the RHS, so we don't want to
         -- create the (dead) let-binding  let x = (a,b) in ...
         --
-        -- Similarly, single occurrences can be inlined vigourously
+        -- Similarly, single occurrences can be inlined vigorously
         -- e.g.  case (f x, g y) of (a,b) -> ....
         -- If a,b occur once we can avoid constructing the let binding for them.
 
@@ -513,7 +513,7 @@ we'd like to transform it to
         x' = e
         x = x `cast` co         -- A trivial binding
 There's a chance that e will be a constructor application or function, or something
-like that, so moving the coerion to the usage site may well cancel the coersions
+like that, so moving the coercion to the usage site may well cancel the coersions
 and lead to further optimisation.  Example:
 
      data family T a :: *
@@ -581,7 +581,7 @@ makeTrivialWithInfo top_lvl env info expr
         ; env'  <- completeNonRecX top_lvl env False var var expr
         ; expr' <- simplVar env' var
         ; return (env', expr') }
-        -- The simplVar is needed becase we're constructing a new binding
+        -- The simplVar is needed because we're constructing a new binding
         --     a = rhs
         -- And if rhs is of form (rhs1 |> co), then we might get
         --     a1 = rhs1
@@ -1181,7 +1181,7 @@ simplCast env body co0 cont0
                 -- Example of use: Trac #995
          = do { let arg' = substExpr arg_se arg
                            -- It's important that this is lazy, because this argument
-                           -- may be disarded if turns out to be the argument of
+                           -- may be discarded if turns out to be the argument of
                            -- (\_ -> e)     This can make a huge difference;
                            -- see Trac #10527
               ; cont' <- addCoerce co2 cont
@@ -1425,7 +1425,7 @@ rebuildCall env (ArgInfo { ai_fun = fun, ai_args = rev_args, ai_strs = [] }) con
   -- the continuation, leaving just the bottoming expression.  But the
   -- type might not be right, so we may have to add a coerce.
   | not (contIsTrivial cont)     -- Only do this if there is a non-trivial
-  = return (env, castBottomExpr res cont_ty)  -- contination to discard, else we do it
+  = return (env, castBottomExpr res cont_ty)  -- continuation to discard, else we do it
   where                                       -- again and again!
     res     = argInfoExpr fun rev_args
     cont_ty = contResultType cont
@@ -1671,7 +1671,7 @@ Note that SimplUtils.mkCase combines identical RHSs.  So
            True  -> r
            False -> r
 
-Now again the case may be elminated by the CaseElim transformation.
+Now again the case may be eliminated by the CaseElim transformation.
 This includes things like (==# a# b#)::Bool so that we simplify
       case ==# a# b# of { True -> x; False -> x }
 to just
@@ -1816,7 +1816,7 @@ rebuildCase, reallyRebuildCase
    :: SimplEnv
    -> OutExpr          -- Scrutinee
    -> InId             -- Case binder
-   -> [InAlt]          -- Alternatives (inceasing order)
+   -> [InAlt]          -- Alternatives (increasing order)
    -> SimplCont
    -> SimplM (SimplEnv, OutExpr)
 
@@ -1952,7 +1952,7 @@ inlined.
 
 Historical note: we use to do the "case binder swap" in the Simplifier
 so there were additional complications if the scrutinee was a variable.
-Now the binder-swap stuff is done in the occurrence analyer; see
+Now the binder-swap stuff is done in the occurrence analyzer; see
 OccurAnal Note [Binder swap].
 
 Note [knownCon occ info]
@@ -2175,7 +2175,7 @@ Note [Add unfolding for scrutinee]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In general it's unlikely that a variable scrutinee will appear
 in the case alternatives   case x of { ...x unlikely to appear... }
-because the binder-swap in OccAnal has got rid of all such occcurrences
+because the binder-swap in OccAnal has got rid of all such occurrences
 See Note [Binder swap] in OccAnal.
 
 BUT it is still VERY IMPORTANT to add a suitable unfolding for a
@@ -2188,7 +2188,7 @@ the unfolding (a,b), and *that* mentions b.  If f has a RULE
     RULE f (p, I# q) = ...
 we want that rule to match, so we must extend the in-scope env with a
 suitable unfolding for 'y'.  It's *essential* for rule matching; but
-it's also good for case-elimintation -- suppose that 'f' was inlined
+it's also good for case-elimination -- suppose that 'f' was inlined
 and did multi-level case analysis, then we'd solve it in one
 simplifier sweep instead of two.
 
@@ -2283,7 +2283,7 @@ knownCon env scrut dc dc_ty_args dc_args bndr bs rhs cont
 -------------------
 missingAlt :: SimplEnv -> Id -> [InAlt] -> SimplCont -> SimplM (SimplEnv, OutExpr)
                 -- This isn't strictly an error, although it is unusual.
-                -- It's possible that the simplifer might "see" that
+                -- It's possible that the simplifier might "see" that
                 -- an inner case has no accessible alternatives before
                 -- it "sees" that the entire branch of an outer case is
                 -- inaccessible.  So we simply put an error case here instead.
@@ -2605,7 +2605,7 @@ Rather than do this we simply agree to re-simplify the original (small) thing la
 
 Note [Funky mkPiTypes]
 ~~~~~~~~~~~~~~~~~~~~~~
-Notice the funky mkPiTypes.  If the contructor has existentials
+Notice the funky mkPiTypes.  If the constructor has existentials
 it's possible that the join point will be abstracted over
 type variables as well as term variables.
  Example:  Suppose we have
@@ -2755,7 +2755,7 @@ But now we do *NOT* want to make a join point etc, giving
                 True  -> $j (I# (negate# x'))
                 False -> $j (I# x')
 In this case the $j will inline again, but suppose there was a big
-strict computation enclosing the orginal call to MkT.  Then, it won't
+strict computation enclosing the original call to MkT.  Then, it won't
 "see" the MkT any more, because it's big and won't get duplicated.
 And, what is worse, nothing was gained by the case-of-case transform.
 

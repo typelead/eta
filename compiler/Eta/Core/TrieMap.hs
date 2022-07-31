@@ -49,7 +49,7 @@ numbered on the fly.
 ************************************************************************
 -}
 
-type XT a = Maybe a -> Maybe a  -- How to alter a non-existent elt (Nothing)
+type XT a = Maybe a -> Maybe a  -- How to alter a nonexistent elt (Nothing)
                                 --               or an existing elt (Just)
 
 class TrieMap m where
@@ -245,7 +245,7 @@ Note [Binders]
    rather than
       cm_lam :: TypeMap (CoreMap a)
 
- * We don't need to look at the type of some binders, notalby
+ * We don't need to look at the type of some binders, notably
      - the case binder in (Case _ b _ _)
      - the binders in an alternative
    because they are totally fixed by the context
@@ -261,7 +261,7 @@ Note [Empty case alternatives]
   which is utterly wrong (Trac #6097)
 
 We could compare the return type regardless, but the wildly common case
-is that it's unnecesary, so we have two fields (cm_case and cm_ecase)
+is that it's unnecessary, so we have two fields (cm_case and cm_ecase)
 for the two possibilities.  Only cm_ecase looks at the type.
 
 See also Note [Empty case alternatives] in CoreSyn.

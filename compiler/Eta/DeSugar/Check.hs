@@ -535,7 +535,7 @@ translateGuards fam_insts guards = do
   -- It should have been (return all_guards) but it is too expressive.
   -- Since the term oracle does not handle all constraints we generate,
   -- we (hackily) replace all constraints the oracle cannot handle with a
-  -- single one (we need to know if there is a possibility of falure).
+  -- single one (we need to know if there is a possibility of failure).
   -- See Note [Guards and Approximation] for all guard-related approximations
   -- we implement.
   where
@@ -710,7 +710,7 @@ pmPatType (PmGrd  { pm_grd_pv  = pv })
   -- fresh variables of the appropriate type for arguments)
 mkOneConFull :: Id -> ConLike -> PmM (ValAbs, ComplexEq, Bag EvVar)
 --  *  x :: T tys, where T is an algebraic data type
---     NB: in the case of a data familiy, T is the *representation* TyCon
+--     NB: in the case of a data family, T is the *representation* TyCon
 --     e.g.   data instance T (a,b) = T1 a b
 --       leads to
 --            data TPair a b = T1 a b  -- The "representation" type
@@ -904,7 +904,7 @@ Generates the initial uncovered set. Term and type constraints in scope
  set contains only a vector of variables with the constraints in scope.
 
  * pmcheck :: PatVec -> [PatVec] -> ValVec -> PmM Triple
- Checks redundancy, coverage and inaccessibility, using auxilary functions
+ Checks redundancy, coverage and inaccessibility, using auxiliary functions
 `pmcheckGuards` and `pmcheckHd`. Mainly handles the guard case which is
 common in all three checks (see paper) and calls `pmcheckGuards` when the
 whole clause is checked, or `pmcheckHd` when the pattern vector does not
@@ -923,7 +923,7 @@ it does not even produce the covered and uncovered sets. Since we only care
 about whether a clause covers SOMETHING or if it may forces ANY argument, we
 -}
 
--- | Lift a pattern matching action from a single value vector abstration to a
+-- | Lift a pattern matching action from a single value vector abstraction to a
 -- value set abstraction, but calling it on every vector and the combining the
 -- results.
 runMany :: (ValVec -> PmM Triple) -> (Uncovered -> PmM Triple)
@@ -1335,7 +1335,7 @@ warnPmIters dflags (DsMatchContext kind loc)
     msg is = fsep [ text "Pattern match checker exceeded"
                   , parens (ppr is), text "iterations in", ctxt <> dot
                   , text "(Use fmax-pmcheck-iterations=n"
-                  , text "to set the maximun number of iterations to n)" ]
+                  , text "to set the maximum number of iterations to n)" ]
 
     flag_i = wopt Opt_WarnOverlappingPatterns dflags
     flag_u = exhaustive dflags kind

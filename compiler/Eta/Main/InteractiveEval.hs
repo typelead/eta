@@ -223,7 +223,7 @@ runDeclsWithLocation source linenumber expr =
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We don't want to display internally-generated bindings to users.
 Things like the coercion axiom for newtypes. These bindings all get
-OccNames that users can't write, to avoid the possiblity of name
+OccNames that users can't write, to avoid the possibility of name
 clashes (in linker symbols).  That gives a convenient way to suppress
 them. The relevant predicate is OccName.isDerivedOccName.
 See Trac #11051 for more background and examples.
@@ -542,7 +542,7 @@ bindLocalsAtBreakpoint hsc_env _apStack_fhv (Just BreakInfo{..}) = do
   where
         -- We need a fresh Unique for each Id we bind, because the linker
         -- state is single-threaded and otherwise we'd spam old bindings
-        -- whenever we stop at a breakpoint.  The InteractveContext is properly
+        -- whenever we stop at a breakpoint.  The InteractiveContext is properly
         -- saved/restored, but not the linker state.  See #1743, test break026.
    mkNewId :: OccName -> Type -> Id -> IO Id
    mkNewId occ ty old_id
@@ -742,7 +742,7 @@ moduleIsInterpreted modl = withSession $ \h ->
                 _not_a_home_module -> return False
 
 -- | Looks up an identifier in the current interactive context (for :info)
--- Filter the instances by the ones whose tycons (or clases resp)
+-- Filter the instances by the ones whose tycons (or classes resp)
 -- are in scope (qualified or otherwise).  Otherwise we list a whole lot too many!
 -- The exact choice of which ones to show, and which to hide, is a judgement call.
 --      (see Trac #1581)

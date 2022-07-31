@@ -147,7 +147,7 @@ fromJust          :: Maybe a -> a
 fromJust Nothing  = errorWithoutStackTrace "Maybe.fromJust: Nothing" -- yuck
 fromJust (Just x) = x
 
--- | The 'fromMaybe' function takes a default value and and 'Maybe'
+-- | The 'fromMaybe' function takes a default value and 'Maybe'
 -- value.  If the 'Maybe' is 'Nothing', it returns the default values;
 -- otherwise, it returns the value contained in the 'Maybe'.
 --

@@ -154,7 +154,7 @@ corresponds roughly to @matchVarCon@.
 
 Note [Match Ids]
 ~~~~~~~~~~~~~~~~
-Most of the matching fuctions take an Id or [Id] as argument.  This Id
+Most of the matching functions take an Id or [Id] as argument.  This Id
 is the scrutinee(s) of the match. The desugared expression may
 sometimes use that Id in a local binding or as a case binder.  So it
 should not have an External name; Lint rejects non-top-level binders
@@ -621,7 +621,7 @@ is collected here, in @matchWrapper@.  This function takes as
 arguments:
 \begin{itemize}
 \item
-Typchecked @Matches@ (of a function definition, or a case or lambda
+Typechecked @Matches@ (of a function definition, or a case or lambda
 expression)---the main input;
 \item
 An error message to be inserted into any (runtime) pattern-matching

@@ -135,7 +135,7 @@ pprExp i (LamCaseE ms) = parensIf (i > noPrec)
                        $ text "\\case" $$ nest nestDepth (ppr ms)
 pprExp _ (TupE es) = parens (commaSep es)
 pprExp _ (UnboxedTupE es) = hashParens (commaSep es)
--- Nesting in Cond is to avoid potential problems in do statments
+-- Nesting in Cond is to avoid potential problems in do statements
 pprExp i (CondE guard true false)
  = parensIf (i > noPrec) $ sep [text "if"   <+> ppr guard,
                        nest 1 $ text "then" <+> ppr true,
@@ -653,7 +653,7 @@ instance Ppr Type where
       = text "forall" <+> hsep (map ppr tvars) <+> text "."
                       <+> sep [pprCxt ctxt, ppr ty]
     ppr ty = pprTyApp (split ty)
-       -- Works, in a degnerate way, for SigT, and puts parens round (ty :: kind)
+       -- Works, in a degenerate way, for SigT, and puts parens round (ty :: kind)
        -- See Note [Pretty-printing kind signatures]
 
 {- Note [Pretty-printing kind signatures]

@@ -1124,7 +1124,7 @@ checkPartialTypeSignature fullTy = case fullTy of
     case unnamedInCtxt of
       (Found lc : _) -> err hintUnnamedConstraint lc fullTy
       _              -> return ()
-    -- Calculcate the set of named wildcards in the context that aren't in the
+    -- Calculate the set of named wildcards in the context that aren't in the
     -- monotype (tau)
     let namedWildcardsNotInTau = Set.fromList (namedWildcards namedInCtxt)
                                  `Set.difference`
@@ -1476,7 +1476,7 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
                 | otherwise     = entity
         -- TODO: Z-encode the result?
 
--- the string "foo" is ambigous: either a header or a C identifier.  The
+-- the string "foo" is ambiguous: either a header or a C identifier.  The
 -- C identifier case comes first in the alternatives below, so we pick
 -- that one.
 parseCImport :: Located CCallConv -> Located Safety -> FastString -> String

@@ -69,7 +69,7 @@ type FastInt = Int#
 --in case it's a macro, don't lexically feed an argument!
 --e.g. #define _ILIT(x) (x#) , #define _ILIT(x) (x :: FastInt)
 _ILIT = \(I# x) -> x
---perhaps for accomodating caseless-leading-underscore treatment,
+--perhaps for accommodating caseless-leading-underscore treatment,
 --something like _iLIT or iLIT would be better?
 
 iBox x = I# x

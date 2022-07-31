@@ -100,7 +100,7 @@ infixl 4 `mkCoreApp`, `mkCoreApps`
 sortQuantVars :: [Var] -> [Var]
 -- Sort the variables (KindVars, TypeVars, and Ids)
 -- into order: Kind, then Type, then Id
--- It is a deterministic sort, meaining it doesn't look at the values of
+-- It is a deterministic sort, meaning it doesn't look at the values of
 -- Uniques. For explanation why it's important See Note [Unique Determinism]
 -- in Unique.
 sortQuantVars = sortBy (comparing category)
@@ -182,7 +182,7 @@ mk_val_app fun arg arg_ty res_ty
         -- game, mk_val_app returns an expression that does not have
         -- have a free wild-id.  So the only thing that can go wrong
         -- is if you take apart this case expression, and pass a
-        -- fragmet of it as the fun part of a 'mk_val_app'.
+        -- fragment of it as the fun part of a 'mk_val_app'.
 
 -----------
 mkWildEvBinder :: PredType -> EvVar
@@ -329,7 +329,7 @@ Note [Flattening one-tuples]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This family of functions creates a tuple of variables/expressions/types.
   mkCoreTup [e1,e2,e3] = (e1,e2,e3)
-What if there is just one variable/expression/type in the agument?
+What if there is just one variable/expression/type in the argument?
 We could do one of two things:
 
 * Flatten it out, so that
@@ -410,7 +410,7 @@ mkBigCoreTupTy = mkChunkified mkBoxedTupleTy
 ************************************************************************
 -}
 
--- | Builds a selector which scrutises the given
+-- | Builds a selector which scrutinises the given
 -- expression and extracts the one name from the list given.
 -- If you want the no-shadowing rule to apply, the caller
 -- is responsible for making sure that none of these names
@@ -587,7 +587,7 @@ mkFoldrExpr :: MonadThings m
             -> Type             -- ^ Fold result type
             -> CoreExpr         -- ^ "Cons" function expression for the fold
             -> CoreExpr         -- ^ "Nil" expression for the fold
-            -> CoreExpr         -- ^ List expression being folded acress
+            -> CoreExpr         -- ^ List expression being folded across
             -> m CoreExpr
 mkFoldrExpr elt_ty result_ty c n list = do
     foldr_id <- lookupId foldrName

@@ -3,7 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 
 
-Desugaring exporessions.
+Desugaring expressions.
 -}
 
 {-# LANGUAGE CPP #-}
@@ -493,7 +493,7 @@ For record construction we do this (assuming T has three arguments)
           e
           (recConErr t1 "M.lhs/230/op3")
 \end{verbatim}
-@recConErr@ then converts its arugment string into a proper message
+@recConErr@ then converts its argument string into a proper message
 before printing it as
 \begin{verbatim}
         M.lhs, line 230: missing field op1 was evaluated
@@ -576,7 +576,7 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
         -- It's important to generate the match with matchWrapper,
         -- and the right hand sides with applications of the wrapper Id
         -- so that everything works when we are doing fancy unboxing on the
-        -- constructor aguments.
+        -- constructor arguments.
         ; alts <- mapM (mk_alt upd_fld_env) cons_to_upd
         ; ([discrim_var], matching_code)
                 <- matchWrapper RecUpd Nothing
@@ -592,7 +592,7 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
   where
     ds_field :: LHsRecField Id (LHsExpr Id) -> DsM (Name, Id, CoreExpr)
       -- Clone the Id in the HsRecField, because its Name is that
-      -- of the record selector, and we must not make that a lcoal binder
+      -- of the record selector, and we must not make that a local binder
       -- else we shadow other uses of the record selector
       -- Hence 'lcl_id'.  Cf Trac #2735
     ds_field (L _ rec_field) = do { rhs <- dsLExpr (hsRecFieldArg rec_field)

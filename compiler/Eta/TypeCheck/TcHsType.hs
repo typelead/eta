@@ -93,7 +93,7 @@ But in mutually recursive groups of type and class decls we do
 
 For example, when we find
         (forall a m. m a -> m a)
-we bind a,m to kind varibles and kind-check (m a -> m a).  This makes
+we bind a,m to kind variables and kind-check (m a -> m a).  This makes
 a get kind *, and m get kind *->*.  Now we typecheck (m a -> m a) in
 an environment that binds a and m suitably.
 
@@ -780,7 +780,7 @@ Note [Body kind of a forall]
 The body of a forall is usually a type, but in principle
 there's no reason to prohibit *unlifted* types.
 In fact, GHC can itself construct a function with an
-unboxed tuple inside a for-all (via CPR analyis; see
+unboxed tuple inside a for-all (via CPR analysis; see
 typecheck/should_compile/tc170).
 
 Moreover in instance heads we get forall-types with
@@ -895,7 +895,7 @@ Help functions for type applications
 
 addTypeCtxt :: LHsType Name -> TcM a -> TcM a
         -- Wrap a context around only if we want to show that contexts.
-        -- Omit invisble ones and ones user's won't grok
+        -- Omit invisible ones and ones user's won't grok
 addTypeCtxt (L _ ty) thing
   = addErrCtxt doc thing
   where
@@ -1141,7 +1141,7 @@ tcTyClTyVars tycon (HsQTvs { hsq_kvs = hs_kvs, hsq_tvs = hs_tvs }) thing_inside
        ; tcExtendTyVarEnv tvs (thing_inside (kvs ++ tvs) res) }
   where
     -- In the case of associated types, the renamer has
-    -- ensured that the names are in commmon
+    -- ensured that the names are in common
     -- e.g.   class C a_29 where
     --           type T b_30 a_29 :: *
     -- Here the a_29 is shared
@@ -1157,7 +1157,7 @@ tcDataKindSig :: Kind -> TcM [TyVar]
 --      e.g.  data T :: * -> * -> * where ...
 -- This function makes up suitable (kinded) type variables for
 -- the argument kinds, and checks that the result kind is indeed *.
--- We use it also to make up argument type variables for for data instances.
+-- We use it also to make up argument type variables for data instances.
 tcDataKindSig kind
   = do  { checkTc (isLiftedTypeKind res_kind) (badKindSig kind)
         ; span <- getSrcSpanM
@@ -1213,7 +1213,7 @@ They never have explicit kinds (because this is source-code only)
 They are mutable (because they can get bound to a more specific type).
 
 Usually we kind-infer and expand type splices, and then
-tupecheck/desugar the type.  That doesn't work well for scoped type
+typecheck/desugar the type.  That doesn't work well for scoped type
 variables, because they scope left-right in patterns.  (e.g. in the
 example above, the 'a' in (y::a) is bound by the 'a' in (x::a).
 
@@ -1229,7 +1229,7 @@ This is bad because throwing away the kind checked type throws away
 its splices.  But too bad for now.  [July 03]
 
 Historical note:
-    We no longer specify that these type variables must be univerally
+    We no longer specify that these type variables must be universally
     quantified (lots of email on the subject).  If you want to put that
     back in, you need to
         a) Do a checkSigTyVars after thing_inside
@@ -1345,12 +1345,12 @@ Consider
 
 Here
  * The pattern (T p1 p2) creates a *skolem* type variable 'a_sk',
-   It must be a skolem so that that it retains its identity, and
+   It must be a skolem so that it retains its identity, and
    TcErrors.getSkolemInfo can thereby find the binding site for the skolem.
 
  * The type signature pattern (f :: a->Int) binds "a" -> a_sig in the envt
 
- * Then unificaiton makes a_sig := a_sk
+ * Then unification makes a_sig := a_sk
 
 That's why we must make a_sig a MetaTv (albeit a SigTv),
 not a SkolemTv, so that it can unify to a_sk.

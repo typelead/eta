@@ -106,7 +106,7 @@ public class MemoryManagerTest {
                    b.remaining() >= 1024);
         touch(b,(byte)1);
         ByteBuffer b2 = getBoundedBuffer(addr);
-        assertThat("Two invocations with the same adress ,"+
+        assertThat("Two invocations with the same address ,"+
                    "should return the same buffer", b2, is(b));
         b2 = getBoundedBuffer(addr,0,b.remaining());
         assertThat("Calling it with the same address, "+ 

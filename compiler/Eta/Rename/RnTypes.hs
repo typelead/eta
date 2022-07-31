@@ -12,7 +12,7 @@ module Eta.Rename.RnTypes (
         rnHsSigType, rnLHsInstType, rnConDeclFields,
         newTyVarNameRn,
 
-        -- Precence related stuff
+        -- Presence related stuff
         mkOpAppRn, mkNegAppRn, mkOpFormRn, mkConOpPatRn,
         checkPrecMatch, checkSectionPrec,
 
@@ -286,7 +286,7 @@ rnHsTyKiForAll :: Bool -> HsDocContext -> HsType RdrName
                -> RnM (HsType Name, FreeVars)
 rnHsTyKiForAll isType doc (HsForAllTy Implicit extra _ lctxt@(L _ ctxt) ty)
   = ASSERT( isType ) do
-        -- Implicit quantifiction in source code (no kinds on tyvars)
+        -- Implicit quantification in source code (no kinds on tyvars)
         -- Given the signature  C => T  we universally quantify
         -- over FV(T) \ {in-scope-tyvars}
     rdr_env <- getLocalRdrEnv
@@ -331,7 +331,7 @@ rnHsTyKiForAll isType doc
              in_type_doc = ptext (sLit "In the type") <+> quotes (ppr ty)
        ; warnUnusedForAlls (in_type_doc $$ docOfHsDocContext doc)
                            forall_tyvars mentioned
-       ; traceRn "rnHsTyKiForAll:Exlicit" (vcat
+       ; traceRn "rnHsTyKiForAll:Explicit" (vcat
             [ppr forall_tyvars, ppr lctxt,ppr tau ])
        ; rnForAll doc Explicit extra kvs forall_tyvars lctxt tau }
 
@@ -436,7 +436,7 @@ bindHsTyVars doc mb_assoc kv_bndrs tv_bndrs thing_inside
                     ; (kind', fvs) <- rnLHsKind doc kind
                     ; return (L loc (KindedTyVar (L lv nm) kind'), fvs) }
 
-       -- Check for duplicate or shadowed tyvar bindrs
+       -- Check for duplicate or shadowed tyvar bndrs
        ; checkDupRdrNames tv_names_w_loc
        ; when (isNothing mb_assoc) (checkShadowedRdrNames tv_names_w_loc)
 
@@ -556,7 +556,7 @@ the programmer actually wrote, so you can't find it out from the Name.
 
 Furthermore, the second argument is guaranteed not to be another
 operator application.  Why? Because the parser parses all
-operator appications left-associatively, EXCEPT negation, which
+operator applications left-associatively, EXCEPT negation, which
 we need to handle specially.
 Infix types are read in a *right-associative* way, so that
         a `op` b `op` c
@@ -584,7 +584,7 @@ mkHsOpTyRn mk1 pp_op1 fix1 ty1 (L loc2 (HsFunTy ty21 ty22))
   = mk_hs_op_ty mk1 pp_op1 fix1 ty1
                 HsFunTy funTyConName funTyFixity ty21 ty22 loc2
 
-mkHsOpTyRn mk1 _ _ ty1 ty2              -- Default case, no rearrangment
+mkHsOpTyRn mk1 _ _ ty1 ty2              -- Default case, no rearrangement
   = return (mk1 ty1 ty2)
 
 ---------------
@@ -650,7 +650,7 @@ mkOpAppRn e1 op1 fix1 e2@(L _ (NegApp _ _))     -- NegApp can occur on the right
 
 ---------------------------
 --      Default case
-mkOpAppRn e1 op fix e2                  -- Default case, no rearrangment
+mkOpAppRn e1 op fix e2                  -- Default case, no rearrangement
   = ASSERT2( right_op_ok fix (unLoc e2),
              ppr e1 $$ text "---" $$ ppr op $$ text "---" $$ ppr fix $$ text "---" $$ ppr e2
     )
@@ -706,7 +706,7 @@ mkOpFormRn a1@(L loc (HsCmdTop (L _ (HsCmdArrForm op1 (Just fix1) [a11,a12])) _ 
     (nofix_error, associate_right) = compareFixity fix1 fix2
 
 --      Default case
-mkOpFormRn arg1 op fix arg2                     -- Default case, no rearrangment
+mkOpFormRn arg1 op fix arg2                     -- Default case, no rearrangement
   = return (HsCmdArrForm op (Just fix) [arg1, arg2])
 
 
@@ -727,7 +727,7 @@ mkConOpPatRn op2 fix2 p1@(L loc (ConPatIn op1 (InfixCon p11 p12))) p2
                 ; return (ConPatIn op1 (InfixCon p11 (L loc new_p))) } -- XXX loc right?
           else return (ConPatIn op2 (InfixCon p1 p2)) }
 
-mkConOpPatRn op _ p1 p2                         -- Default case, no rearrangment
+mkConOpPatRn op _ p1 p2                         -- Default case, no rearrangement
   = ASSERT( not_op_pat (unLoc p2) )
     return (ConPatIn op (InfixCon p1 p2))
 
@@ -883,7 +883,7 @@ opTyErr _ ty = pprPanic "opTyErr: Not an op" (ppr ty)
 
 Note [Kind and type-variable binders]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In a type signature we may implicitly bind type varaible and, more
+In a type signature we may implicitly bind type variable and, more
 recently, kind variables.  For example:
   *   f :: a -> a
       f = ...

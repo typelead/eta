@@ -61,7 +61,7 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
       argFtCodes <- getNonVoidArgFtCodes shuffledArgs
       let (argFts, callArgs') = unzip argFtCodes
           argFtCodes' = if hasObj && isStatic then drop 1 argFtCodes else argFtCodes
-          mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
+          mbObj = if hasObj then Just (expectHead "cgForeignCall: empty callArgs'"
                                       callArgs') else Nothing
           mbObjFt = safeHead argFts
       case sequel of

@@ -193,7 +193,7 @@ data IdInfo
         unfoldingInfo   :: Unfolding,           -- ^ The 'Id's unfolding
         cafInfo         :: CafInfo,             -- ^ 'Id' CAF info
         oneShotInfo     :: OneShotInfo,         -- ^ Info about a lambda-bound variable, if the 'Id' is one
-        inlinePragInfo  :: InlinePragma,        -- ^ Any inline pragma atached to the 'Id'
+        inlinePragInfo  :: InlinePragma,        -- ^ Any inline pragma attached to the 'Id'
         occInfo         :: OccInfo,             -- ^ How the 'Id' occurs in the program
 
         strictnessInfo  :: StrictSig,      --  ^ A strictness signature
@@ -343,7 +343,7 @@ But we don't do that for instance declarations and so we just treat
 them all uniformly.
 
 The EXCEPTION is PrimOpIds, which do have rules in their IdInfo. That is
-jsut for convenience really.
+just for convenience really.
 
 However, LocalIds may have non-empty RuleInfo.  We treat them
 differently because:
@@ -364,7 +364,7 @@ data RuleInfo
                         -- ru_fn though.
                         -- Note [Rule dependency info] in OccurAnal
 
--- | Assume that no specilizations exist: always safe
+-- | Assume that no specializations exist: always safe
 emptyRuleInfo :: RuleInfo
 emptyRuleInfo = RuleInfo [] emptyDVarSet
 

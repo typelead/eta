@@ -417,7 +417,7 @@ gen_Ord_binds loc tycon
       = nlHsCase (nlHsVar a_RDR) $
         map (mkOrdOpAlt op) tycon_data_cons
         -- i.e.  case a of { C1 x y -> case b of C1 x y -> ....compare x,y...
-        --                   C2 x   -> case b of C2 x -> ....comopare x.... }
+        --                   C2 x   -> case b of C2 x -> ....compare x.... }
 
       | null non_nullary_cons    -- All nullary, so go straight to comparing tags
       = mkTagCmp op
@@ -537,7 +537,7 @@ unliftedOrdOp tycon ty op a b
    b_expr = nlHsVar b
 
 unliftedCompare :: RdrName -> RdrName
-                -> LHsExpr RdrName -> LHsExpr RdrName   -- What to cmpare
+                -> LHsExpr RdrName -> LHsExpr RdrName   -- What to compare
                 -> LHsExpr RdrName -> LHsExpr RdrName -> LHsExpr RdrName  -- Three results
                 -> LHsExpr RdrName
 -- Return (if a < b then lt else if a == b then eq else gt)
@@ -929,7 +929,7 @@ Note that we use
    expectP (Ident "T1")
 rather than
    Ident "T1" <- lexP
-The latter desugares to inline code for matching the Ident and the
+The latter desugars to inline code for matching the Ident and the
 string, and this can be very voluminous. The former is much more
 compact.  Cf Trac #7258, although that also concerned non-linearity in
 the occurrence analyser, a separate issue.
@@ -1838,7 +1838,7 @@ gen_Traversable_binds loc tycon
                  , ft_tup     = \t gs -> do                       -- traverse f = \x -> case x of (a1,a2,..) ->
                                     gg <- sequence gs             --                   (,,) <$> g1 a1 <*> g2 a2 <*> ..
                                     mkSimpleLam $ mkSimpleTupleCase match_for_con t gg
-                 , ft_ty_app  = \_ g -> nlHsApp traverse_Expr <$> g  -- traverse f = travese g
+                 , ft_ty_app  = \_ g -> nlHsApp traverse_Expr <$> g  -- traverse f = traverse g
                  , ft_forall  = \_ g -> g
                  , ft_co_var  = panic "contravariant"
                  , ft_fun     = panic "function"

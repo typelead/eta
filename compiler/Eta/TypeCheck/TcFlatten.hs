@@ -291,8 +291,8 @@ Is this type ambiguous:  (Foo e ~ Maybe e) => Foo e
  [W] fmv2 ~ Maybe e
  [W] fmv2 ~ Maybe ee
 
-Now maybe we shuld get [D] e ~ ee, and then we'd solve it entirely.
-But if in a smilar situation we got [D] Int ~ Bool we'd be back
+Now maybe we should get [D] e ~ ee, and then we'd solve it entirely.
+But if in a similar situation we got [D] Int ~ Bool we'd be back
 to complaining about wanted/wanted interactions.  Maybe this arises
 also for fundeps?
 
@@ -328,7 +328,7 @@ Now we don’t see that fmv ~ fmv’, which is a problem for injectivity detecti
 
 Conclusion: rewrite wanteds with wanted for all untouchables.
 
-skol ~ untch, must re-orieint to untch ~ skol, so that we can use it to rewrite.
+skol ~ untch, must re-orient to untch ~ skol, so that we can use it to rewrite.
 
 
 
@@ -411,7 +411,7 @@ flatten
 
 
 ----------------------------
-indexed-types/should_failt/T4179
+indexed-types/should_fail/T4179
 
 after solving
   [W] fmv_1 ~ fmv_2
@@ -475,7 +475,7 @@ Assuming NOT rewriting wanteds with wanteds
           [G] V a ~ f_aBg
 
    Worklist includes  [W] Scalar fmv_aBi ~ fmv_aBk
-   fmv_aBi, fmv_aBk are flatten unificaiton variables
+   fmv_aBi, fmv_aBk are flatten unification variables
 
    Work item: [W] V fsk_aBh ~ fmv_aBi
 
@@ -631,7 +631,7 @@ other examples where lazy flattening caused problems.
 
 Bottom line: FM_Avoid is unused for now (Nov 14).
 Note: T5321Fun got faster when I disabled FM_Avoid
-      T5837 did too, but it's pathalogical anyway
+      T5837 did too, but it's pathological anyway
 
 Note [Phantoms in the flattener]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -944,7 +944,7 @@ flatten_exact_fam_app_fully fmode tc tys
                                         , cc_fsk    = fsk }
                    ; emitFlatWork ct
 
-                   -- Now that flattening has finished, attempty to unify the
+                   -- Now that flattening has finished, attempt to unify the
                    -- type variables of a generic JWT when reducing Extends'.
                    -- That way, the next time they attempt to solve it, it will
                    -- succeed.
@@ -1093,7 +1093,7 @@ guarantee that this recursive use will terminate.
                 a not in s, OR
                 the path from the top of s to a includes at least one non-newtype
 
-   then the extended substition T = S+(a -fw-> t)
+   then the extended substitution T = S+(a -fw-> t)
    is an inert generalised substitution.
 
 The idea is that
@@ -1124,19 +1124,19 @@ The idea is that
   have (a -fs-> a) in S, which contradicts (WF2).
 
 * The extended substitution satisfies (WF1) and (WF2)
-  - (K1) plus (L1) guarantee that the extended substiution satisfies (WF1).
+  - (K1) plus (L1) guarantee that the extended substitution satisfies (WF1).
   - (T3) guarantees (WF2).
 
 * (K2) is about inertness.  Intuitively, any infinite chain T^0(f,t),
-  T^1(f,t), T^2(f,T).... must pass through the new work item infnitely
-  often, since the substution without the work item is inert; and must
-  pass through at least one of the triples in S infnitely often.
+  T^1(f,t), T^2(f,T).... must pass through the new work item infinitely
+  often, since the substitution without the work item is inert; and must
+  pass through at least one of the triples in S infinitely often.
 
   - (K2a): if not(fs>=fs) then there is no f that fs can rewrite (fs>=f),
     and hence this triple never plays a role in application S(f,a).
     It is always safe to extend S with such a triple.
 
-    (NB: we could strengten K1) in this way too, but see K3.
+    (NB: we could strengthen K1) in this way too, but see K3.
 
   - (K2b): If this holds, we can't pass through this triple infinitely
     often, because if we did then fs>=f, fw>=f, hence fs>=fw,
@@ -1226,7 +1226,7 @@ roles. For example, if we have
 and we wish to compute S(W/R, T a b), the correct answer is T a Bool, NOT
 T Int Bool. The reason is that T's first parameter has a nominal role, and
 thus rewriting a to Int in T a b is wrong. Indeed, this non-congruence of
-subsitution means that the proof in Note [The inert equalities] may need
+substitution means that the proof in Note [The inert equalities] may need
 to be revisited, but we don't think that the end conclusion is wrong.
 -}
 
@@ -1265,7 +1265,7 @@ flattenTyVarOuter :: FlattenEnv -> TcTyVar
 flattenTyVarOuter fmode tv
   | not (isTcTyVar tv)             -- Happens when flatten under a (forall a. ty)
   = Left `liftM` flattenTyVarFinal fmode tv
-          -- So ty contains refernces to the non-TcTyVar a
+          -- So ty contains references to the non-TcTyVar a
 
   | otherwise
   = do { mb_ty <- isFilledMetaTyVar_maybe tv
@@ -1312,7 +1312,7 @@ flattenTyVarFinal fmode tv
 Note [An alternative story for the inert substitution]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 (This entire note is just background, left here in case we ever want
- to return the the previousl state of affairs)
+ to return the previously state of affairs)
 
 We used (GHC 7.8) to have this story for the inert substitution inert_eqs
 
@@ -1329,7 +1329,7 @@ It is easy to implement, in TcInteract.kick_out, by only kicking out an inert
 only if (a) the work item can rewrite the inert AND
         (b) the inert cannot rewrite the work item
 
-This is signifcantly harder to think about. It can save a LOT of work
+This is significantly harder to think about. It can save a LOT of work
 in occurs-check cases, but we don't care about them much.  Trac #5837
 is an example; all the constraints here are Givens
 
@@ -1374,7 +1374,7 @@ is an example; all the constraints here are Givens
     inert    fsk ~ ((fsk3, TF Int), TF Int)
 
 Because the incoming given rewrites all the inert givens, we get more and
-more duplication in the inert set.  But this really only happens in pathalogical
+more duplication in the inert set.  But this really only happens in pathological
 casee, so we don't care.
 -}
 

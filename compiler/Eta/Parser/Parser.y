@@ -10,7 +10,7 @@
 {
 {-# LANGUAGE BangPatterns #-} -- required for versions of Happy before 1.18.6
 {-# OPTIONS -Wwarn -w #-}
--- The above warning supression flag is a temporary kludge.
+-- The above warning suppression flag is a temporary kludge.
 -- While working on this module you are encouraged to remove it and fix
 -- any warnings in the module. See
 --     http://ghc.haskell.org/trac/ghc/wiki/Commentary/CodingStyle#Warnings
@@ -172,7 +172,7 @@ would think the two should never occur in the same context.
 -----------------------------------------------------------------------------
 Conflicts: 38 shift/reduce (1.25)
 
-10 for abiguity in 'if x then y else z + 1'             [State 178]
+10 for ambiguity in 'if x then y else z + 1'             [State 178]
         (shift parses as 'if x then y else (z + 1)', as per longest-parse rule)
         10 because op might be: : - ! * . `x` VARSYM CONSYM QVARSYM QCONSYM
 
@@ -1866,9 +1866,9 @@ varids0 :: { Located [Located RdrName] }
 Note [Parsing ~]
 ~~~~~~~~~~~~~~~~
 
-Due to parsing conflicts between lazyness annotations in data type
+Due to parsing conflicts between laziness annotations in data type
 declarations (see strict_mark) and equality types ~'s are always
-parsed as lazyness annotations, and turned into HsEqTy's in the
+parsed as laziness annotations, and turned into HsEqTy's in the
 correct places using RdrHsSyn.splitTilde.
 
 Since strict_mark is parsed as part of atype which is part of type,
@@ -2019,7 +2019,7 @@ constr_stuff :: { Located (Located RdrName, HsConDeclDetails RdrName) }
 -- a data constructor.  Reason: it might continue like this:
 --      C t1 t2 %: D Int
 -- in which case C really would be a type constructor.  We can't resolve this
--- ambiguity till we come across the constructor oprerator :% (or not, more usually)
+-- ambiguity till we come across the constructor operator :% (or not, more usually)
         : btype                   {% splitCon $1 >>= return.sLL $1 $> }
         | btype conop btype          {  sLL $1 $> ($2, InfixCon $1 $3) }
 
@@ -2451,7 +2451,7 @@ cvtopdecls0 :: { [LHsDecl RdrName] }
 
 -- "texp" is short for tuple expressions:
 -- things that can appear unparenthesized as long as they're
--- inside parens or delimitted by commas
+-- inside parens or delimited by commas
 texp :: { LHsExpr RdrName }
         : exp                           { $1 }
 
@@ -2782,7 +2782,7 @@ fbind   :: { LHsRecField RdrName (LHsExpr RdrName) }
         : qvar '=' texp {% ams  (sLL $1 $> $ HsRecField $1 $3             False)
                                 [mj AnnEqual $2] }
                         -- RHS is a 'texp', allowing view patterns (Trac #6038)
-                        -- and, incidentaly, sections.  Eg
+                        -- and, incidentally, sections.  Eg
                         -- f (R { x = show -> s }) = ...
 
         | qvar          { sLL $1 $> $ HsRecField $1 placeHolderPunRhs True }

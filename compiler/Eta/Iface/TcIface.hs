@@ -364,7 +364,7 @@ tcHiBootIface hsc_src mod
                 -- In --make and interactive mode, if this module has an hs-boot file
                 -- we'll have compiled it already, and it'll be in the HPT
                 --
-                -- We check wheher the interface is a *boot* interface.
+                -- We check whether the interface is a *boot* interface.
                 -- It can happen (when using GHC from Visual Studio) that we
                 -- compile a module in TypecheckOnly mode, with a stable,
                 -- fully-populated HPT.  In that case the boot interface isn't there
@@ -431,7 +431,7 @@ mkSelfBootInfo iface mds
        return $ SelfBoot { sb_mds = mds
                          , sb_tcs = mkNameSet tcs }
   where
-    -- | Retuerns @True@ if, when you call 'tcIfaceDecl' on
+    -- | Returns @True@ if, when you call 'tcIfaceDecl' on
     -- this 'IfaceDecl', an ATyCon would be returned.
     -- NB: This code assumes that a TyCon cannot be implicit.
     isIfaceTyCon IfaceId{}      = False
@@ -456,7 +456,7 @@ interface files for types mentioned in the arg types.
 
 E.g.
         data Foo.S = MkS Baz.T
-Mabye we can get away without even loading the interface for Baz!
+Maybe we can get away without even loading the interface for Baz!
 
 This is not just a performance thing.  Suppose we have
         data Foo.S = MkS Baz.T
@@ -720,7 +720,7 @@ tcIfaceDataCons tycon_name tycon tc_tyvars if_cons
                          ifConStricts    = if_stricts,
                          ifConSrcStricts = if_src_stricts})
      = -- Universally-quantified tyvars are shared with
-       -- parent TyCon, and are alrady in scope
+       -- parent TyCon, and are already in scope
        bindIfaceTyVars ex_tvs    $ \ ex_tyvars -> do
         { traceIf (text "Start interface-file tc_con_decl" <+> ppr dc_name)
 
@@ -884,7 +884,7 @@ tcIfaceRule (IfaceRule {ifRuleName = name, ifActivation = act, ifRuleBndrs = bnd
         -- We could have stored the ru_rough field in the iface file
         -- but that would be redundant, I think.
         -- The only wrinkle is that we must not be deceived by
-        -- type syononyms at the top of a type arg.  Since
+        -- type synonyms at the top of a type arg.  Since
         -- we can't tell at this point, we are careful not
         -- to write them out in coreRuleToIfaceRule
     ifTopFreeName :: IfaceExpr -> Maybe Name

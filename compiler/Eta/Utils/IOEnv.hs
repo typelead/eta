@@ -122,7 +122,7 @@ instance ContainsModule env => HasModule (IOEnv env) where
                    return $ extractModule env
 
 ----------------------------------------------------------------------
--- Fundmantal combinators specific to the monad
+-- Fundamental combinators specific to the monad
 ----------------------------------------------------------------------
 
 

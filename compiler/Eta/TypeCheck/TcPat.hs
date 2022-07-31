@@ -123,7 +123,7 @@ data LetBndrSpec
   = LetLclBndr            -- The binder is just a local one;
                           -- an AbsBinds will provide the global version
 
-  | LetGblBndr TcPragFun  -- Genrealisation plan is NoGen, so there isn't going
+  | LetGblBndr TcPragFun  -- Generalisation plan is NoGen, so there isn't going
                           -- to be an AbsBinds; So we must bind the global version
                           -- of the binder right away.
                           -- Oh, and dhhere is the inline-pragma information
@@ -359,10 +359,10 @@ Two cases, dealt with by the LetPat case of tcPatBndr
    we want to bind a cloned, local version of the variable, with the
    type given by the pattern context, *not* by the signature (even if
    there is one; see Trac #7268). The mkExport part of the
-   generalisation step will do the checking and impedence matching
+   generalisation step will do the checking and impedance matching
    against the signature.
 
- * If for some some reason we are not generalising (plan = NoGen), the
+ * If for some reason we are not generalising (plan = NoGen), the
    LetBndrSpec will be LetGblBndr.  In that case we must bind the
    global version of the Id, and do so with precisely the type given
    in the signature.  (Then we unify with the type from the pattern
@@ -506,7 +506,7 @@ tc_pat penv (ViewPat expr pat _) overall_pat_ty thing_inside
          -- NOTE: this forces pat_ty to be a monotype (because we use a unification
          -- variable to find it).  this means that in an example like
          -- (view -> f)    where view :: _ -> forall b. b
-         -- we will only be able to use view at one instantation in the
+         -- we will only be able to use view at one instantiation in the
          -- rest of the view
         ; (expr_co, pat_ty) <- tcInfer $ \ pat_ty ->
                 unifyType expr'_inferred (mkFunTy overall_pat_ty pat_ty)
@@ -661,7 +661,7 @@ are not made available in the RHS of the match. For example
         f :: T a -> Int -> a
         f ~(T1 i) y = y
 It's obviously not sound to refine a to Int in the right
-hand side, because the arugment might not match T1 at all!
+hand side, because the argument might not match T1 at all!
 
 Finally, a lazy pattern should not bind any existential type variables
 because they won't be in scope when we do the desugaring

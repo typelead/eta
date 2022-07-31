@@ -297,7 +297,7 @@ Then we have to instantiate the kind variables, build a substitution
 from old variables to the new variables, then instantiate the type
 variables substituting the original kind.
 
-Exemple: If we want to instantiate
+Example: If we want to instantiate
   [(k1 :: BOX), (k2 :: BOX), (a :: k1 -> k2), (b :: k1)]
 we want
   [(?k1 :: BOX), (?k2 :: BOX), (?a :: ?k1 -> ?k2), (?b :: ?k1)]

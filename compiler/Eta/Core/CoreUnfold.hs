@@ -97,7 +97,7 @@ mkDFunUnfolding bndrs con ops
   = DFunUnfolding { df_bndrs = bndrs
                   , df_con = con
                   , df_args = map occurAnalyseExpr ops }
-                  -- See Note [Occurrrence analysis of unfoldings]
+                  -- See Note [Occurrence analysis of unfoldings]
 
 mkWwInlineRule :: CoreExpr -> Arity -> Unfolding
 mkWwInlineRule expr arity
@@ -220,7 +220,7 @@ mkCoreUnfolding :: UnfoldingSource -> Bool -> CoreExpr
 -- Occurrence-analyses the expression before capturing it
 mkCoreUnfolding src top_lvl expr guidance
   = CoreUnfolding { uf_tmpl         = occurAnalyseExpr expr,
-                      -- See Note [Occurrrence analysis of unfoldings]
+                      -- See Note [Occurrence analysis of unfoldings]
                     uf_src          = src,
                     uf_is_top       = top_lvl,
                     uf_is_value     = exprIsHNF        expr,
@@ -239,7 +239,7 @@ mkUnfolding dflags src top_lvl is_bottoming expr
   = NoUnfolding    -- See Note [Do not inline top-level bottoming functions]
   | otherwise
   = CoreUnfolding { uf_tmpl         = occurAnalyseExpr expr,
-                      -- See Note [Occurrrence analysis of unfoldings]
+                      -- See Note [Occurrence analysis of unfoldings]
                     uf_src          = src,
                     uf_is_top       = top_lvl,
                     uf_is_value     = exprIsHNF        expr,
@@ -269,7 +269,7 @@ the unfolding in question was a DFun unfolding.
 
 But more generally, the simplifier is designed on the
 basis that it is looking at occurrence-analysed expressions, so better
-ensure that they acutally are.
+ensure that they actually are.
 
 Note [Calculate unfolding guidance on the non-occ-anal'd expression]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -397,7 +397,7 @@ are very cheap, because exposing them to a caller is so valuable.
 
 [25/5/11] All sizes are now multiplied by 10, except for primops
 (which have sizes like 1 or 4.  This makes primops look fantastically
-cheap, and seems to be almost unversally beneficial.  Done partly as a
+cheap, and seems to be almost universally beneficial.  Done partly as a
 result of #4978.
 
 Note [Do not inline top-level bottoming functions]
@@ -597,9 +597,9 @@ sizeExpr dflags bOMB_OUT_SIZE top_args expr
         -- Don't charge for args, so that wrappers look cheap
         -- (See comments about wrappers with Case)
         --
-        -- IMPORATANT: *do* charge 1 for the alternative, else we
+        -- IMPORTANT: *do* charge 1 for the alternative, else we
         -- find that giant case nests are treated as practically free
-        -- A good example is Foreign.C.Error.errrnoToIOError
+        -- A good example is Foreign.C.Error.errnoToIOError
 
     ------------
         -- These addSize things have to be here because
@@ -715,7 +715,7 @@ of extra incentive we give a discount of 10*(1 + n_val_args).
 
 Simon M tried a MUCH bigger discount: (10 * (10 + n_val_args)),
 and said it was an "unambiguous win", but its terribly dangerous
-because a fuction with many many case branches, each finishing with
+because a function with many many case branches, each finishing with
 a constructor, can have an arbitrarily large discount.  This led to
 terrible code bloat: see Trac #6099.
 
@@ -761,7 +761,7 @@ Conclusion:
 Note [Literal integer size]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Literal integers *can* be big (mkInteger [...coefficients...]), but
-need not be (S# n).  We just use an aribitrary big-ish constant here
+need not be (S# n).  We just use an arbitrary big-ish constant here
 so that, in particular, we don't inline top-level defns like
    n = S# 5
 There's no point in doing so -- any optimisations will see the S#
@@ -783,7 +783,7 @@ buildSize :: ExprSize
 buildSize = SizeIs (_ILIT(0)) emptyBag (_ILIT(40))
         -- We really want to inline applications of build
         -- build t (\cn -> e) should cost only the cost of e (because build will be inlined later)
-        -- Indeed, we should add a result_discount becuause build is
+        -- Indeed, we should add a result_discount because build is
         -- very like a constructor.  We don't bother to check that the
         -- build is saturated (it usually is).  The "-2" discounts for the \c n,
         -- The "4" is rather arbitrary.
@@ -810,7 +810,7 @@ binary sizes shrink significantly either.
 
 Note [Discounts and thresholds]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Constants for discounts and thesholds are defined in main/DynFlags,
+Constants for discounts and thresholds are defined in main/DynFlags,
 all of form ufXxxx.   They are:
 
 ufCreationThreshold
@@ -981,7 +981,7 @@ StrictAnal.addStrictnessInfoToTopId
 callSiteInline :: DynFlags
                -> Id                    -- The Id
                -> Bool                  -- True <=> unfolding is active
-               -> Bool                  -- True if there are are no arguments at all (incl type args)
+               -> Bool                  -- True if there are no arguments at all (incl type args)
                -> [ArgSummary]          -- One for each value arg; True if it is interesting
                -> CallCtxt              -- True <=> continuation is interesting
                -> Maybe CoreExpr        -- Unfolding, if any
@@ -1003,7 +1003,7 @@ nonTriv _       = True
 data CallCtxt
   = BoringCtxt
   | RhsCtxt             -- Rhs of a let-binding; see Note [RHS of lets]
-  | DiscArgCtxt         -- Argument of a fuction with non-zero arg discount
+  | DiscArgCtxt         -- Argument of a function with non-zero arg discount
   | RuleArgCtxt         -- We are somewhere in the argument of a function with rules
 
   | ValAppCtxt          -- We're applied to at least one value arg
@@ -1235,7 +1235,7 @@ CONLIKE thing (modulo lets).
 Note [Lone variables]   See also Note [Interaction of exprIsWorkFree and lone variables]
 ~~~~~~~~~~~~~~~~~~~~~   which appears below
 The "lone-variable" case is important.  I spent ages messing about
-with unsatisfactory varaints, but this is nice.  The idea is that if a
+with unsatisfactory variants, but this is nice.  The idea is that if a
 variable appears all alone
 
         as an arg of lazy fn, or rhs    BoringCtxt
@@ -1287,7 +1287,7 @@ However, watch out:
         case $fMonadST @ RealWorld of { :DMonad a b c -> c }
    We had better inline that sucker!  The case won't see through it.
 
-   For now, I'm treating treating a variable applied to types
+   For now, I'm treating a variable applied to types
    in a *lazy* context "lone". The motivating example was
         f = /\a. \x. BIG
         g = /\a. \y.  h (f a)
@@ -1364,6 +1364,6 @@ computeDiscount dflags arg_discounts res_discount arg_infos cont_info
                 -- constructors; but we only want to invoke that large discount
                 -- when there's a case continuation.
                 -- Otherwise we, rather arbitrarily, threshold it.  Yuk.
-                -- But we want to aovid inlining large functions that return
+                -- But we want to avoid inlining large functions that return
                 -- constructors into contexts that are simply "interesting"
 

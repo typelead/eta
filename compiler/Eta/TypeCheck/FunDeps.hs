@@ -61,7 +61,7 @@ Will generate:
         fd1 = FDEq { fd_pos = 1, fd_ty_left = alpha, fd_ty_right = Bool } and
         fd2 = FDEq { fd_pos = 2, fd_ty_left = alpha, fd_ty_right = beta }
 
-We record the paremeter position so that can immediately rewrite a constraint
+We record the parameter position so that can immediately rewrite a constraint
 using the produced FDEqs and remove it from our worklist.
 
 
@@ -221,7 +221,7 @@ improveFromInstEnv inst_env pred
                                 -- because there often are none!
     , let trimmed_tcs = trimRoughMatchTcs cls_tvs fd rough_tcs
                 -- Trim the rough_tcs based on the head of the fundep.
-                -- Remember that instanceCantMatch treats both argumnents
+                -- Remember that instanceCantMatch treats both arguments
                 -- symmetrically, so it's ok to trim the rough_tcs,
                 -- rather than trimming each inst_tcs in turn
     , ispec <- instances
@@ -324,7 +324,7 @@ checkClsFD fd clas_tvs
                         --
                         -- But note (a) we get them from the dfun_id, so they are *in order*
                         --              because the kind variables may be mentioned in the
-                        --              type variabes' kinds
+                        --              type variables' kinds
                         --          (b) we must apply 'subst' to the kinds, in case we have
                         --              matched out a kind variable, but not a type variable
                         --              whose kind mentions that kind variable!
@@ -457,7 +457,7 @@ Here is a more subtle example, from HList-0.4.0.0 (Trac #10564)
 Is the instance OK? Does {l,r,xs} determine v?  Well:
 
   * From the instance constraint HMemberM (Label k l) (LabelsOf xs) b,
-    plus the fundep "| el l -> r" in class HMameberM,
+    plus the fundep "| el l -> r" in class HMemberM,
     we get {l,k,xs} -> b
 
   * Note the 'k'!! We must call closeOverKinds on the seed set

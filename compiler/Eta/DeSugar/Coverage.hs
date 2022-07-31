@@ -448,7 +448,7 @@ addBinTickLHsExpr boxLabel (L pos e0)
 
 
 -- -----------------------------------------------------------------------------
--- Decoarate an HsExpr with ticks
+-- Decorate an HsExpr with ticks
 
 addTickHsExpr :: HsExpr Id -> TM (HsExpr Id)
 addTickHsExpr e@(HsVar id) = do freeVar id; return e
@@ -592,7 +592,7 @@ addTickHsExpr (HsWrap w e) =
 addTickHsExpr e@(HsType _) = return e
 addTickHsExpr (HsUnboundVar {}) = panic "addTickHsExpr.HsUnboundVar"
 
--- Others dhould never happen in expression content.
+-- Others should never happen in expression content.
 addTickHsExpr e  = pprPanic "addTickHsExpr" (ppr e)
 
 addTickTupArg :: LHsTupArg Id -> TM (LHsTupArg Id)
@@ -1138,7 +1138,7 @@ mkTickish boxLabel countEntries topOnly pos fvs decl_path = do
   let ids = filter (not . isUnLiftedType . idType) $ occEnvElts fvs
           -- unlifted types cause two problems here:
           --   * we can't bind them  at the GHCi prompt
-          --     (bindLocalsAtBreakpoint already fliters them out),
+          --     (bindLocalsAtBreakpoint already filters them out),
           --   * the simplifier might try to substitute a literal for
           --     the Id, and we can't handle that.
 

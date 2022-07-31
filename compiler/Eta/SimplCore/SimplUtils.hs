@@ -822,7 +822,7 @@ Similarly, consider
 and suppose that there are auto-generated specialisations and a strictness
 wrapper for g.  The specialisations get activation AlwaysActive, and the
 strictness wrapper get activation (ActiveAfter 0).  So the strictness
-wrepper fails the test and won't be inlined into f's stable unfolding. That
+wrapper fails the test and won't be inlined into f's stable unfolding. That
 means f can inline, expose the specialised call to g, so the specialisation
 rules can fire.
 
@@ -830,7 +830,7 @@ A note about wrappers
 ~~~~~~~~~~~~~~~~~~~~~
 It's also important not to inline a worker back into a wrapper.
 A wrapper looks like
-        wraper = inline_me (\x -> ...worker... )
+        wrapper = inline_me (\x -> ...worker... )
 Normally, the inline_me prevents the worker getting inlined into
 the wrapper (initially, the worker's only call site!).  But,
 if the wrapper is sure to be called, the strictness analyser will
@@ -866,7 +866,7 @@ getUnfoldingInRuleMatch env
      | otherwise           = isActive (sm_phase mode) (idInlineActivation id)
 
 active_unfolding_minimal :: Id -> Bool
--- Compuslory unfoldings only
+-- Compulsory unfoldings only
 -- Ignore SimplGently, because we want to inline regardless;
 -- the Id has no top-level binding at all
 --
@@ -946,7 +946,7 @@ For example, it's tempting to look at trivial binding like
 and inline it unconditionally.  But suppose x is used many times,
 but this is the unique occurrence of y.  Then inlining x would change
 y's occurrence info, which breaks the invariant.  It matters: y
-might have a BIG rhs, which will now be dup'd at every occurrenc of x.
+might have a BIG rhs, which will now be dup'd at every occurrence of x.
 
 
 Even RHSs labelled InlineMe aren't caught here, because there might be
@@ -981,7 +981,7 @@ spectral/mandel/Mandel.hs, where the mandelset function gets a useful
 let-float if you inline windowToViewport
 
 However, as usual for Gentle mode, do not inline things that are
-inactive in the intial stages.  See Note [Gentle mode].
+inactive in the initial stages.  See Note [Gentle mode].
 
 Note [Stable unfoldings and preInlineUnconditionally]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1004,7 +1004,7 @@ for exactly this reason; and we don't want PreInlineUnconditionally
 to second-guess it.  A live example is Trac #3736.
     c.f. Note [Stable unfoldings and postInlineUnconditionally]
 
-Note [Top-level botomming Ids]
+Note [Top-level bottoming Ids]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Don't inline top-level Ids that are bottoming, even if they are used just
 once, because FloatOut has gone to some trouble to extract them out.
@@ -1105,7 +1105,7 @@ only have *forward* references. Hence, it's safe to discard the binding
 
 NOTE: This isn't our last opportunity to inline.  We're at the binding
 site right now, and we'll get another opportunity when we get to the
-ocurrence(s)
+occurrence(s)
 
 Note that we do this unconditional inlining only for trival RHSs.
 Don't inline even WHNFs inside lambdas; doing so may simply increase
@@ -1155,7 +1155,7 @@ postInlineUnconditionally dflags env top_lvl bndr occ_info rhs unfolding
         --      case v of
         --         True  -> case x of ...
         --         False -> case x of ...
-        -- This is very important in practice; e.g. wheel-seive1 doubles
+        -- This is very important in practice; e.g. wheel-sieve1 doubles
         -- in allocation if you miss this out
       OneOcc in_lam _one_br int_cxt     -- OneOcc => no code-duplication issue
         ->     smallEnoughToInline dflags unfolding     -- Small enough to dup
@@ -1754,7 +1754,7 @@ This gave rise to a horrible sequence of cases
 and similarly in cascade for all the join points!
 
 NB: it's important that all this is done in [InAlt], *before* we work
-on the alternatives themselves, because Simpify.simplAlt may zap the
+on the alternatives themselves, because Simplify.simplAlt may zap the
 occurrence info on the binders in the alternatives, which in turn
 defeats combineIdenticalAlts (see Trac #7360).
 
@@ -1768,7 +1768,7 @@ Suppose we have (Trac #10538)
          A -> e2
          B -> e1
 
-When calling combineIdentialAlts, we'll have computed that the "impossible
+When calling combineIdenticalAlts, we'll have computed that the "impossible
 constructors" for the DEFAULT alt is {A,B}, since if x is A or B we'll
 take the other alternatives.  But suppose we combine B into the DEFAULT,
 to get
@@ -1824,7 +1824,7 @@ mkCase tries these things
        }
 
     which merges two cases in one case when -- the default alternative of
-    the outer case scrutises the same variable as the outer case. This
+    the outer case scrutinises the same variable as the outer case. This
     transformation is called Case Merging.  It avoids that the same
     variable is scrutinised multiple times.
 
@@ -1937,7 +1937,7 @@ mkCase1 dflags scrut bndr alts_ty alts = mkCase2 dflags scrut bndr alts_ty alts
 
 mkCase2 dflags scrut bndr alts_ty alts
   | -- See Note [Scrutinee Constant Folding]
-    case alts of  -- Not if there is just a DEFAULT alterantive
+    case alts of  -- Not if there is just a DEFAULT alternative
       [(DEFAULT,_,_)] -> False
       _               -> True
   , gopt Opt_CaseFolding dflags
@@ -1994,7 +1994,7 @@ mkCase2 dflags scrut bndr alts_ty alts
 
     add_default :: [CoreAlt] -> [CoreAlt]
     -- TagToEnum may change a boolean True/False set of alternatives
-    -- to LitAlt 0#/1# alterantives.  But literal alternatives always
+    -- to LitAlt 0#/1# alternatives.  But literal alternatives always
     -- have a DEFAULT (I think).  So add it.
     add_default ((LitAlt {}, bs, rhs) : alts) = (DEFAULT, bs, rhs) : alts
     add_default alts                          = alts

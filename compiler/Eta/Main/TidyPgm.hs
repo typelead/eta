@@ -559,7 +559,7 @@ Oh: two other reasons for injecting them late:
     the sense of chooseExternalIds); else the Ids mentioned in *their*
     RHSs will be treated as external and you get an interface file
     saying      a18 = <blah>
-    but nothing refererring to a18 (because the implicit Id is the
+    but nothing referring to a18 (because the implicit Id is the
     one that does, and implicit Ids don't appear in interface files).
 
   - More seriously, the tidied type-envt will include the implicit
@@ -617,12 +617,12 @@ chooseExternalIds hsc_env mod omit_prags expose_all binds implicit_binds imp_id_
  where
   nc_var = hsc_NC hsc_env
 
-  -- init_ext_ids is the intial list of Ids that should be
+  -- init_ext_ids is the initial list of Ids that should be
   -- externalised.  It serves as the starting point for finding a
   -- deterministic, tidy, renaming for all external Ids in this
   -- module.
   --
-  -- It is sorted, so that it has adeterministic order (i.e. it's the
+  -- It is sorted, so that it has a deterministic order (i.e. it's the
   -- same list every time this module is compiled), in contrast to the
   -- bindings, which are ordered non-deterministically.
   init_work_list = zip init_ext_ids init_ext_ids
@@ -664,7 +664,7 @@ chooseExternalIds hsc_env mod omit_prags expose_all binds implicit_binds imp_id_
   init_occ_env = initTidyOccEnv avoids
 
 
-  search :: [(Id,Id)]    -- The work-list: (external id, referrring id)
+  search :: [(Id,Id)]    -- The work-list: (external id, referring id)
                          -- Make a tidy, external Name for the external id,
                          --   add it to the UnfoldEnv, and do the same for the
                          --   transitive closure of Ids it refers to
@@ -932,7 +932,7 @@ findExternalRules omit_prags binds imp_id_rules unfold_env
         -- local binder (on LHS or RHS) that we have now discarded.
         -- (NB: ruleFreeVars only includes LocalIds)
         --
-        -- LHS: we have alrady filtered out rules that mention internal Ids
+        -- LHS: we have already filtered out rules that mention internal Ids
         --     on LHS but that isn't enough because we might have by now
         --     discarded a binding with an external Id. (How?
         --     chooseExternalIds is a bit conservative.)
@@ -1067,7 +1067,7 @@ tidyTopName mod nc_var maybe_ref occ_env id
         -- If we want to externalise a currently-local name, check
         -- whether we have already assigned a unique for it.
         -- If so, use it; if not, extend the table.
-        -- All this is done by allcoateGlobalBinder.
+        -- All this is done by allocateGlobalBinder.
         -- This is needed when *re*-compiling a module in GHCi; we must
         -- use the same name for externally-visible things as we did before.
 
@@ -1396,7 +1396,7 @@ First, Template Haskell.  Consider (Trac #2386) this
           data T = Yay String
           makeOne = [| Yay "Yep" |]
 Notice that T is exported abstractly, but makeOne effectively exports it too!
-A module that splices in $(makeOne) will then look for a declartion of Yay,
+A module that splices in $(makeOne) will then look for a declaration of Yay,
 so it'd better be there.  Hence, brutally but simply, we switch off type
 constructor trimming if TH is enabled in this module.
 

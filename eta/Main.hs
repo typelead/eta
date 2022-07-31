@@ -150,7 +150,7 @@ main' postLoadMode dflags0 args flagWarnings = do
                         }
 
       -- turn on -fimplicit-import-qualified for GHCi now, so that it
-      -- can be overriden from the command-line
+      -- can be overridden from the command-line
       -- XXX: this should really be in the interactive DynFlags, but
       -- we don't set that until later in interactiveUI
       dflags3  | DoInteractive <- postLoadMode = imp_qual_enabled
@@ -179,7 +179,7 @@ main' postLoadMode dflags0 args flagWarnings = do
      -- into forward slashes.
     normal_fileish_paths = map (normalise . unLoc) fileish_args
     -- TODO: Clean this up
-    (srcs', objs)        = parititionArgs normal_fileish_paths [] []
+    (srcs', objs)        = partitionArgs normal_fileish_paths [] []
     srcs                 = srcs' ++ map (\o -> (o, Nothing)) objs
     dflags5              = dflags4
 
@@ -236,19 +236,19 @@ etaReplUI     = interactiveUI defaultEtaReplSettings
 -- interpret the -x <suffix> option, and attach a (Maybe Phase) to each source
 -- file indicating the phase specified by the -x option in force, if any.
 
-parititionArgs :: [String] -> [(String, Maybe Phase)] -> [String]
+partitionArgs :: [String] -> [(String, Maybe Phase)] -> [String]
                -> ([(String, Maybe Phase)], [String])
-parititionArgs [] srcs objs = (reverse srcs, reverse objs)
-parititionArgs ("-x":suff:args) srcs objs
-  | "none" <- suff      = parititionArgs args srcs objs
-  | StopLn <- phase     = parititionArgs args srcs (slurp ++ objs)
-  | otherwise           = parititionArgs rest (these_srcs ++ srcs) objs
+partitionArgs [] srcs objs = (reverse srcs, reverse objs)
+partitionArgs ("-x":suff:args) srcs objs
+  | "none" <- suff      = partitionArgs args srcs objs
+  | StopLn <- phase     = partitionArgs args srcs (slurp ++ objs)
+  | otherwise           = partitionArgs rest (these_srcs ++ srcs) objs
         where phase = startPhase suff
               (slurp,rest) = break (== "-x") args
               these_srcs = zip slurp (repeat (Just phase))
-parititionArgs (arg:args) srcs objs
-  | looksLikeAnInput arg = parititionArgs args ((arg,Nothing):srcs) objs
-  | otherwise               = parititionArgs args srcs (arg:objs)
+partitionArgs (arg:args) srcs objs
+  | looksLikeAnInput arg = partitionArgs args ((arg,Nothing):srcs) objs
+  | otherwise               = partitionArgs args srcs (arg:objs)
 
     {-
       We split out the object files (.o, .dll) and add them
@@ -524,7 +524,7 @@ modeFlags =
           "Object splitting supported",
           "Have native code generator",
           "Support SMP",
-          "Unregisterised",
+          "Unregistered",
           "Tables next to code",
           "RTS ways",
           "Leading underscore",
@@ -797,7 +797,7 @@ options may be necessary in order to find the .hi files.
 
 This is used by Cabal for generating the InstalledPackageId for a
 package.  The InstalledPackageId must change when the visible ABI of
-the package chagnes, so during registration Cabal calls ghc --abi-hash
+the package changes, so during registration Cabal calls ghc --abi-hash
 to get a hash of the package's ABI.
 -}
 

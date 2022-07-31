@@ -736,7 +736,7 @@ cleanEvalProdDmd n = JD { sd = HeadStr, ud = UProd (replicate n useTop) }
 {-
 ************************************************************************
 *                                                                      *
-           Demand: combining stricness and usage
+           Demand: combining strictness and usage
 *                                                                      *
 ************************************************************************
 -}
@@ -1246,7 +1246,7 @@ We
  3. combine the termination results, but
  4. take CPR info from the first argument.
 
-3 and 4 are implementd in bothDmdResult.
+3 and 4 are implemented in bothDmdResult.
 -}
 
 -- Equality needed for fixpoints in DmdAnal
@@ -1544,7 +1544,7 @@ But the demand fed into f might be less than <C(C(S)), C1(C1(S))>. There are a f
    - And finally termination information: If r says that f diverges for sure,
      then this holds when the demand guarantees that two arguments are going to
      be passed. If the demand is lower, we may just as well converge.
-     If we were tracking definite convegence, than that would still hold under
+     If we were tracking definite convergence, than that would still hold under
      a weaker demand than expected by the demand transformer.
  * Not enough demand from the usage side: The missing usage can be expanded
    using UCall Many, therefore this is subsumed by the third case:
@@ -1581,7 +1581,7 @@ Note [Default demand on free variables]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If the variable is not mentioned in the environment of a demand type,
 its demand is taken to be a result demand of the type.
-    For the stricness component,
+    For the strictness component,
      if the result demand is a Diverges, then we use HyperStr
                                          else we use Lazy
     For the usage component, we use Absent.
@@ -1686,8 +1686,8 @@ a demand on the Id into a DmdType, which gives
         c) an indication of the result of applying
            the Id to its arguments
 
-However, in fact we store in the Id an extremely emascuated demand
-transfomer, namely
+However, in fact we store in the Id an extremely emasculated demand
+transformer, namely
 
                 a single DmdType
 (Nevertheless we dignify StrictSig as a distinct type.)

@@ -169,7 +169,7 @@ Note [Always do CPR w/w]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 At one time we refrained from doing CPR w/w for thunks, on the grounds that
 we might duplicate work.  But that is already handled by the demand analyser,
-which doesn't give the CPR proprety if w/w might waste work: see
+which doesn't give the CPR property if w/w might waste work: see
 Note [CPR for thunks] in DmdAnal.
 
 And if something *has* been given the CPR property and we don't w/w, it's
@@ -243,7 +243,7 @@ Then we drop the unused args to give
    foo   = \pq. $wfoo void#
    $wfoo = \void(one-shot). y + 3
 
-But suppse foo didn't have all one-shot args:
+But suppose foo didn't have all one-shot args:
    foo = \p(not-one-shot) q(one-shot). expensive y + 3
 Then we drop the unused args to give
    foo   = \pq. $wfoo void#
@@ -361,7 +361,7 @@ Note [Freshen type variables]
 Wen we do a worker/wrapper split, we must not use shadowed names,
 else we'll get
    f = /\ a /\a. fw a a
-which is obviously wrong.  Type variables can can in principle shadow,
+which is obviously wrong.  Type variables can in principle shadow,
 within a type (e.g. forall a. a -> forall a. a->a).  But type
 variables *are* mentioned in <blah>, so we must substitute.
 
@@ -418,7 +418,7 @@ we end up unpacking massive tuples passed to the bottoming function. Example:
         main = print (f fst (1, error "no"))
 
 Does 'main' print "error 1" or "error no"?  We don't really want 'f'
-to unbox its second argument.  This actually happened in GHC's onwn
+to unbox its second argument.  This actually happened in GHC's own
 source code, in Packages.applyPackageFlag, which ended up un-boxing
 the enormous DynFlags tuple, and being strict in the
 as-yet-un-filled-in pkgState files.
@@ -509,7 +509,7 @@ bug.  The fix here is simply to decline to do w/w if that happens.
 
 ************************************************************************
 *                                                                      *
-         Type scrutiny that is specfic to demand analysis
+         Type scrutiny that is specific to demand analysis
 *                                                                      *
 ************************************************************************
 
@@ -518,7 +518,7 @@ Note [Do not unpack class dictionaries]
 If we have
    f :: Ord a => [a] -> Int -> a
    {-# INLINABLE f #-}
-and we worker/wrapper f, we'll get a worker with an INLINALBE pragma
+and we worker/wrapper f, we'll get a worker with an INLINABLE pragma
 (see Note [Worker-wrapper for INLINABLE functions] in WorkWrap), which
 can still be specialised by the type-class specialiser, something like
    fw :: Ord a => [a] -> Int# -> a
@@ -528,7 +528,7 @@ BUT if f is strict in the Ord dictionary, we might unpack it, to get
 and the type-class specialiser can't specialise that.  An example is
 Trac #6056.
 
-Moreover, dictinoaries can have a lot of fields, so unpacking them can
+Moreover, dictionaries can have a lot of fields, so unpacking them can
 increase closure sizes.
 
 Conclusion: don't unpack dictionaries.

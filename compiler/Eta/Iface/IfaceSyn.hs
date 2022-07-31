@@ -82,7 +82,7 @@ infixl 3 &&&
 -- | A binding top-level 'Name' in an interface file (e.g. the name of an
 -- 'IfaceDecl').
 type IfaceTopBndr = Name
-  -- It's convenient to have an OccName in the IfaceSyn, altough in each
+  -- It's convenient to have an OccName in the IfaceSyn, although in each
   -- case the namespace is implied by the context. However, having an
   -- Name makes things like ifaceDeclImplicitBndrs and ifaceDeclFingerprints
   -- very convenient. Moreover, having the key of the binder means that
@@ -90,7 +90,7 @@ type IfaceTopBndr = Name
   -- [Symbol table representation of Names]
   --
   -- We don't serialise the namespace onto the disk though; rather we
-  -- drop it when serialising and add it back in when deserialising.
+  -- drop it when serialising and add it back in when deserializing.
 
 getIfaceTopBndr :: BinHandle -> IO IfaceTopBndr
 getIfaceTopBndr bh = get bh

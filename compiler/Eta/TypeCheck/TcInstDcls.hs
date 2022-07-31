@@ -141,7 +141,7 @@ Note [Instances and loop breakers]
 
 * Instead the idea is to inline df_i into op1_i, which may then select
   methods from the MkC record, and thereby break the recursion with
-  df_i, leaving a *self*-recurisve op1_i.  (If op1_i doesn't call op at
+  df_i, leaving a *self*-recursive op1_i.  (If op1_i doesn't call op at
   the same type, it won't mention df_i, so there won't be recursion in
   the first place.)
 
@@ -170,7 +170,7 @@ big intermediate) if you inline a bit too much.
 Instead we use a cunning trick.
  * We arrange that 'df' and 'op2' NEVER inline.
 
- * We arrange that 'df' is ALWAYS defined in the sylised form
+ * We arrange that 'df' is ALWAYS defined in the stylised form
       df d1 d2 = MkD ($cop1 d1 d2) ($cop2 d1 d2) ...
 
  * We give 'df' a magical unfolding (DFunUnfolding [$cop1, $cop2, ..])
@@ -437,7 +437,7 @@ tcInstDecls1 tycl_decls inst_decls deriv_decls
                      2 (pprInstanceHdr (iSpec i))
 
     -- Report an error or a warning for a `Typeable` instances.
-    -- If we are workikng on an .hs-boot file, we just report a warning,
+    -- If we are working on an .hs-boot file, we just report a warning,
     -- and ignore the instance.  We do this, to give users a chance to fix
     -- their code.
     typeable_err i =
@@ -564,7 +564,7 @@ tcATDefault inst_subst defined_ats (ATI fam_tc defs)
   | tyConName fam_tc `elemNameSet` defined_ats
   = return []
 
-  -- No user instance, have defaults ==> instatiate them
+  -- No user instance, have defaults ==> instantiate them
    -- Example:   class C a where { type F a b :: *; type F a b = () }
    --            instance C [x]
    -- Then we want to generate the decl:   type F [x] b = ()
@@ -998,7 +998,7 @@ that the type variables bound in the signature will scope over the body.
 What about the check that the instance method signature is more
 polymorphic than the instantiated class method type?  We just do a
 tcSubType call in mkMethIds, and use the HsWrapper thus generated in
-the method AbsBind.  It's very like the tcSubType impedence-matching
+the method AbsBind.  It's very like the tcSubType impedance-matching
 call in mkExport.  We have to pass the HsWrapper into
 tcInstanceMethodBody.
 
@@ -1328,7 +1328,7 @@ tcInstanceMethods dfun_id clas tyvars dfun_ev_vars inst_tys
     -- check if one of the minimal complete definitions is satisfied
     checkMinimalDefinition
       = whenIsJust (isUnsatisfied methodExists (classMinimalDef clas)) $
-          warnUnsatisifiedMinimalDefinition
+          warnUnsatisfiedMinimalDefinition
       where
       methodExists meth = isJust (findMethodBind meth binds)
 
@@ -1368,8 +1368,8 @@ warnMissingMethodOrAT what name
                 (ptext (sLit "No explicit") <+> text what <+> ptext (sLit "or default declaration for")
                  <+> quotes (ppr name)) }
 
-warnUnsatisifiedMinimalDefinition :: ClassMinimalDef -> TcM ()
-warnUnsatisifiedMinimalDefinition mindef
+warnUnsatisfiedMinimalDefinition :: ClassMinimalDef -> TcM ()
+warnUnsatisfiedMinimalDefinition mindef
   = do { warn <- woptM Opt_WarnMissingMethods
        ; warnTc (Reason Opt_WarnMissingMethods) warn message
        }
@@ -1419,7 +1419,7 @@ less work to generate the translated version!
 Note [INLINE and default methods]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Default methods need special case.  They are supposed to behave rather like
-macros.  For exmample
+macros.  For example
 
   class Foo a where
     op1, op2 :: Bool -> a -> a

@@ -270,7 +270,7 @@ getByte :: BinHandle -> IO Word8
 getByte = getWord8
 
 -- -----------------------------------------------------------------------------
--- Primitve Word writes
+-- Primitive Word writes
 
 instance Binary Word8 where
   put_ = putWord8
@@ -331,7 +331,7 @@ instance Binary Word64 where
                (fromIntegral w8))
 
 -- -----------------------------------------------------------------------------
--- Primitve Int writes
+-- Primitive Int writes
 
 instance Binary Int8 where
   put_ h w = put_ h (fromIntegral w :: Word8)
@@ -463,7 +463,7 @@ instance Binary DiffTime where
 --
 -- TODO  This instance is not architecture portable.  GMP stores numbers as
 -- arrays of machine sized words, so the byte format is not portable across
--- architectures with different endianess and word size.
+-- architectures with different endianness and word size.
 --
 -- This makes it hard (impossible) to make an equivalent instance
 -- with code that is compilable with non-GHC.  Do we need any instance
@@ -788,7 +788,7 @@ lazyGet bh = do
 
 data UserData =
    UserData {
-        -- for *deserialising* only:
+        -- for *deserializing* only:
         ud_get_name :: BinHandle -> IO Name,
         ud_get_fs   :: BinHandle -> IO FastString,
 

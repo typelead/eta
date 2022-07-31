@@ -211,7 +211,7 @@ setIdInfo id info = seqIdInfo info `seq` (lazySetIdInfo id info)
 modifyIdInfo :: (IdInfo -> IdInfo) -> Id -> Id
 modifyIdInfo fn id = setIdInfo id (fn (idInfo id))
 
--- maybeModifyIdInfo tries to avoid unnecesary thrashing
+-- maybeModifyIdInfo tries to avoid unnecessary thrashing
 maybeModifyIdInfo :: Maybe IdInfo -> Id -> Id
 maybeModifyIdInfo (Just new_info) id = lazySetIdInfo id new_info
 maybeModifyIdInfo Nothing         id = id
@@ -482,7 +482,7 @@ isImplicitId id
         PrimOpId {}      -> True
         DataConWorkId {} -> True
         DataConWrapId {} -> True
-                -- These are are implied by their type or class decl;
+                -- These are implied by their type or class decl;
                 -- remember that all type and class decls appear in the interface file.
                 -- The dfun id is not an implicit Id; it must *not* be omitted, because
                 -- it carries version info for the instance decl
@@ -627,7 +627,7 @@ setIdCafInfo :: Id -> CafInfo -> Id
 setIdCafInfo id caf_info = modifyIdInfo (`setCafInfo` caf_info) id
 
         ---------------------------------
-        -- Occcurrence INFO
+        -- Occurrence INFO
 idOccInfo :: Id -> OccInfo
 idOccInfo id = occInfo (idInfo id)
 

@@ -110,7 +110,7 @@ This is the syntax for types as seen in type signatures.
 
 Note [HsBSig binder lists]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Consider a binder (or pattern) decoarated with a type or kind,
+Consider a binder (or pattern) decorated with a type or kind,
    \ (x :: a -> a). blah
    forall (a :: k -> *) (b :: k). blah
 Then we use a LHsBndrSig on the binder, so that the

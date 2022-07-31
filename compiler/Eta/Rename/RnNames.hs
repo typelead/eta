@@ -72,12 +72,12 @@ we must also check that these rules hold transitively for all dependent modules
 and packages. Doing this without caching any trust information would be very
 slow as we would need to touch all packages and interface files a module depends
 on. To avoid this we make use of the property that if a modules Safe Haskell
-mode changes, this triggers a recompilation from that module in the dependcy
+mode changes, this triggers a recompilation from that module in the dependency
 graph. So we can just worry mostly about direct imports.
 
 There is one trust property that can change for a package though without
 recompliation being triggered: package trust. So we must check that all
-packages a module tranitively depends on to be trusted are still trusted when
+packages a module transitively depends on to be trusted are still trusted when
 we are compiling this module (as due to recompilation avoidance some modules
 below may not be considered trusted any more without recompilation being
 triggered).
@@ -121,7 +121,7 @@ So there is an interesting design question in regards to transitive trust
 checking. Say I have a module B compiled with -XSafe. B is dependent on a bunch
 of modules and packages, some packages it requires to be trusted as its using
 -XTrustworthy modules from them. Now if I have a module A that doesn't use safe
-haskell at all and simply imports B, should A inherit all the the trust
+haskell at all and simply imports B, should A inherit all the trust
 requirements from B? Should A now also require that a package p is trusted since
 B required it?
 
@@ -342,7 +342,7 @@ calculateAvails dflags iface mod_safe' want_boot imported_by =
       -- reported.  Easiest thing is just to filter them out up
       -- front. This situation only arises if a module imports
       -- itself, or another module that imported it.  (Necessarily,
-      -- this invoves a loop.)
+      -- this involves a loop.)
       --
       -- We do this *after* filterImports, so that if you say
       --      module A where
@@ -789,7 +789,7 @@ top level binders specially in two ways
       it seem like qualified import.
 
     * We only shadow *External* names (which come from the main module)
-      Do not shadow *Inernal* names because in the bracket
+      Do not shadow *Internal* names because in the bracket
           [d| class C a where f :: a
               f = 4 |]
       rnSrcDecls will first call extendGlobalRdrEnvRn with C[f] from the
@@ -1599,7 +1599,7 @@ isModuleExported implicit_prelude mod (GRE { gre_name = name, gre_prov = prov })
 
 -------------------------------
 check_occs :: IE RdrName -> ExportOccMap -> [Name] -> RnM ExportOccMap
-check_occs ie occs names  -- 'names' are the entities specifed by 'ie'
+check_occs ie occs names  -- 'names' are the entities specified by 'ie'
   = foldlM check occs names
   where
     check occs name
@@ -1642,7 +1642,7 @@ dupExport_ok :: Name -> IE RdrName -> IE RdrName -> Bool
 -- Example of "yes" (Trac #2436)
 --    module M( C(..), T(..) ) where
 --         class C a where { data T a }
---         instace C Int where { data T Int = TInt }
+--         instance C Int where { data T Int = TInt }
 --
 -- Example of "yes" (Trac #2436)
 --    module Foo ( T ) where
@@ -1811,7 +1811,7 @@ warnMissingSig flag msg id
 {-
 Note [The ImportMap]
 ~~~~~~~~~~~~~~~~~~~~
-The ImportMap is a short-lived intermediate data struture records, for
+The ImportMap is a short-lived intermediate data structure records, for
 each import declaration, what stuff brought into scope by that
 declaration is actually used in the module.
 

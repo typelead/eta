@@ -361,7 +361,7 @@ That's why we compute
 
     So we must *not* postInlineUnconditionally 'g', even though
     its RHS turns out to be trivial.  (I'm assuming that 'g' is
-    not choosen as a loop breaker.)  Why not?  Because then we
+    not chosen as a loop breaker.)  Why not?  Because then we
     drop the binding for 'g', which leaves it out of scope in the
     RULE!
 
@@ -513,7 +513,7 @@ Note [Specialising imported functions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 BUT for *automatically-generated* rules, the programmer can't be
 responsible for the "programmer error" in Note [Rules for imported
-functions].  In paricular, consider specialising a recursive function
+functions].  In particular, consider specialising a recursive function
 defined in another module.  If we specialise a recursive function B.g,
 we get
          g_spec = .....(B.g Int).....
@@ -933,7 +933,7 @@ reOrderNodes depth bndr_set weak_fvs (node : nodes) binds
         | otherwise = 0
 
         -- Checking for a constructor application
-        -- Cheap and cheerful; the simplifer moves casts out of the way
+        -- Cheap and cheerful; the simplifier moves casts out of the way
         -- The lambda case is important to spot x = /\a. C (f a)
         -- which comes up when C is a dictionary constructor and
         -- f is a default method.
@@ -1282,7 +1282,7 @@ occAnal env (Case scrut bndr ty alts)
         | t `tickishScopesLike` SoftScope
           -- No reason to not look through all ticks here, but only
           -- for soft-scoped ticks we can do so without having to
-          -- update returned occurance info (see occAnal)
+          -- update returned occurrence info (see occAnal)
         = second (Tick t) $ occ_anal_scrut e alts
 
     occ_anal_scrut scrut _alts
@@ -1376,7 +1376,7 @@ markManyIf False uds = uds
 {-
 Note [Use one-shot information]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The occurrrence analyser propagates one-shot-lambda information in two situation
+The occurrence analyser propagates one-shot-lambda information in two situation
   * Applications:  eg   build (\cn -> blah)
     Propagate one-shot info from the strictness signature of 'build' to
     the \cn
@@ -1401,7 +1401,7 @@ binders are unused.  See esp the call to isDeadBinder in
 Simplify.mkDupableAlt
 
 In this example, though, the Simplifier will bring 'a' and 'b' back to
-life, beause it binds 'y' to (a,b) (imagine got inlined and
+life, because it binds 'y' to (a,b) (imagine got inlined and
 scrutinised y).
 -}
 
@@ -1468,8 +1468,8 @@ type GlobalScruts = IdSet   -- See Note [Binder swap on GlobalId scrutinees]
 --      x = (p,q)               -- Don't inline p or q
 --      y = /\a -> (p a, q a)   -- Still don't inline p or q
 --      z = f (p,q)             -- Do inline p,q; it may make a rule fire
--- So OccEncl tells enought about the context to know what to do when
--- we encounter a contructor application or PAP.
+-- So OccEncl tells enough about the context to know what to do when
+-- we encounter a constructor application or PAP.
 
 data OccEncl
   = OccRhs              -- RHS of let(rec), albeit perhaps inside a type lambda
@@ -1517,7 +1517,7 @@ oneShotGroup :: OccEnv -> [CoreBndr]
         -- The result binders have one-shot-ness set that they might not have had originally.
         -- This happens in (build (\cn -> e)).  Here the occurrence analyser
         -- linearity context knows that c,n are one-shot, and it records that fact in
-        -- the binder. This is useful to guide subsequent float-in/float-out tranformations
+        -- the binder. This is useful to guide subsequent float-in/float-out transformations
 
 oneShotGroup env@(OccEnv { occ_one_shots = ctxt }) bndrs
   = go ctxt bndrs []

@@ -126,7 +126,7 @@ verifyScript = do
   when (not exists) $ mkdir (fromString outPath)
   procExitOnError Nothing "eta" ["-fforce-recomp", "-o", T.pack outJar, T.pack mainSource] mempty
   echo "===                     ==="
-  echo "Compiled succesfully."
+  echo "Compiled successfully."
   echo "Verifying the bytecode of compiled program..."
   echo "=== Verify Script Output ==="
   procExitOnError Nothing "java" ["-cp", T.pack verifyScriptPath, "Verify", T.pack outJar] mempty

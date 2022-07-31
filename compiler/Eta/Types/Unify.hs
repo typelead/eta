@@ -415,7 +415,7 @@ Note [Unifying with skolems]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If we discover that two types unify if and only if a skolem variable is
 substituted, we can't properly unify the types. But, that skolem variable
-may later be instantiated with a unifyable type. So, we return maybeApart
+may later be instantiated with a unifiable type. So, we return maybeApart
 in these cases.
 
 Note [Lists of different lengths are MaybeApart]
@@ -505,7 +505,7 @@ To make it idempotent we don't want to get just
 We also want to substitute inside f's kind, to get
    [ k -> *
    , g -> H k (f:*) ]
-If we don't do this, we may apply the substitition to something,
+If we don't do this, we may apply the substitution to something,
 and get an ill-formed type, i.e. one where typeKind will fail.
 This happened, for example, in Trac #9106.
 

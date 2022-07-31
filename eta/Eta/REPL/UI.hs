@@ -722,8 +722,8 @@ runGHCiInput f = do
 nextInputLine :: Bool -> Bool -> InputT GHCi (Maybe String)
 nextInputLine show_prompt is_tty
   | is_tty = do
-    prmpt <- if show_prompt then lift mkPrompt else return ""
-    r <- getInputLine prmpt
+    prompt <- if show_prompt then lift mkPrompt else return ""
+    r <- getInputLine prompt
     incrementLineNo
     return r
   | otherwise = do
@@ -1193,7 +1193,7 @@ runStmt stmt step = do
     run_stmt stmt' =
         do -- In the new IO library, read handles buffer data even if the Handle
            -- is set to NoBuffering.  This causes problems for GHCi where there
-           -- are really two stdin Handles.  So we flush any bufferred data in
+           -- are really two stdin Handles.  So we flush any buffered data in
            -- GHCi's stdin Handle here (only relevant if stdin is attached to
            -- a file, otherwise the read buffer can't be flushed).
            _ <- liftIO $ tryIO $ hFlushAll stdin
@@ -1548,10 +1548,10 @@ editFile str =
 -- or otherwise the first target.
 --
 -- XXX: Can we figure out what happened if the depndecy analysis fails
---      (e.g., because the porgrammeer mistyped the name of a module)?
+--      (e.g., because the programmeer mistyped the name of a module)?
 -- XXX: Can we figure out the location of an error to pass to the editor?
--- XXX: if we could figure out the list of errors that occured during the
--- last load/reaload, then we could start the editor focused on the first
+-- XXX: if we could figure out the list of errors that occurred during the
+-- last load/reload, then we could start the editor focused on the first
 -- of those.
 chooseEditFile :: GHCi String
 chooseEditFile =

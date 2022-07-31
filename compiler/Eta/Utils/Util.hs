@@ -293,7 +293,7 @@ splitEithers (e : es) = case e of
     where (xs,ys) = splitEithers es
 
 chkAppend :: [a] -> [a] -> [a]
--- Checks for the second arguemnt being empty
+-- Checks for the second argument being empty
 -- Used in situations where that situation is common
 chkAppend xs ys
   | null ys   = xs
@@ -637,7 +637,7 @@ splitAtList (_:xs) (y:ys) = (y:ys', ys'')
 -- drop from the end of a list
 dropTail :: Int -> [a] -> [a]
 -- Specification: dropTail n = reverse . drop n . reverse
--- Better implemention due to Joachim Breitner
+-- Better implementation due to Joachim Breitner
 -- http://www.joachim-breitner.de/blog/archives/600-On-taking-the-last-n-elements-of-a-list.html
 dropTail n xs
   = go (drop n xs) xs
@@ -834,16 +834,16 @@ fuzzyMatch key vals = fuzzyLookup key [(v,v) | v <- vals]
 -- | Search for possible matches to the users input in the given list,
 -- returning a small number of ranked results
 fuzzyLookup :: String -> [(String,a)] -> [a]
-fuzzyLookup user_entered possibilites
+fuzzyLookup user_entered possibilities
   = map fst $ take mAX_RESULTS $ sortBy (comparing snd)
-    [ (poss_val, distance) | (poss_str, poss_val) <- possibilites
+    [ (poss_val, distance) | (poss_str, poss_val) <- possibilities
                        , let distance = restrictedDamerauLevenshteinDistance
                                             poss_str user_entered
                        , distance <= fuzzy_threshold ]
   where
-    -- Work out an approriate match threshold:
+    -- Work out an appropriate match threshold:
     -- We report a candidate if its edit distance is <= the threshold,
-    -- The threshhold is set to about a quarter of the # of characters the user entered
+    -- The threshold is set to about a quarter of the # of characters the user entered
     --   Length    Threshold
     --     1         0          -- Don't suggest *any* candidates
     --     2         1          -- for single-char identifiers

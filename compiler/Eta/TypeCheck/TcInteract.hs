@@ -67,7 +67,7 @@ Note [Basic Simplifier Plan]
       - canonicalization
       - inert reactions
       - spontaneous reactions
-      - top-level intreactions
+      - top-level interactions
    Each stage returns a StopOrContinue and may have sideffected
    the inerts or worklist.
 
@@ -118,7 +118,7 @@ Note [Running plugins on unflattened wanteds]
 
 There is an annoying mismatch between solveSimpleGivens and
 solveSimpleWanteds, because the latter needs to fiddle with the inert
-set, unflatten and and zonk the wanteds.  It passes the zonked wanteds
+set, unflatten and zonk the wanteds.  It passes the zonked wanteds
 to runTcPluginsWanteds, which produces a replacement set of wanteds,
 some additional insolubles and a flag indicating whether to go round
 the loop again.  If so, prepareInertsForImplications is used to remove
@@ -181,7 +181,7 @@ solveSimples cts
       = {-# SCC "solve_loop" #-}
         do { sel <- selectNextWorkItem max_depth
            ; case sel of
-              NoWorkRemaining     -- Done, successfuly (modulo frozen)
+              NoWorkRemaining     -- Done, successfully (modulo frozen)
                 -> do dicts <- getUnsolvedInertDicts
                       new_work <- getUniqueInstanceWanteds dyn_flags dicts
                       if null new_work
@@ -429,7 +429,7 @@ But this isn't quite true.  Suppose we have,
     c1: [W] beta ~ [alpha], c2 : [W] blah, c3 :[W] alpha ~ Int
 After processing the first two, we get
      c1: [G] beta ~ [alpha], c2 : [W] blah
-Now, c3 does not interact with the the given c1, so when we spontaneously
+Now, c3 does not interact with the given c1, so when we spontaneously
 solve c3, we must re-react it with the inert set.  So we can attempt a
 reaction between inert c2 [W] and work-item c3 [G].
 
@@ -670,7 +670,7 @@ f2 :: (?x :: Int, ?x :: Char) => Int
 f2 = ?x
 
 Both of these are actually wrong:  when we try to use either one,
-we'll get two incompatible wnated constraints (?x :: Int, ?x :: Char),
+we'll get two incompatible wanted constraints (?x :: Int, ?x :: Char),
 which would lead to an error.
 
 I can think of two ways to fix this:
@@ -805,7 +805,7 @@ Notice the orientation (xi_w ~ xi_i) NOT (xi_i ~ xi_w):
     new_work :: xi_w ~ xi_i
     cw := ci ; sym new_work
 Why?  Consider the simplest case when xi1 is a type variable.  If
-we generate xi1~xi2, porcessing that constraint will kick out 'ci'.
+we generate xi1~xi2, processing that constraint will kick out 'ci'.
 If we generate xi2~xi1, there is less chance of that happening.
 Of course it can and should still happen if xi1=a, xi1=Int, say.
 But we want to avoid it happening needlessly.
@@ -1113,7 +1113,7 @@ Note [Kick out insolubles]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Suppose we have an insoluble alpha ~ [alpha], which is insoluble
 because an occurs check.  And then we unify alpha := [Int].
-Then we really want to rewrite the insouluble to [Int] ~ [[Int]].
+Then we really want to rewrite the insoluble to [Int] ~ [[Int]].
 Now it can be decomposed.  Otherwise we end up with a "Can't match
 [Int] ~ [[Int]]" which is true, but a bit confusing because the
 outer type constructors match.
@@ -1143,7 +1143,7 @@ Note [Superclasses and recursive dictionaries]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Overlaps with Note [SUPERCLASS-LOOP 1]
                   Note [SUPERCLASS-LOOP 2]
-                  Note [Recursive instances and superclases]
+                  Note [Recursive instances and superclasses]
     ToDo: check overlap and delete redundant stuff
 
 Right before adding a given into the inert set, we must
@@ -1377,7 +1377,7 @@ Solution:
 
 Note [SUPERCLASS-LOOP 2]
 ~~~~~~~~~~~~~~~~~~~~~~~~
-We need to be careful when adding "the constaint we are trying to prove".
+We need to be careful when adding "the constraint we are trying to prove".
 Suppose we are *given* d1:Ord a, and want to deduce (d2:C [a]) where
 
         class Ord a => C a where
@@ -1415,7 +1415,7 @@ first time, but reducible next time.
 Now we implement the Right Solution, which is to check for loops directly
 when adding superclasses.  It's a bit like the occurs check in unification.
 
-Note [Recursive instances and superclases]
+Note [Recursive instances and superclasses]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider this code, which arises in the context of "Scrap Your
 Boilerplate with Class".
@@ -1439,7 +1439,7 @@ Using the instance for Data, we therefore need
         (Sat (Maybe [a], Data Maybe a)
 But we are given (Foo a), and hence its superclass (Data Maybe a).
 So that leaves (Sat (Maybe [a])).  Using the instance for Sat means
-we need (Foo [a]).  And that is the very dictionary we are bulding
+we need (Foo [a]).  And that is the very dictionary we are building
 an instance for!  So we must put that in the "givens".  So in this
 case we have
         Given:  Foo a, Foo [a]
@@ -1631,7 +1631,7 @@ doTopReactFunEq work_item@(CFunEqCan { cc_ev = old_ev, cc_fun = fam_tc
                 -- final_co :: fsk ~ rhs_ty
           ; new_ev <- newGivenEvVar deeper_loc (mkTcEqPred (mkTyVarTy fsk) rhs_ty,
                                                 EvCoercion final_co)
-          ; emitWorkNC [new_ev]   -- Non-cannonical; that will mean we flatten rhs_ty
+          ; emitWorkNC [new_ev]   -- Non-canonical; that will mean we flatten rhs_ty
           ; stopWith old_ev "Fun/Top (given)" }
 
     | not (fsk `elemVarSet` tyVarsOfType rhs_ty)
@@ -1767,7 +1767,7 @@ Note [FunDep and implicit parameter reactions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Currently, our story of interacting two dictionaries (or a dictionary
 and top-level instances) for functional dependencies, and implicit
-paramters, is that we simply produce new Derived equalities.  So for example
+parameters, is that we simply produce new Derived equalities.  So for example
 
         class D a b | a -> b where ...
     Inert:
@@ -1898,7 +1898,7 @@ two possibilities:
        now solvable by the given Q [a].
 
      However, this option is restrictive, for instance [Example 3] from
-     Note [Recursive instances and superclases] will fail to work.
+     Note [Recursive instances and superclasses] will fail to work.
 
   2. Ignore the problem, hoping that the situations where there exist indeed
      such multiple strategies are rare: Indeed the cause of the previous
@@ -2164,7 +2164,7 @@ Other notes:
 -}
 
 -- | Assumes that we've checked that this is the 'Typeable' class,
--- and it was applied to the correc arugment.
+-- and it was applied to the correc argument.
 matchTypeableClass :: Class -> Kind -> Type -> CtLoc -> TcS LookupInstResult
 matchTypeableClass clas _k t loc
 

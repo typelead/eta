@@ -200,7 +200,7 @@ the wrapper (or later).  That is necessary to allow the wrapper to
 inline into the worker's unfolding: see SimplUtils
 Note [Simplifying inside stable unfoldings].
 
-Notihng is lost by giving the worker the same activation as the
+Nothing is lost by giving the worker the same activation as the
 worker, because the worker won't have any chance of inlining until the
 wrapper does; there's no point in giving it an earlier activation.
 

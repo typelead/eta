@@ -197,7 +197,7 @@ where (x1, .., xn) are the variables bound in p1, v1, p2
 In the translation below, the ParStmt branch translates each parallel branch
 into a sub-comprehension, and desugars each independently.  The resulting lists
 are fed to a zip function, we create a binding for all the variables bound in all
-the comprehensions, and then we hand things off the the desugarer for bindings.
+the comprehensions, and then we hand things off the desugarer for bindings.
 The zip function is generated here a) because it's small, and b) because then we
 don't have to deal with arbitrary limits on the number of zip functions in the
 prelude, nor which library the zip function came from.
@@ -361,7 +361,7 @@ dfBindComp c_id n_id (pat, core_list1) quals = do
     -- create some new local id's
     [b, x] <- newSysLocalsDs [b_ty, x_ty]
 
-    -- build rest of the comprehesion
+    -- build rest of the comprehension
     core_rest <- dfListComp c_id b quals
 
     -- build the pattern match

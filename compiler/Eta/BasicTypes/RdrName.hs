@@ -594,14 +594,14 @@ isLocalGRE (GRE {gre_prov = LocalDef})    = True
 isLocalGRE (GRE {gre_prov = Imported is}) = and $ map (is_java . is_decl) is
 
 unQualOK :: GlobalRdrElt -> Bool
--- ^ Test if an unqualifed version of this thing would be in scope
+-- ^ Test if an unqualified version of this thing would be in scope
 unQualOK (GRE {gre_prov = LocalDef})    = True
 unQualOK (GRE {gre_prov = Imported is}) = any unQualSpecOK is
 
 pickGREs :: RdrName -> [GlobalRdrElt] -> [GlobalRdrElt]
 -- ^ Take a list of GREs which have the right OccName
 -- Pick those GREs that are suitable for this RdrName
--- And for those, keep only only the Provenances that are suitable
+-- And for those, keep only the Provenances that are suitable
 -- Only used for Qual and Unqual, not Orig or Exact
 --
 -- Consider:

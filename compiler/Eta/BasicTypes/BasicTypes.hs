@@ -2,7 +2,7 @@
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1997-1998
 
-\section[BasicTypes]{Miscellanous types}
+\section[BasicTypes]{Miscellaneous types}
 
 This module defines a miscellaneously collection of very simple
 types that
@@ -343,7 +343,7 @@ Consider
 \begin{verbatim}
         a `op1` b `op2` c
 \end{verbatim}
-@(compareFixity op1 op2)@ tells which way to arrange appication, or
+@(compareFixity op1 op2)@ tells which way to arrange application, or
 whether there's an error.
 -}
 
@@ -761,7 +761,7 @@ instance Outputable OccInfo where
 {-
 ************************************************************************
 *                                                                      *
-                Default method specfication
+                Default method specification
 *                                                                      *
 ************************************************************************
 

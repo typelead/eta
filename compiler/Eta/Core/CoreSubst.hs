@@ -200,7 +200,7 @@ never modified during substitution.  Rather:
    of Ids gis_del that must *not* be looked up in the gbl envt.
 
 All this is needed to support SimplEnv.substExpr, which starts off
-with a SimplIdSubst, which provides the ambient subsitution.
+with a SimplIdSubst, which provides the ambient substitution.
 -}
 
 -- | An environment for substituting for 'Id's
@@ -825,11 +825,11 @@ substTickish _subst other = other
 
 {- Note [Substitute lazily]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The functions that substitute over IdInfo must be pretty lazy, becuause
+The functions that substitute over IdInfo must be pretty lazy, because
 they are knot-tied by substRecBndrs.
 
 One case in point was Trac #10627 in which a rule for a function 'f'
-referred to 'f' (at a differnet type) on the RHS.  But instead of just
+referred to 'f' (at a different type) on the RHS.  But instead of just
 substituting in the rhs of the rule, we were calling simpleOptExpr, which
 looked at the idInfo for 'f'; result <<loop>>.
 
@@ -856,13 +856,13 @@ Breakpoints can't handle free variables with unlifted types anyway.
 {-
 Note [Worker inlining]
 ~~~~~~~~~~~~~~~~~~~~~~
-A worker can get sustituted away entirely.
+A worker can get substituted away entirely.
         - it might be trivial
         - it might simply be very small
 We do not treat an InlWrapper as an 'occurrence' in the occurrence
 analyser, so it's possible that the worker is not even in scope any more.
 
-In all all these cases we simply drop the special case, returning to
+In all these cases we simply drop the special case, returning to
 InlVanilla.  The WARN is just so I can see if it happens a lot.
 
 
@@ -872,7 +872,7 @@ InlVanilla.  The WARN is just so I can see if it happens a lot.
 *                                                                      *
 ************************************************************************
 
-Note [Optimise coercion boxes agressively]
+Note [Optimise coercion boxes aggressively]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The simple expression optimiser needs to deal with Eq# boxes as follows:
@@ -893,7 +893,7 @@ We do this for two reasons:
 
  2. The test T4356 fails Lint because it creates a coercion between types
     of kind (* -> * -> *) and (?? -> ? -> *), which differ. If we do this
-    inlining agressively we can collapse away the intermediate coercion between
+    inlining aggressively we can collapse away the intermediate coercion between
     these two types and hence pass Lint again. (This is a sort of a hack.)
 
 In fact, our implementation uses slightly liberalised versions of the second rule
@@ -931,7 +931,7 @@ simpleOptExpr :: CoreExpr -> CoreExpr
 -- or where the RHS is trivial
 --
 -- We also inline bindings that bind a Eq# box: see
--- See Note [Optimise coercion boxes agressively].
+-- See Note [Optimise coercion boxes aggressively].
 --
 -- The result is NOT guaranteed occurrence-analysed, because
 -- in  (let x = y in ....) we substitute for x; so y's occ-info
@@ -1008,7 +1008,7 @@ simple_opt_expr subst expr
 
     go lam@(Lam {})     = go_lam [] subst lam
     go (Case e b ty as)
-       -- See Note [Optimise coercion boxes agressively]
+       -- See Note [Optimise coercion boxes aggressively]
       | isDeadBinder b
       , Just (con, _tys, es) <- exprIsConApp_maybe in_scope_env e'
       , Just (altcon, bs, rhs) <- findAlt (DataAlt con) as
@@ -1139,7 +1139,7 @@ maybe_substitute subst b r
             | (Var fun, args) <- collectArgs r
             , Just dc <- isDataConWorkId_maybe fun
             , dc `hasKey` eqBoxDataConKey || dc `hasKey` coercibleDataConKey
-            , all exprIsTrivial args = True -- See Note [Optimise coercion boxes agressively]
+            , all exprIsTrivial args = True -- See Note [Optimise coercion boxes aggressively]
             | otherwise = False
 
 ----------------------
@@ -1433,7 +1433,7 @@ to compute the type arguments to the dictionary constructor.
 
 Note [DFun arity check]
 ~~~~~~~~~~~~~~~~~~~~~~~
-Here we check that the total number of supplied arguments (inclding
+Here we check that the total number of supplied arguments (including
 type args) matches what the dfun is expecting.  This may be *less*
 than the ordinary arity of the dfun: see Note [DFun unfoldings] in CoreSyn
 -}

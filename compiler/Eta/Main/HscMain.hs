@@ -22,7 +22,7 @@
 -- Warning messages are dealt with consistently throughout this API:
 -- during compilation warnings are collected, and before any function
 -- in @HscMain@ returns, the warnings are either printed, or turned
--- into a real compialtion error if the @-Werror@ flag is enabled.
+-- into a real compilation error if the @-Werror@ flag is enabled.
 --
 -- (c) The GRASP/AQUA Project, Glasgow University, 1993-2000
 --
@@ -349,7 +349,7 @@ hscParse' mod_summary
             -- that the parser gave us,
             --   - eliminate files beginning with '<'.  gcc likes to use
             --     pseudo-filenames like "<built-in>" and "<command-line>"
-            --   - normalise them (elimiante differences between ./f and f)
+            --   - normalise them (eliminate differences between ./f and f)
             --   - filter out the preprocessed source file
             --   - filter out anything beginning with tmpdir
             --   - remove duplicates
@@ -799,7 +799,7 @@ hscFileFrontEnd mod_summary = hscTypecheck False mod_summary Nothing
 -- Note [Safe Haskell Inference]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- Safe Haskell does Safe inference on modules that don't have any specific
--- safe haskell mode flag. The basic aproach to this is:
+-- safe haskell mode flag. The basic approach to this is:
 --   * When deciding if we need to do a Safe language check, treat
 --     an unmarked module as having -XSafe mode specified.
 --   * For checks, don't throw errors but return them to the caller.
@@ -856,7 +856,7 @@ hscCheckSafeImports tcg_env = do
 -- | Validate that safe imported modules are actually safe.  For modules in the
 -- HomePackage (the package the module we are compiling in resides) this just
 -- involves checking its trust type is 'Safe' or 'Trustworthy'. For modules
--- that reside in another package we also must check that the external pacakge
+-- that reside in another package we also must check that the external package
 -- is trusted. See the Note [Safe Haskell Trust Check] above for more
 -- information.
 --
@@ -1094,7 +1094,7 @@ markUnsafeInfer tcg_env whyUnsafe = do
              mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags) (whyUnsafe' dflags))
 
     liftIO $ writeIORef (tcg_safeInfer tcg_env) False
-    -- NOTE: Only wipe trust when not in an explicity safe haskell mode. Other
+    -- NOTE: Only wipe trust when not in an explicitly safe haskell mode. Other
     -- times inference may be on but we are in Trustworthy mode -- so we want
     -- to record safe-inference failed but not wipe the trust dependencies.
     case safeHaskell dflags == Sf_None of

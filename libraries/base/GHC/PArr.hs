@@ -18,7 +18,7 @@
 --                the desugarer does not load 'Data.Array.Parallel' into its global state. (Hence,
 --                the present module may not use any other piece of '-XParallelArray' syntax.)
 --
---                This will be cleaned up when we change the internal represention of '[::]' to not
+--                This will be cleaned up when we change the internal representation of '[::]' to not
 --                rely on a wired-in type constructor.
 
 module GHC.PArr where

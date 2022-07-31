@@ -304,7 +304,7 @@ People write
 so much, where
    runST :: (forall s. ST s a) -> a
 that I have finally given in and written a special type-checking
-rule just for saturated appliations of ($).
+rule just for saturated applications of ($).
   * Infer the type of the first argument
   * Decompose it; should be of form (arg2_ty -> res_ty),
        where arg2_ty might be a polytype

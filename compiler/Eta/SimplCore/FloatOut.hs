@@ -99,7 +99,7 @@ It turns out that this generates a subexpression of the form
 @
         \deq x ys -> let eq = eqFromEqDict deq in ...
 @
-vwhich might usefully be separated to
+which might usefully be separated to
 @
         \deq -> let eq = eqFromEqDict deq in \xy -> ...
 @
@@ -233,7 +233,7 @@ Note [floatBind for top level]
 We may have a *nested* binding whose destination level is (FloatMe tOP_LEVEL), thus
          letrec { foo <0,0> = .... (let bar<0,0> = .. in ..) .... }
 The binding for bar will be in the "tops" part of the floating binds,
-and thus not partioned by floatBody.
+and thus not partitioned by floatBody.
 
 We could perhaps get rid of the 'tops' component of the floating binds,
 but this case works just as well.

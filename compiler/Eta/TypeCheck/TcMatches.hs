@@ -198,7 +198,7 @@ tcMatch ctxt pat_tys rhs_ty match
     tc_grhss _ (Just {}) _ _
       = panic "tc_ghrss"        -- Rejected by renamer
 
-        -- For (\x -> e), tcExpr has already said "In the expresssion \x->e"
+        -- For (\x -> e), tcExpr has already said "In the expression \x->e"
         -- so we don't want to add "In the lambda abstraction \x->e"
     add_match_ctxt match thing_inside
         = case mc_what ctxt of
@@ -327,7 +327,7 @@ tcStmtsAndThen ctxt stmt_chk (L loc (LetStmt binds) : stmts) res_ty thing_inside
 
 -- Don't set the error context for an ApplicativeStmt.  It ought to be
 -- possible to do this with a popErrCtxt in the tcStmt case for
--- ApplicativeStmt, but it did someting strange and broke a test (ado002).
+-- ApplicativeStmt, but it did something strange and broke a test (ado002).
 tcStmtsAndThen ctxt stmt_chk (L loc stmt : stmts) res_ty thing_inside
   | ApplicativeStmt{} <- stmt
   = do  { (stmt', (stmts', thing)) <-
@@ -633,7 +633,7 @@ tcMcStmt ctxt (TransStmt { trS_stmts = stmts, trS_bndrs = bindersMap
        ; using' <- tcPolyExpr using using_poly_ty
        ; let final_using = fmap (HsWrap (WpTyApp tup_ty)) using'
 
-       --------------- Bulding the bindersMap ----------------
+       --------------- Building the bindersMap ----------------
        ; let mk_n_bndr :: Name -> TcId -> TcId
              mk_n_bndr n_bndr_name bndr_id = mkLocalId n_bndr_name (n_app (idType bndr_id))
 
@@ -853,7 +853,7 @@ When typechecking
 we want to typecheck 'bar' in the knowledge that it should be an IO thing,
 pushing info from the context into the RHS.  To do this, we check the
 rebindable syntax first, and push that information into (tcMonoExprNC rhs).
-Otherwise the error shows up when cheking the rebindable syntax, and
+Otherwise the error shows up when checking the rebindable syntax, and
 the expected/inferred stuff is back to front (see Trac #3613).
 
 Note [typechecking ApplicativeStmt]

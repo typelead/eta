@@ -378,7 +378,7 @@ data GeneralFlag
    | Opt_RegsGraph                      -- do graph coloring register allocation
    | Opt_RegsIterative                  -- do iterative coalescing graph coloring register allocation
    | Opt_PedanticBottoms                -- Be picky about how we treat bottom
-   | Opt_LlvmTBAA                       -- Use LLVM TBAA infastructure for improving AA (hidden flag)
+   | Opt_LlvmTBAA                       -- Use LLVM TBAA infrastructure for improving AA (hidden flag)
    | Opt_LlvmPassVectorsInRegisters     -- Pass SIMD vectors in registers (requires a patched LLVM) (hidden flag)
    | Opt_IrrefutableTuples
    | Opt_CmmSink
@@ -1561,7 +1561,7 @@ defaultDynFlags mySettings =
         ufCreationThreshold = 750,
         ufUseThreshold      = 60,
         ufFunAppDiscount    = 60,
-        -- Be fairly keen to inline a fuction if that means
+        -- Be fairly keen to inline a function if that means
         -- we'll be able to pick the right method from a dictionary
         ufDictDiscount      = 30,
         ufKeenessFactor     = 1.5,
@@ -1914,7 +1914,7 @@ setSafeHaskell s = updM f
               safeM <- combineSafeFlags sf s
               case s of
                 Sf_Safe -> return $ dfs { safeHaskell = safeM, safeInfer = False }
-                -- leave safe inferrence on in Trustworthy mode so we can warn
+                -- leave safe inference on in Trustworthy mode so we can warn
                 -- if it could have been inferred safe.
                 Sf_Trustworthy -> do
                   l <- getCurLoc
@@ -1999,7 +1999,7 @@ setMetricsDir f d = d{ metricsDir = Just f}
 setHiDir      f d = d{ hiDir      = Just f}
 setStubDir    f d = d{ stubDir    = Just f, includePaths = f : includePaths d }
   -- -stubdir D adds an implicit -I D, so that gcc can find the _stub.h file
-  -- \#included from the .hc file when compiling via C (i.e. unregisterised
+  -- \#included from the .hc file when compiling via C (i.e. unregistered
   -- builds).
 setDumpDir    f d = d{ dumpDir    = Just f}
 setOutputDir  f = setObjectDir f . setHiDir f . setStubDir f . setDumpDir f
@@ -2580,8 +2580,8 @@ dynamic_flags = [
   , defFlag "fdiagnostics-color=never"
       (NoArg (upd (\d -> d { useColor = Never })))
   , defGhcFlag "dtrace-level"  (intSuffix (\n d -> d{ traceLevel = n }))
-  -- Suppress all that is suppressable in core dumps.
-  -- Except for uniques, as some simplifier phases introduce new varibles that
+  -- Suppress all that is suppressible in core dumps.
+  -- Except for uniques, as some simplifier phases introduce new variables that
   -- have otherwise identical names.
   , defGhcFlag "dsuppress-all"
       (NoArg $ do setGeneralFlag Opt_SuppressCoercions
@@ -3482,7 +3482,7 @@ impliedXFlags
 --  * docs/users_guide/flags.xml
 --  * docs/users_guide/using.xml
 --
--- The first contains the Flag Refrence section, which breifly lists all
+-- The first contains the Flag Reference section, which briefly lists all
 -- available flags. The second contains a detailed description of the
 -- flags. Both places should contain information whether a flag is implied by
 -- -O0, -O or -O2.
@@ -3874,7 +3874,7 @@ setDumpFlag' dump_flag
                                              Opt_D_dump_hi_diffs]
 
 forceRecompile :: DynP ()
--- Whenver we -ddump, force recompilation (by switching off the
+-- Whenever we -ddump, force recompilation (by switching off the
 -- recompilation checker), else you don't see the dump! However,
 -- don't switch it off in --make mode, else *everything* gets
 -- recompiled which probably isn't what you want

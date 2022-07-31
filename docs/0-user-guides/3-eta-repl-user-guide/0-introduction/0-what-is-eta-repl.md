@@ -15,7 +15,7 @@ The Eta REPL is based on Haskell's [GHCi](https://downloads.haskell.org/~ghc/8.4
 
 ## Motivation
 
-Interacting with your programs in realtime is a great way to quickly solidfy your understanding of how your application is pieced together and also quickly learn about how new libraries work.
+Interacting with your programs in realtime is a great way to quickly solidify your understanding of how your application is pieced together and also quickly learn about how new libraries work.
 
 ## Next Section
 

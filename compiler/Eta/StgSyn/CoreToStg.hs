@@ -792,7 +792,7 @@ coreToStgLet let_no_escape bind body = do
 
 
 is_join_var :: Id -> Bool
--- A hack (used only for compiler debuggging) to tell if
+-- A hack (used only for compiler debugging) to tell if
 -- a variable started life as a join point ($j)
 is_join_var j = occNameString (getOccName j) == "$j"
 
@@ -855,7 +855,7 @@ mkStgRhs' con_updateable rhs_fvs srt bndr binder_info rhs
 --           and lots of PAP_enters.
 --
 --         - in the case where the thunk is top-level, we save building
---           a black hole and futhermore the thunk isn't considered to
+--           a black hole and furthermore the thunk isn't considered to
 --           be a CAF any more, so it doesn't appear in any SRTs.
 --
 -- We do it here, because the arity information is accurate, and we need
@@ -936,7 +936,7 @@ topLevelBound _                   = False
 -- For a let(rec)-bound variable, x, we record LiveInfo, the set of
 -- variables that are live if x is live.  This LiveInfo comprises
 --         (a) dynamic live variables (ones with a non-top-level binding)
---         (b) static live variabes (CAFs or things that refer to CAFs)
+--         (b) static live variables (CAFs or things that refer to CAFs)
 --
 -- For "normal" variables (a) is just x alone.  If x is a let-no-escaped
 -- variable then x is represented by a code pointer and a stack pointer

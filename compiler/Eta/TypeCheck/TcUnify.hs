@@ -338,7 +338,7 @@ There are a number of wrinkles (below).
 
 Notice that Wrinkle 1 and 2 both require eta-expansion, which technically
 may increase termination.  We just put up with this, in exchange for getting
-more predicatble type inference.
+more predictable type inference.
 
 Wrinkle 1: Note [Deep skolemisation]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -692,7 +692,7 @@ unifyTypeList (ty1:tys@(ty2:_)) = do { _ <- unifyType ty1 ty2
 ************************************************************************
 
 uType is the heart of the unifier.  Each arg occurs twice, because
-we want to report errors in terms of synomyms if possible.  The first of
+we want to report errors in terms of synonyms if possible.  The first of
 the pair is used in error messages only; it is always the same as the
 second, except that if the first is a synonym then the second may be a
 de-synonym'd version.  This way we get better error messages.
@@ -877,7 +877,7 @@ We may encounter a unification ty1 ~ ty2 that cannot be performed syntactically,
 and yet its consistency is undetermined. Previously, there was no way to still
 make it consistent. So a mismatch error was issued.
 
-Now these unfications are deferred until constraint simplification, where type
+Now these unifications are deferred until constraint simplification, where type
 family instances and given equations may (or may not) establish the consistency.
 Deferred unifications are of the form
                 F ... ~ ...
@@ -887,7 +887,7 @@ E.g.
         id :: x ~ y => x -> y
         id e = e
 
-involves the unfication x = y. It is deferred until we bring into account the
+involves the unification x = y. It is deferred until we bring into account the
 context x ~ y to establish that it holds.
 
 If available, we defer original types (rather than those where closed type
@@ -944,7 +944,7 @@ uUnfilledVar origin swapped tv1 details1 non_var_ty2  -- ty2 is not a type varia
     defer = unSwap swapped (uType_defer origin) (mkTyVarTy tv1) non_var_ty2
                -- Occurs check or an untouchable: just defer
                -- NB: occurs check isn't necessarily fatal:
-               --     eg tv1 occured in type family parameter
+               --     eg tv1 occurred in type family parameter
 
 ----------------
 uUnfilledVars :: CtOrigin
@@ -952,7 +952,7 @@ uUnfilledVars :: CtOrigin
               -> TcTyVar -> TcTyVarDetails      -- Tyvar 1
               -> TcTyVar -> TcTyVarDetails      -- Tyvar 2
               -> TcM TcCoercion
--- Invarant: The type variables are distinct,
+-- Invariant: The type variables are distinct,
 --           Neither is filled in yet
 
 uUnfilledVars origin swapped tv1 details1 tv2 details2
@@ -1205,9 +1205,9 @@ happy to have types of kind Constraint on either end of an arrow.
 Note [Kind variables can be untouchable]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We must use the careful function lookupTcTyVar to see if a kind
-variable is filled or unifiable.  It checks for touchablity, and kind
+variable is filled or unifiable.  It checks for touchability, and kind
 variables can certainly be untouchable --- for example the variable
-might be bound outside an enclosing existental pattern match that
+might be bound outside an enclosing existential pattern match that
 binds an inner kind variable, which we don't want to escape outside.
 
 This, or something closely related, was the cause of Trac #8985.

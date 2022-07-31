@@ -181,7 +181,7 @@ Why might the wrapper have anything to do?  Two reasons:
   The wrapper has the programmer-specified type:
         \$wMkT :: a -> T [a]
         \$wMkT a x = MkT [a] a [a] x
-  The third argument is a coerion
+  The third argument is a coercion
         [a] :: [a]~[a]
 
 INVARIANT: the dictionary constructor for a class
@@ -222,7 +222,7 @@ It's a flaw in the language.
         it separately in the type checker on occurrences of a
         constructor, either in an expression or in a pattern.
 
-        [May 2003: actually I think this decision could evasily be
+        [May 2003: actually I think this decision could easily be
         reversed now, and probably should be.  Generics could be
         disabled for types with a stupid context; record updates now
         (H98) needs the context too; etc.  It's an unforced change, so
@@ -524,7 +524,7 @@ Terminology:
 
 Note [Data con representation]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The dcRepType field contains the type of the representation of a contructor
+The dcRepType field contains the type of the representation of a constructor
 This may differ from the type of the constructor *Id* (built
 by MkId.mkDataConId) for two reasons:
         a) the constructor Id may be overloaded, but the dictionary isn't stored
@@ -669,7 +669,7 @@ mkDataCon :: Name
           -> [TyVar]            -- ^ Universally quantified type variables
           -> [TyVar]            -- ^ Existentially quantified type variables
           -> [(TyVar,Type)]     -- ^ GADT equalities
-          -> ThetaType          -- ^ Theta-type occuring before the arguments proper
+          -> ThetaType          -- ^ Theta-type occurring before the arguments proper
           -> [Type]             -- ^ Original argument types
           -> Type               -- ^ Original result type
           -> TyCon              -- ^ Representation type constructor
@@ -692,7 +692,7 @@ mkDataCon name declared_infix
 --      data T a where { MkT :: S }
 -- then it's possible that the univ_tvs may hit an assertion failure
 -- if you pull on univ_tvs.  This case is checked by checkValidDataCon,
--- so the error is detected properly... it's just that asaertions here
+-- so the error is detected properly... it's just that assertions here
 -- are a little dodgy.
 
   = con
@@ -741,7 +741,7 @@ eqSpecPreds spec = [ mkEqPred (mkTyVarTy tv) ty | (tv,ty) <- spec ]
 {-
 Note [Unpack equality predicates]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If we have a GADT with a contructor C :: (a~[b]) => b -> T a
+If we have a GADT with a constructor C :: (a~[b]) => b -> T a
 we definitely want that equality predicate *unboxed* so that it
 takes no space at all.  This is easily done: just give it
 an UNPACK pragma. The rest of the unpack/repack code does the
@@ -789,7 +789,7 @@ dataConUnivTyVars = dcUnivTyVars
 dataConExTyVars :: DataCon -> [TyVar]
 dataConExTyVars = dcExTyVars
 
--- | Both the universal and existentiatial type variables of the constructor
+-- | Both the universal and existential type variables of the constructor
 dataConAllTyVars :: DataCon -> [TyVar]
 dataConAllTyVars (MkData { dcUnivTyVars = univ_tvs, dcExTyVars = ex_tvs })
   = univ_tvs ++ ex_tvs
@@ -1143,7 +1143,7 @@ promoteDataCon_maybe (MkData { dcPromoted = mb_tc }) = mb_tc
 {-
 Note [Promoting a Type to a Kind]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Suppsoe we have a data constructor D
+Suppose we have a data constructor D
      D :: forall (a:*). Maybe a -> T a
 We promote this to be a type constructor 'D:
      'D :: forall (k:BOX). 'Maybe k -> 'T k

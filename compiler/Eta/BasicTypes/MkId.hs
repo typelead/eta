@@ -108,7 +108,7 @@ There are several reasons why an Id might appear in the wiredInIds:
     result type. -- sof 1/99]
 
 (3) Other error functions (rUNTIME_ERROR_ID) are wired in (a) because
-    the desugarer generates code that mentiones them directly, and
+    the desugarer generates code that mentions them directly, and
     (b) for the same reason as eRROR_ID
 
 (4) lazyId is wired in because the wired-in version overrides the
@@ -395,13 +395,13 @@ mkDataConWorkId wkr_name data_con
         -- even if the data constructor is declared strict
         --      e.g.    data T = MkT !(Int,Int)
         -- Why?  Because the *wrapper* is strict (and its unfolding has case
-        -- expresssions that do the evals) but the *worker* itself is not.
+        -- expressions that do the evals) but the *worker* itself is not.
         -- If we pretend it is strict then when we see
         --      case x of y -> $wMkT y
         -- the simplifier thinks that y is "sure to be evaluated" (because
         --  $wMkT is strict) and drops the case.  No, $wMkT is not strict.
         --
-        -- When the simplifer sees a pattern
+        -- When the simplifier sees a pattern
         --      case e of MkT x -> ...
         -- it uses the dataConRepStrictness of MkT to mark x as evaluated;
         -- but that's fine... dataConRepStrictness comes from the data con
@@ -504,7 +504,7 @@ mkDataConRep dflags fam_envs wrap_name mb_bangs data_con
                  -- The Cpr info can be important inside INLINE rhss, where the
                  -- wrapper constructor isn't inlined.
                  -- And the argument strictness can be important too; we
-                 -- may not inline a contructor when it is partially applied.
+                 -- may not inline a constructor when it is partially applied.
                  -- For example:
                  --      data W = C !Int !Int !Int
                  --      ...(let w = C x in ...(w p q)...)...
@@ -821,7 +821,7 @@ Because then we'd get an infinite number of arguments.
 Here is a more complicated case:
         data S = MkS {-# UNPACK #-} !T Int
         data T = MkT {-# UNPACK #-} !S Int
-Each of S and T must decide independendently whether to unpack
+Each of S and T must decide independently whether to unpack
 and they had better not both say yes. So they must both say no.
 
 Also behave conservatively when there is no UNPACK pragma
@@ -836,7 +836,7 @@ because Int is non-recursive.
 
 Note [Unpack equality predicates]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If we have a GADT with a contructor C :: (a~[b]) => b -> T a
+If we have a GADT with a constructor C :: (a~[b]) => b -> T a
 we definitely want that equality predicate *unboxed* so that it
 takes no space at all.  This is easily done: just give it
 an UNPACK pragma. The rest of the unpack/repack code does the
@@ -863,7 +863,7 @@ wrapNewTypeBody :: TyCon -> [Type] -> CoreExpr -> CoreExpr
 --      newtype T a = MkT (a,Int)
 --      MkT :: forall a. (a,Int) -> T a
 --      MkT = /\a. \(x:(a,Int)). x `cast` sym (CoT a)
--- where CoT is the coercion TyCon assoicated with the newtype
+-- where CoT is the coercion TyCon associated with the newtype
 --
 -- The call (wrapNewTypeBody T [a] e) returns the
 -- body of the wrapper, namely
@@ -887,7 +887,7 @@ wrapNewTypeBody tycon args result_expr
 -- When unwrapping, we do *not* apply any family coercion, because this will
 -- be done via a CoPat by the type checker.  We have to do it this way as
 -- computing the right type arguments for the coercion requires more than just
--- a spliting operation (cf, TcPat.tcConPat).
+-- a splitting operation (cf, TcPat.tcConPat).
 
 unwrapNewTypeBody :: TyCon -> [Type] -> CoreExpr -> CoreExpr
 unwrapNewTypeBody tycon args result_expr
@@ -992,7 +992,7 @@ mkFCallId dflags uniq fcall ty
 
     strict_sig      = mkClosedStrictSig (replicate arity topDmd) topRes
     -- the call does not claim to be strict in its arguments, since they
-    -- may be lifted (foreign import prim) and the called code doen't
+    -- may be lifted (foreign import prim) and the called code doesn't
     -- necessarily force them. See Trac #11076.
 {-
 ************************************************************************
@@ -1415,7 +1415,7 @@ and Note [Left folds via right fold]) it was determined that it would be useful
 if library authors could explicitly tell the compiler that a certain lambda is
 called at most once. The oneShot function allows that.
 
-Like most magic functions it has a compulsary unfolding, so there is no need
+Like most magic functions it has a compulsory unfolding, so there is no need
 for a real definition somewhere. We have one in GHC.Magic for the convenience
 of putting the documentation there.
 
@@ -1438,7 +1438,7 @@ Note [magicDictId magic]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The identifier `magicDict` is just a place-holder, which is used to
-implement a primitve that we cannot define in Haskell but we can write
+implement a primitive that we cannot define in Haskell but we can write
 in Core.  It is declared with a place-holder type:
 
     magicDict :: forall a. a

@@ -171,7 +171,7 @@ simplifyPmExpr e = case e of
 simplifyEqExpr :: PmExpr -> PmExpr -> (PmExpr, Bool)
 -- See Note [Deep equalities]
 simplifyEqExpr e1 e2 = case (e1, e2) of
-  -- Varables
+  -- Variables
   (PmExprVar x, PmExprVar y)
     | x == y -> (truePmExpr, True)
 

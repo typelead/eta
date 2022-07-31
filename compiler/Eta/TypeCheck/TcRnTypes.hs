@@ -157,7 +157,7 @@ import Eta.REPL.RemoteTypes
 -- 'ns_module_name' @A@, defines a mapping from @{A.T}@
 -- (for some 'OccName' @T@) to some arbitrary other 'Name'.
 --
--- The most intruiging thing about a 'NameShape', however, is
+-- The most intriguing thing about a 'NameShape', however, is
 -- how it's constructed.  A 'NameShape' is *implied* by the
 -- exported 'AvailInfo's of the implementor of an interface:
 -- if an implementor of signature @<H>@ exports @M.T@, you implicitly
@@ -209,7 +209,7 @@ type RnM  = TcRn
 -- | Historical "type-checking monad" (now it's just 'TcRn').
 type TcM  = TcRn
 
--- We 'stack' these envs through the Reader like monad infastructure
+-- We 'stack' these envs through the Reader like monad infrastructure
 -- as we move into an expression (although the change is focused in
 -- the lcl type).
 data Env gbl lcl
@@ -219,7 +219,7 @@ data Env gbl lcl
                              -- BangPattern is to fix leak, see #15111
 
         env_us   :: {-# UNPACK #-} !(IORef UniqSupply),
-                             -- Unique supply for local varibles
+                             -- Unique supply for local variables
 
         env_gbl  :: gbl,     -- Info about things defined at the top level
                              -- of the module being compiled
@@ -325,7 +325,7 @@ data DsGblEnv
                                                 -- iff '-fvectorise' flag was given as well as
                                                 -- exported entities of 'Data.Array.Parallel' iff
                                                 -- '-XParallelArrays' was given; otherwise, empty
-        , ds_parr_bi :: PArrBuiltin             -- desugarar names for '-XParallelArrays'
+        , ds_parr_bi :: PArrBuiltin             -- desugarer names for '-XParallelArrays'
         , ds_static_binds :: IORef [(Fingerprint, (Id,CoreExpr))]
           -- ^ Bindings resulted from floating static forms
         }
@@ -427,7 +427,7 @@ data TcGblEnv
         tcg_imports :: ImportAvails,
           -- ^ Information about what was imported from where, including
           -- things bound in this module. Also store Safe Haskell info
-          -- here about transative trusted packaage requirements.
+          -- here about transitive trusted package requirements.
 
         tcg_dus :: DefUses,   -- ^ What is defined in this module and what is used.
         tcg_used_rdrnames :: TcRef (Set RdrName),
@@ -613,7 +613,7 @@ We gather two sorts of usage information
       Used only to report unused import declarations
       Notice that they are RdrNames, not Names, so we can
       tell whether the reference was qualified or unqualified, which
-      is esssential in deciding whether a particular import decl
+      is essential in deciding whether a particular import decl
       is unnecessary.  This info isn't present in Names.
 
 
@@ -660,7 +660,7 @@ data TcLclEnv           -- Changes as we move inside an expression
                 --   Does *not* include global name envt; may shadow it
                 --   Includes both ordinary variables and type variables;
                 --   they are kept distinct because tyvar have a different
-                --   occurrence contructor (Name.TvOcc)
+                --   occurrence constructor (Name.TvOcc)
                 -- We still need the unsullied global name env so that
                 --   we can look up record field names
 
@@ -697,7 +697,7 @@ type ThBindEnv = NameEnv (TopLevelFlag, ThLevel)
 data TcIdBinder
   = TcIdBndr
        TcId
-       TopLevelFlag    -- Tells whether the bindind is syntactically top-level
+       TopLevelFlag    -- Tells whether the binding is syntactically top-level
                        -- (The monomorphic Ids for a recursive group count
                        --  as not-top-level for this purpose.)
 
@@ -869,7 +869,7 @@ data TcTyThing
                                 -- Name in the domain of the envt
 
   | AThing  TcKind   -- Used temporarily, during kind checking, for the
-                     -- tycons and clases in this recursive group
+                     -- tycons and classes in this recursive group
                      -- Can be a mono-kind or a poly-kind; in TcTyClsDcls see
                      -- Note [Type checking recursive type and class declarations]
 
@@ -884,7 +884,7 @@ data PromotionErr
                      -- See Note [AFamDataCon: not promoting data family constructors] in TcRnDriver
 
   | RecDataConPE     -- Data constructor in a recursive loop
-                     -- See Note [ARecDataCon: recusion and promoting data constructors] in TcTyClsDecls
+                     -- See Note [ARecDataCon: recursion and promoting data constructors] in TcTyClsDecls
   | NoDataKinds      -- -XDataKinds not enabled
 
 instance Outputable TcTyThing where     -- Debugging only
@@ -1230,7 +1230,7 @@ data HoleSort = ExprHole  -- ^ A hole in an expression (TypedHoles)
 Note [Kind orientation for CTyEqCan]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Given an equality (t:* ~ s:Open), we can't solve it by updating t:=s,
-ragardless of how touchable 't' is, because the kinds don't work.
+regardless of how touchable 't' is, because the kinds don't work.
 
 Instead we absolutely must re-orient it. Reason: if that gets into the
 inert set we'll start replacing t's by s's, and that might make a
@@ -1285,7 +1285,7 @@ Example 1:  (c Int), where c :: * -> Constraint.  We can't do anything
 
 Example 2:  a ~ b, where a :: *, b :: k, where k is a kind variable
             We don't want to use this to substitute 'b' for 'a', in case
-            'k' is subequently unifed with (say) *->*, because then
+            'k' is subsequently unified with (say) *->*, because then
             we'd have ill-kinded types floating about.  Rather we want
             to defer using the equality altogether until 'k' get resolved.
 
@@ -1656,7 +1656,7 @@ data Implication
                                  -- False <=> ic_givens might have equalities
 
       ic_env   :: TcLclEnv,      -- Gives the source location and error context
-                                 -- for the implicatdion, and hence for all the
+                                 -- for the implication, and hence for all the
                                  -- given evidence variables
 
       ic_wanted :: WantedConstraints,  -- The wanted
@@ -1687,7 +1687,7 @@ Note [Shadowing in a constraint]
 We assume NO SHADOWING in a constraint.  Specifically
  * The unification variables are all implicitly quantified at top
    level, and are all unique
- * The skolem varibles bound in ic_skols are all freah when the
+ * The skolem variables bound in ic_skols are all fresh when the
    implication is created.
 So we can safely substitute. For example, if we have
    forall a.  a~Int => ...(forall b. ...a...)...
@@ -1869,7 +1869,7 @@ ctEvFlavour (CtDerived {}) = Derived
 Note [SubGoalDepth]
 ~~~~~~~~~~~~~~~~~~~
 The 'SubGoalCounter' takes care of stopping the constraint solver from looping.
-Because of the different use-cases of regular constaints and type function
+Because of the different use-cases of regular constraints and type function
 applications, there are two independent counters. Therefore, this datatype is
 abstract. See Note [WorkList]
 
@@ -1888,7 +1888,7 @@ Each counter starts at zero and increases.
   depth removes a type constructor from the type, so the depth never
   gets big; i.e. is bounded by the structural depth of the type.
 
-  The flag -fcontext-stack=n (not very well named!) fixes the maximium
+  The flag -fcontext-stack=n (not very well named!) fixes the maximum
   level.
 
 * The "type function reduction counter" does the same thing when resolving
@@ -1904,7 +1904,7 @@ Each counter starts at zero and increases.
   different maximum, as we expect possibly many more type function reductions
   in sensible programs than type class constraints.
 
-  The flag -ftype-function-depth=n fixes the maximium level.
+  The flag -ftype-function-depth=n fixes the maximum level.
 -}
 
 data SubGoalCounter = CountConstraints | CountTyFunApps
@@ -1966,7 +1966,7 @@ which initializes it to initialSubGoalDepth (i.e. 0); but when requesting a
 Coercible instance (requestCoercible in TcInteract), we bump the current depth
 by one and use that.
 
-There are two spots where wanted contraints attempted to be solved
+There are two spots where wanted constraints attempted to be solved
 using existing constraints: lookupInertDict and lookupSolvedDict in
 TcSMonad.  Both use ctEvCheckDepth to make the check. That function
 ensures that a Given constraint can always be used to solve a goal
@@ -2080,7 +2080,7 @@ data SkolemInfo
   | RuleSkol RuleName   -- The LHS of a RULE
 
   | InferSkol [(Name,TcType)]
-                        -- We have inferred a type for these (mutually-recursivive)
+                        -- We have inferred a type for these (mutually-recursive)
                         -- polymorphic Ids, and are now checking that their RHS
                         -- constraints are satisfied.
 
@@ -2115,7 +2115,7 @@ pprSkolInfo (PatSkol cl mc) = case cl of
     RealDataCon dc -> sep [ ptext (sLit "a pattern with constructor")
                           , nest 2 $ ppr dc <+> dcolon
                             <+> pprType (dataConUserType dc) <> comma
-                            -- pprType prints forall's regardless of -fprint-explict-foralls
+                            -- pprType prints forall's regardless of -fprint-explicit-foralls
                             -- which is what we want here, since we might be saying
                             -- type variable 't' is bound by ...
                           , ptext (sLit "in") <+> pprMatchContext mc ]
@@ -2343,7 +2343,7 @@ data TcPluginResult
   = TcPluginContradiction [Ct]
     -- ^ The plugin found a contradiction.
     -- The returned constraints are removed from the inert set,
-    -- and recorded as insoluable.
+    -- and recorded as insoluble.
 
   | TcPluginOk [(EvTerm,Ct)] [Ct]
     -- ^ The first field is for constraints that were solved.

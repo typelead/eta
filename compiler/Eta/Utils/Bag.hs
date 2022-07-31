@@ -278,7 +278,7 @@ mapAccumBagL f s (ListBag xs)    = let (s', xs') = mapAccumL f s xs
                                   in (s', ListBag xs')
 
 mapAccumBagLM :: Monad m
-            => (acc -> x -> m (acc, y)) -- ^ combining funcction
+            => (acc -> x -> m (acc, y)) -- ^ combining function
             -> acc                      -- ^ initial state
             -> Bag x                    -- ^ inputs
             -> m (acc, Bag y)           -- ^ final state, outputs

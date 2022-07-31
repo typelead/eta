@@ -218,7 +218,7 @@ tcRnModuleTcRnM hsc_env hsc_src
 
           -- If the whole module is warned about or deprecated
           -- (via mod_deprec) record that in tcg_warns. If we do thereby add
-          -- a WarnAll, it will override any subseqent depracations added to tcg_warns
+          -- a WarnAll, it will override any subsequent depracations added to tcg_warns
         let { tcg_env1 = case mod_deprec of
                            Just (L _ txt) -> tcg_env { tcg_warns = WarnAll txt }
                            Nothing        -> tcg_env
@@ -588,7 +588,7 @@ tcRnHsBootDecls hsc_src decls
         ; mapM_ (badBootDecl hsc_src "rule")    rule_decls
         ; mapM_ (badBootDecl hsc_src "vect")    vect_decls
 
-                -- Typecheck type/class/isntance decls
+                -- Typecheck type/class/instance decls
         ; traceTc "Tc2 (boot)" empty
         ; (tcg_env, inst_infos, _deriv_binds)
              <- tcTyClsInstDecls tycl_decls inst_decls deriv_decls
@@ -1618,7 +1618,7 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                        ; when (isUnitTy $ it_ty) failM
                        ; return stuff },
 
-                        -- Plan B; a naked bind statment
+                        -- Plan B; a naked bind statement
                     tcGhciStmts [bind_stmt],
 
                         -- Plan C; check that the let-binding is typeable all by itself.
@@ -1804,7 +1804,7 @@ isGHCiMonad hsc_env ty
                 _ <- tcLookupInstance ghciClass [userTy]
                 return name
 
-            Just _  -> failWithTc $ text "Ambigous type!"
+            Just _  -> failWithTc $ text "Ambiguous type!"
             Nothing -> failWithTc $ text ("Can't find type:" ++ ty)
 
 -- tcRnExpr just finds the type of an expression
@@ -2081,7 +2081,7 @@ loadUnqualIfaces hsc_env ictxt
 {-
 ************************************************************************
 *                                                                      *
-                Degugging output
+                Debugging output
 *                                                                      *
 ************************************************************************
 -}

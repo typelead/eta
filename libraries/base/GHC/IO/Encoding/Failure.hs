@@ -61,7 +61,7 @@ data CodingFailureMode
 -- Roundtripping is based on the ideas of PEP383.
 --
 -- We used to use the range of private-use characters from 0xEF80 to
--- 0xEFFF designated for "encoding hacks" by the ConScript Unicode Registery
+-- 0xEFFF designated for "encoding hacks" by the ConScript Unicode Registry
 -- to encode these characters.
 --
 -- However, people didn't like this because it means we don't get
@@ -177,7 +177,7 @@ recoverEncode cfm input@Buffer{  bufRaw=iraw, bufL=ir, bufR=_  }
           -- The "if" test above ensures we skip if the encoding fails
           -- to deal with the ?, though this should never happen in
           -- practice as all encodings are in fact capable of
-          -- reperesenting all ASCII characters.
+          -- representing all ASCII characters.
           _ir' <- writeCharBuf iraw ir '?'
           return (input, output)
 

@@ -191,7 +191,7 @@ See also Note [Wrappers for data instance tycons] in MkId.lhs
 * The axiom ax_ti may be eta-reduced; see
   Note [Eta reduction for data family axioms] in TcInstDcls
 
-* The data contructor T2 has a wrapper (which is what the
+* The data constructor T2 has a wrapper (which is what the
   source-level "T2" invokes):
 
         $WT2 :: Bool -> T Int
@@ -694,7 +694,7 @@ data TyConParent
         [Type]  -- Argument types (mentions the tyConTyVars of this TyCon)
                 -- Match in length the tyConTyVars of the family TyCon
 
-        -- E.g.  data intance T [a] = ...
+        -- E.g.  data instance T [a] = ...
         -- gives a representation tycon:
         --      data R:TList a = ...
         --      axiom co a :: T [a] ~ R:TList a
@@ -1034,7 +1034,7 @@ So we compromise, and move their Kind calculation to the call site.
 -}
 
 -- | Given the name of the function type constructor and it's kind, create the
--- corresponding 'TyCon'. It is reccomended to use 'TypeRep.funTyCon' if you want
+-- corresponding 'TyCon'. It is recommended to use 'TypeRep.funTyCon' if you want
 -- this functionality
 mkFunTyCon :: Name -> Kind -> TyCon
 mkFunTyCon name kind
@@ -1087,7 +1087,7 @@ mkClassTyCon :: Name -> Kind -> [TyVar] -> [Role] -> AlgTyConRhs -> Class
 mkClassTyCon name kind tyvars roles rhs clas is_rec
   = mkAlgTyCon name kind tyvars roles Nothing [] rhs (ClassTyCon clas)
                is_rec False
-               Nothing    -- Class TyCons are not pormoted
+               Nothing    -- Class TyCons are not promoted
 
 mkTupleTyCon :: Name
              -> Kind    -- ^ Kind of the resulting 'TyCon'
@@ -1427,8 +1427,8 @@ isDataFamilyTyCon :: TyCon -> Bool
 isDataFamilyTyCon (AlgTyCon {algTcRhs = DataFamilyTyCon {}}) = True
 isDataFamilyTyCon _ = False
 
--- | Are we able to extract informationa 'TyVar' to class argument list
--- mappping from a given 'TyCon'?
+-- | Are we able to extract information 'TyVar' to class argument list
+-- mapping from a given 'TyCon'?
 isTyConAssoc :: TyCon -> Bool
 isTyConAssoc tc = isJust (tyConAssoc_maybe tc)
 

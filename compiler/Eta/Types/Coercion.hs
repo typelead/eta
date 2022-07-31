@@ -225,7 +225,7 @@ Note [Refl invariant]
 Coercions have the following invariant
      Refl is always lifted as far as possible.
 
-You might think that a consequencs is:
+You might think that a consequences is:
      Every identity coercions has Refl at the root
 
 But that's not quite true because of coercion variables.  Consider
@@ -589,7 +589,7 @@ tyCoVarsOfCosAcc (co:cos) fv_cand in_scope acc =
 tyCoVarsOfCosAcc [] fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 
 coVarsOfCo :: Coercion -> VarSet
--- Extract *coerction* variables only.  Tiresome to repeat the code, but easy.
+-- Extract *coercion* variables only.  Tiresome to repeat the code, but easy.
 coVarsOfCo (Refl _ _)            = emptyVarSet
 coVarsOfCo (TyConAppCo _ _ cos)  = coVarsOfCos cos
 coVarsOfCo (AppCo co1 co2)       = coVarsOfCo co1 `unionVarSet` coVarsOfCo co2
@@ -944,7 +944,7 @@ mkReflCo :: Role -> Type -> Coercion
 mkReflCo = Refl
 
 mkAxInstCo :: Role -> CoAxiom br -> BranchIndex -> [Type] -> Coercion
--- mkAxInstCo can legitimately be called over-staturated;
+-- mkAxInstCo can legitimately be called over-saturated;
 -- i.e. with more type arguments than the coercion requires
 mkAxInstCo role ax index tys
   | arity == n_tys = downgradeRole role ax_role $ AxiomInstCo ax_br index rtys
@@ -1193,7 +1193,7 @@ applyRoles tc cos
   = zipWith applyRole (tyConRolesX Representational tc) cos
 
 -- the Role parameter is the Role of the TyConAppCo
--- defined here because this is intimiately concerned with the implementation
+-- defined here because this is intimately concerned with the implementation
 -- of TyConAppCo
 tyConRolesX :: Role -> TyCon -> [Role]
 tyConRolesX Representational tc = tyConRoles tc ++ repeat Nominal
@@ -1707,7 +1707,7 @@ ty_co_subst subst role ty
 Note [liftCoSubstTyVar]
 ~~~~~~~~~~~~~~~~~~~~~~~
 This function can fail (i.e., return Nothing) for two separate reasons:
- 1) The variable is not in the substutition
+ 1) The variable is not in the substitution
  2) The coercion found is of too low a role
 
 liftCoSubstTyVar is called from two places: in liftCoSubst (naturally), and
