@@ -485,7 +485,7 @@ greRdrName gre
       = unqual_rdr  -- An unqualified import is available
       | otherwise
       =             -- Only qualified imports available, so make up
-                    -- a suitable qualifed name from the first imp_spec
+                    -- a suitable qualified name from the first imp_spec
         ASSERT( not (null imp_specs) )
         mkRdrQual (is_as (is_decl (head imp_specs))) occ
 
@@ -612,7 +612,7 @@ But when adding to the UsedRdrNames we must make that qualification
 explicit (saying "used  M.f"), otherwise we get "Redundant import of M.f".
 
 So we make up a suitable (fake) RdrName.  But be careful
-   import qualifed M
+   import qualified M
    import M( C(f) )
    instance C T where
      f x = x
