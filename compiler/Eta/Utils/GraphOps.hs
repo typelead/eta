@@ -470,7 +470,7 @@ freezeNode k
          = if elementOfUniqSet k (nodeCoalesce node)
                 then node { nodeCoalesce = delOneFromUniqSet (nodeCoalesce node) k }
                 else node       -- panic "GraphOps.freezeNode: edge to freeze wasn't in the coalesce set"
-                                -- If the edge isn't actually in the coelesce set then just ignore it.
+                                -- If the edge isn't actually in the coalesce set then just ignore it.
 
         fm2     = nonDetFoldUniqSet (adjustUFM_C (freezeEdge k)) fm1
                     -- It's OK to use nonDetFoldUFM here because the operation
