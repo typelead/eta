@@ -944,7 +944,7 @@ uUnfilledVar origin swapped tv1 details1 non_var_ty2  -- ty2 is not a type varia
     defer = unSwap swapped (uType_defer origin) (mkTyVarTy tv1) non_var_ty2
                -- Occurs check or an untouchable: just defer
                -- NB: occurs check isn't necessarily fatal:
-               --     eg tv1 occured in type family parameter
+               --     eg tv1 occurred in type family parameter
 
 ----------------
 uUnfilledVars :: CtOrigin

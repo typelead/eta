@@ -278,7 +278,7 @@ public final class Capability implements LocalHeap {
                 /* Thread is done executing, awaken the blocked exception queue. */
                 awakenBlockedExceptionQueue(t);
 
-                /* If an unhandled exception occured, throw it so that the caller
+                /* If an unhandled exception occurred, throw it so that the caller
                    can handle it if they so choose. */
                 if (pendingException != null) {
                     /* Cleanup resources in the Runtime before throwing the exception
