@@ -231,7 +231,7 @@ addExclusions u getClass colors graph
         = foldr (addExclusion u getClass) graph colors
 
 
--- | Add a coalescence edge to the graph, creating nodes if requried.
+-- | Add a coalescence edge to the graph, creating nodes if required.
 --      It is considered advantageous to assign the same color to nodes in a coalescence.
 addCoalesce
         :: Uniquable k
