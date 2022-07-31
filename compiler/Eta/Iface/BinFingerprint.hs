@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 
--- | Computing fingerprints of values serializeable with GHC's "Binary" module.
+-- | Computing fingerprints of values serializable with GHC's "Binary" module.
 module Eta.Iface.BinFingerprint
   ( -- * Computing fingerprints
     fingerprintBinMem
