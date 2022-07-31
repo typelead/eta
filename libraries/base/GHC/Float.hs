@@ -14,7 +14,7 @@
 -- |
 -- Module      :  GHC.Float
 -- Copyright   :  (c) The University of Glasgow 1994-2002
---                Portions obtained from hbc (c) Lennart Augusstson
+--                Portions obtained from hbc (c) Lennart Augustsson
 -- License     :  see libraries/base/LICENSE
 --
 -- Maintainer  :  cvs-ghc@haskell.org
