@@ -789,7 +789,7 @@ reduceTyFamApp_maybe :: FamInstEnvs
 --    but *not* newtypes
 -- Works on type-synonym families always; data-families only if
 --     the role we seek is representational
--- It does *not* normlise the type arguments first, so this may not
+-- It does *not* normalise the type arguments first, so this may not
 --     go as far as you want. If you want normalised type arguments,
 --     use normaliseTcArgs first.
 --
