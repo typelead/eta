@@ -1433,7 +1433,7 @@ to compute the type arguments to the dictionary constructor.
 
 Note [DFun arity check]
 ~~~~~~~~~~~~~~~~~~~~~~~
-Here we check that the total number of supplied arguments (inclding
+Here we check that the total number of supplied arguments (including
 type args) matches what the dfun is expecting.  This may be *less*
 than the ordinary arity of the dfun: see Note [DFun unfoldings] in CoreSyn
 -}
