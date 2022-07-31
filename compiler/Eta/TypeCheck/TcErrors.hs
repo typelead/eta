@@ -249,7 +249,7 @@ reportWanteds ctxt wanted@(WC { wc_simple = simples, wc_insol = insols, wc_impl 
     ctxt2     = ctxt { cec_suppress = suppress2 }
 
 reportSimples :: ReportErrCtxt -> Cts -> TcM ()
-reportSimples ctxt simples    -- Here 'simples' includes insolble goals
+reportSimples ctxt simples    -- Here 'simples' includes insoluble goals
   =  traceTc "reportSimples" (vcat [ ptext (sLit "Simples =") <+> ppr simples
                                    , ptext (sLit "Suppress =") <+> ppr (cec_suppress ctxt)])
   >> tryReporters

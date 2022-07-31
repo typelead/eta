@@ -1362,7 +1362,7 @@ constraints might be "variable out of scope" Hole constraints, and that
 might have been the actual original cause of the exception!  For
 example (Trac #12529):
    f = p @ Int
-Here 'p' is out of scope, so we get an insolube Hole constraint. But
+Here 'p' is out of scope, so we get an insoluble Hole constraint. But
 the visible type application fails in the monad (thows an exception).
 We must not discard the out-of-scope error.
 
