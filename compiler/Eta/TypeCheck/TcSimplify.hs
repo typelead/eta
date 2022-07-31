@@ -1334,7 +1334,7 @@ floatEqualities skols no_given_eqs wanteds@(WC { wc_simple = simples })
     (float_eqs, remaining_simples) = partitionBag float_me simples
 
     float_me :: Ct -> Bool
-    float_me ct   -- The constraint is un-flattened and de-cannonicalised
+    float_me ct   -- The constraint is un-flattened and de-canonicalised
        | let pred = ctPred ct
        , EqPred NomEq ty1 ty2 <- classifyPredType pred
        , tyVarsOfType pred `disjointVarSet` skol_set

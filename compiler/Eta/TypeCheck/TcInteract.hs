@@ -1631,7 +1631,7 @@ doTopReactFunEq work_item@(CFunEqCan { cc_ev = old_ev, cc_fun = fam_tc
                 -- final_co :: fsk ~ rhs_ty
           ; new_ev <- newGivenEvVar deeper_loc (mkTcEqPred (mkTyVarTy fsk) rhs_ty,
                                                 EvCoercion final_co)
-          ; emitWorkNC [new_ev]   -- Non-cannonical; that will mean we flatten rhs_ty
+          ; emitWorkNC [new_ev]   -- Non-canonical; that will mean we flatten rhs_ty
           ; stopWith old_ev "Fun/Top (given)" }
 
     | not (fsk `elemVarSet` tyVarsOfType rhs_ty)
