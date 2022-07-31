@@ -1590,7 +1590,7 @@ diffExpr _  _ e1 e2
 -- all possible mappings, which would be seriously expensive. So
 -- instead we simply match single bindings as far as we can. This
 -- leaves us just with mutually recursive and/or mismatching bindings,
--- which we then specuatively match by ordering them. It's by no means
+-- which we then speculatively match by ordering them. It's by no means
 -- perfect, but gets the job done well enough.
 diffBinds :: Bool -> RnEnv2 -> [(Var, CoreExpr)] -> [(Var, CoreExpr)]
           -> ([SDoc], RnEnv2)
