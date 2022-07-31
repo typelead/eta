@@ -1427,7 +1427,7 @@ isDataFamilyTyCon :: TyCon -> Bool
 isDataFamilyTyCon (AlgTyCon {algTcRhs = DataFamilyTyCon {}}) = True
 isDataFamilyTyCon _ = False
 
--- | Are we able to extract informationa 'TyVar' to class argument list
+-- | Are we able to extract information 'TyVar' to class argument list
 -- mappping from a given 'TyCon'?
 isTyConAssoc :: TyCon -> Bool
 isTyConAssoc tc = isJust (tyConAssoc_maybe tc)
