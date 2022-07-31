@@ -1687,7 +1687,7 @@ a demand on the Id into a DmdType, which gives
            the Id to its arguments
 
 However, in fact we store in the Id an extremely emasculated demand
-transfomer, namely
+transformer, namely
 
                 a single DmdType
 (Nevertheless we dignify StrictSig as a distinct type.)
