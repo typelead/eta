@@ -613,7 +613,7 @@ We gather two sorts of usage information
       Used only to report unused import declarations
       Notice that they are RdrNames, not Names, so we can
       tell whether the reference was qualified or unqualified, which
-      is esssential in deciding whether a particular import decl
+      is essential in deciding whether a particular import decl
       is unnecessary.  This info isn't present in Names.
 
 
