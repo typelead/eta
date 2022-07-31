@@ -714,7 +714,7 @@ tcGetDefaultTys
 {-
 Note [Default unitTy]
 ~~~~~~~~~~~~~~~~~~~~~
-In interative mode (or with -XExtendedDefaultRules) we add () as the first type we
+In interactive mode (or with -XExtendedDefaultRules) we add () as the first type we
 try when defaulting.  This has very little real impact, except in the following case.
 Consider:
         Text.Printf.printf "hello"

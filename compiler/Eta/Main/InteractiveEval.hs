@@ -542,7 +542,7 @@ bindLocalsAtBreakpoint hsc_env _apStack_fhv (Just BreakInfo{..}) = do
   where
         -- We need a fresh Unique for each Id we bind, because the linker
         -- state is single-threaded and otherwise we'd spam old bindings
-        -- whenever we stop at a breakpoint.  The InteractveContext is properly
+        -- whenever we stop at a breakpoint.  The InteractiveContext is properly
         -- saved/restored, but not the linker state.  See #1743, test break026.
    mkNewId :: OccName -> Type -> Id -> IO Id
    mkNewId occ ty old_id
