@@ -17,7 +17,7 @@ echo "=== Eta Compiler Output ==="
 mkdir build
 eta -fforce-recomp -o build/Out.jar Main.hs
 echo "===                     ==="
-echo "Compiled succesfully."
+echo "Compiled successfully."
 
 # Do bytecode verification on all the core libraries' class files
 echo "Verifying the bytecode of compiled program..."

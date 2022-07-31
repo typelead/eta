@@ -181,7 +181,7 @@ solveSimples cts
       = {-# SCC "solve_loop" #-}
         do { sel <- selectNextWorkItem max_depth
            ; case sel of
-              NoWorkRemaining     -- Done, successfuly (modulo frozen)
+              NoWorkRemaining     -- Done, successfully (modulo frozen)
                 -> do dicts <- getUnsolvedInertDicts
                       new_work <- getUniqueInstanceWanteds dyn_flags dicts
                       if null new_work
