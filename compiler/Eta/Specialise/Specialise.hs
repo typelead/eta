@@ -2106,7 +2106,7 @@ is used:
 
 Now give it to the simplifier and the _Lifting will be optimised away.
 
-The benfit is that we have given the specialised "unboxed" values a
+The benefit is that we have given the specialised "unboxed" values a
 very simplep lifted semantics and then leave it up to the simplifier to
 optimise it --- knowing that the overheads will be removed in nearly
 all cases.
