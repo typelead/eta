@@ -337,7 +337,7 @@ simplifyInfer rhs_tclvl apply_mr name_taus wanteds
              ]
 
               -- Historical note: Before step 2 we used to have a
-              -- HORRIBLE HACK described in Note [Avoid unecessary
+              -- HORRIBLE HACK described in Note [Avoid unnecessary
               -- constraint simplification] but, as described in Trac
               -- #4361, we have taken in out now.  That's why we start
               -- with step 2!
@@ -637,7 +637,7 @@ mkMinimalBySCs does. Then, simplifyInfer uses the minimal constraint
 to check the original wanted.
 
 
-Note [Avoid unecessary constraint simplification]
+Note [Avoid unnecessary constraint simplification]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     -------- NB NB NB (Jun 12) -------------
     This note not longer applies; see the notes with Trac #4361.
