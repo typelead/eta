@@ -101,8 +101,8 @@ Relative to John's original paper, there are the following new features:
 
         sep (separate) is either like hsep or like vcat, depending on what fits
 
-        cat  is behaves like sep,  but it uses <> for horizontal conposition
-        fcat is behaves like fsep, but it uses <> for horizontal conposition
+        cat  is behaves like sep,  but it uses <> for horizontal composition
+        fcat is behaves like fsep, but it uses <> for horizontal composition
 
         These new ones do the obvious things:
                 char, semi, comma, colon, space,

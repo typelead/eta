@@ -633,7 +633,7 @@ fsep :: [SDoc] -> SDoc
 -- ^ A paragraph-fill combinator. It's much like sep, only it
 -- keeps fitting things on one line until it can't fit any more.
 fcat :: [SDoc] -> SDoc
--- ^ This behaves like 'fsep', but it uses '<>' for horizontal conposition rather than '<+>'
+-- ^ This behaves like 'fsep', but it uses '<>' for horizontal composition rather than '<+>'
 
 
 hcat ds = SDoc $ \sty -> Pretty.hcat [runSDoc d sty | d <- ds]
