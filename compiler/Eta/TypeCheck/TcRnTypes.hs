@@ -1966,7 +1966,7 @@ which initializes it to initialSubGoalDepth (i.e. 0); but when requesting a
 Coercible instance (requestCoercible in TcInteract), we bump the current depth
 by one and use that.
 
-There are two spots where wanted contraints attempted to be solved
+There are two spots where wanted constraints attempted to be solved
 using existing constraints: lookupInertDict and lookupSolvedDict in
 TcSMonad.  Both use ctEvCheckDepth to make the check. That function
 ensures that a Given constraint can always be used to solve a goal
