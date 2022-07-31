@@ -1517,7 +1517,7 @@ oneShotGroup :: OccEnv -> [CoreBndr]
         -- The result binders have one-shot-ness set that they might not have had originally.
         -- This happens in (build (\cn -> e)).  Here the occurrence analyser
         -- linearity context knows that c,n are one-shot, and it records that fact in
-        -- the binder. This is useful to guide subsequent float-in/float-out tranformations
+        -- the binder. This is useful to guide subsequent float-in/float-out transformations
 
 oneShotGroup env@(OccEnv { occ_one_shots = ctxt }) bndrs
   = go ctxt bndrs []
