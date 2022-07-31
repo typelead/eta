@@ -1407,7 +1407,7 @@ So we use the following heuristic:
   * Then go through the block a second time, feeding call-info from
     the RHSs back in the bottom, as it were
 
-In effect, the ordering maxmimises the effectiveness of each sweep,
+In effect, the ordering maximises the effectiveness of each sweep,
 and we do just two sweeps.   This should catch almost every case of
 monomorphic recursion -- the exception could be a very knotted-up
 recursion with multiple cycles tied up together.
