@@ -814,7 +814,7 @@ returns a CoreExpr satisfying the same invariant. See Note [Eta
 expansion and the CorePrep invariants] in CorePrep.
 
 This means the eta-expander has to do a bit of on-the-fly
-simplification but it's not too hard.  The alernative, of relying on
+simplification but it's not too hard.  The alternative, of relying on
 a subsequent clean-up phase of the Simplifier to de-crapify the result,
 means you can't really use it in CorePrep, which is painful.
 
