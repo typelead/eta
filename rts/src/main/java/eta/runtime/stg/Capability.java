@@ -425,7 +425,7 @@ public final class Capability implements LocalHeap {
         }
     }
 
-    /* Asychronous Exceptions */
+    /* Asynchronous Exceptions */
 
     public final boolean maybePerformBlockedException(TSO tso) {
         final Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;
