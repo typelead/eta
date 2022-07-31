@@ -1401,7 +1401,7 @@ binders are unused.  See esp the call to isDeadBinder in
 Simplify.mkDupableAlt
 
 In this example, though, the Simplifier will bring 'a' and 'b' back to
-life, beause it binds 'y' to (a,b) (imagine got inlined and
+life, because it binds 'y' to (a,b) (imagine got inlined and
 scrutinised y).
 -}
 
