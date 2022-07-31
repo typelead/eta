@@ -685,7 +685,7 @@ getNoGivenEqs tclvl skol_tvs
   where
     eqs_given_here :: VarSet -> EqualCtList -> Bool
     eqs_given_here local_fsks [CTyEqCan { cc_tyvar = tv, cc_ev = ev }]
-                              -- Givens are always a sigleton
+                              -- Givens are always a singleton
       = not (skolem_bound_here local_fsks tv) && ev_given_here ev
     eqs_given_here _ _ = False
 
