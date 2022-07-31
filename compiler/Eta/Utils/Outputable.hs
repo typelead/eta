@@ -36,7 +36,7 @@ module Eta.Utils.Outputable (
 
         colored, keyword,
 
-        -- * Converting 'SDoc' into strings and outputing it
+        -- * Converting 'SDoc' into strings and outputting it
         printForC, printForAsm, printForUser, printForUserColored, printForUserPartWay,
         pprCode, mkCodeStyle,
         showSDoc, showSDocUnsafe, showSDocOneLine,
