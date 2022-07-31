@@ -734,7 +734,7 @@ checkStability hpt sccs all_home_mods =
                                  -> isObjectLinkable l && t == linkableTime l
                                 _other  -> True
                 -- why '>=' rather than '>' above?  If the filesystem stores
-                -- times to the nearset second, we may occasionally find that
+                -- times to the nearest second, we may occasionally find that
                 -- the object & source have the same modification time,
                 -- especially if the source was automatically generated
                 -- and compiled.  Using >= is slightly unsafe, but it matches
