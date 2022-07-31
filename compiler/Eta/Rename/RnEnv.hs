@@ -876,7 +876,7 @@ addUsedRdrName warnIfDeprec gre rdr
 addUsedRdrNames :: [RdrName] -> RnM ()
 -- Record used sub-binders
 -- We don't check for imported-ness here, because it's inconvenient
--- and not stritly necessary.
+-- and not strictly necessary.
 -- NB: no call to warnIfDeprecated; see Note [Handling of deprecations]
 addUsedRdrNames rdrs
   = do { env <- getGblEnv
