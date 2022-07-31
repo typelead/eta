@@ -2973,7 +2973,7 @@ primarily about storing under what trust type a module has been compiled.
 type IsSafeImport = Bool
 
 -- | Safe Haskell information for 'ModIface'
--- Simply a wrapper around SafeHaskellMode to sepperate iface and flags
+-- Simply a wrapper around SafeHaskellMode to separate iface and flags
 newtype IfaceTrustInfo = TrustInfo SafeHaskellMode
 
 getSafeMode :: IfaceTrustInfo -> SafeHaskellMode
