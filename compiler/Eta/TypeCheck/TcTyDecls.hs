@@ -346,7 +346,7 @@ then we mark S as recursive, just in case. What that means is that if we see
 then we don't need to look inside S to compute R's recursiveness.  Since S is imported
 (not from an hi-boot file), one cannot get from R back to S except via an hi-boot file,
 and that means that some data type will be marked recursive along the way.  So R is
-unconditionly non-recursive (i.e. there'll be a loop breaker elsewhere if necessary)
+unconditionally non-recursive (i.e. there'll be a loop breaker elsewhere if necessary)
 
 This in turn means that we grovel through fewer interface files when computing
 recursiveness, because we need only look at the type decls in the module being
