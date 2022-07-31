@@ -108,7 +108,7 @@ There are several reasons why an Id might appear in the wiredInIds:
     result type. -- sof 1/99]
 
 (3) Other error functions (rUNTIME_ERROR_ID) are wired in (a) because
-    the desugarer generates code that mentiones them directly, and
+    the desugarer generates code that mentions them directly, and
     (b) for the same reason as eRROR_ID
 
 (4) lazyId is wired in because the wired-in version overrides the
