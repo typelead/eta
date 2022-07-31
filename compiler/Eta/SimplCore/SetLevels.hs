@@ -391,7 +391,7 @@ lvlCase env scrut_fvs scrut' case_bndr ty alts
   where
       incd_lvl = incMinorLvl (le_ctxt_lvl env)
       dest_lvl = maxFvLevel (const True) env scrut_fvs
-              -- Don't abstact over type variables, hence const True
+              -- Don't abstract over type variables, hence const True
 
       lvl_alt alts_env (con, bs, rhs)
         = do { rhs' <- lvlMFE True new_env rhs
@@ -536,7 +536,7 @@ we'd like to float the call to error, to get
 Furthermore, we want to float a bottoming expression even if it has free
 variables:
         f = \x. g (let v = h x in error ("urk" ++ v))
-Then we'd like to abstact over 'x' can float the whole arg of g:
+Then we'd like to abstract over 'x' can float the whole arg of g:
         lvl = \x. let v = h x in error ("urk" ++ v)
         f = \x. g (lvl x)
 See Maessen's paper 1999 "Bottom extraction: factoring error handling out
