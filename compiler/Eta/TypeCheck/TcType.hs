@@ -584,7 +584,7 @@ pprSigCtxt ctxt extra pp_ty
 ************************************************************************
 -}
 
--- | Finds outermost type-family applications occuring in a type,
+-- | Finds outermost type-family applications occurring in a type,
 -- after expanding synonyms.
 tcTyFamInsts :: Type -> [(TyCon, [Type])]
 tcTyFamInsts ty

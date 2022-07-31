@@ -669,7 +669,7 @@ mkDataCon :: Name
           -> [TyVar]            -- ^ Universally quantified type variables
           -> [TyVar]            -- ^ Existentially quantified type variables
           -> [(TyVar,Type)]     -- ^ GADT equalities
-          -> ThetaType          -- ^ Theta-type occuring before the arguments proper
+          -> ThetaType          -- ^ Theta-type occurring before the arguments proper
           -> [Type]             -- ^ Original argument types
           -> Type               -- ^ Original result type
           -> TyCon              -- ^ Representation type constructor
