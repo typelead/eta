@@ -473,7 +473,7 @@ mkBigLHsPatTup = mkChunkified mkLHsPatTup
 -- and 'mkTupleCase' functions to do all your work with tuples you should be
 -- fine, and not have to worry about the arity limitation at all.
 
--- | Lifts a \"small\" constructor into a \"big\" constructor by recursive decompositon
+-- | Lifts a \"small\" constructor into a \"big\" constructor by recursive decomposition
 mkChunkified :: ([a] -> a)      -- ^ \"Small\" constructor function, of maximum input arity 'mAX_TUPLE_SIZE'
              -> [a]             -- ^ Possible \"big\" list of things to construct from
              -> a               -- ^ Constructed thing made possible by recursive decomposition
