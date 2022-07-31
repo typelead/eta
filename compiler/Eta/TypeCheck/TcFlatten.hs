@@ -1136,7 +1136,7 @@ The idea is that
     and hence this triple never plays a role in application S(f,a).
     It is always safe to extend S with such a triple.
 
-    (NB: we could strengten K1) in this way too, but see K3.
+    (NB: we could strengthen K1) in this way too, but see K3.
 
   - (K2b): If this holds, we can't pass through this triple infinitely
     often, because if we did then fs>=f, fw>=f, hence fs>=fw,
