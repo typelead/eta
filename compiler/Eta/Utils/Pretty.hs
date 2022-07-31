@@ -21,7 +21,7 @@ Version 3.0     28 May 1997
     quadratic behaviour with left-associated (++) chains.
 
     This is really bad news.  One thing a pretty-printer abstraction should
-    certainly guarantee is insensivity to associativity.  It matters: suddenly
+    certainly guarantee is insensitivity to associativity.  It matters: suddenly
     GHC's compilation times went up by a factor of 100 when I switched to the
     new pretty printer.
 
