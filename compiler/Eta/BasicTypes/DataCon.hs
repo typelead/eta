@@ -1143,7 +1143,7 @@ promoteDataCon_maybe (MkData { dcPromoted = mb_tc }) = mb_tc
 {-
 Note [Promoting a Type to a Kind]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Suppsoe we have a data constructor D
+Suppose we have a data constructor D
      D :: forall (a:*). Maybe a -> T a
 We promote this to be a type constructor 'D:
      'D :: forall (k:BOX). 'Maybe k -> 'T k

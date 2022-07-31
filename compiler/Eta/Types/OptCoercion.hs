@@ -40,7 +40,7 @@ import Control.Monad   ( zipWithM )
 
 Note [Subtle shadowing in coercions]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Supose we optimising a coercion
+Suppose we optimising a coercion
     optCoercion (forall (co_X5:t1~t2). ...co_B1...)
 The co_X5 is a wild-card; the bound variable of a coercion for-all
 should never appear in the body of the forall. Indeed we often

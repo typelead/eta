@@ -243,7 +243,7 @@ Then we drop the unused args to give
    foo   = \pq. $wfoo void#
    $wfoo = \void(one-shot). y + 3
 
-But suppse foo didn't have all one-shot args:
+But suppose foo didn't have all one-shot args:
    foo = \p(not-one-shot) q(one-shot). expensive y + 3
 Then we drop the unused args to give
    foo   = \pq. $wfoo void#
