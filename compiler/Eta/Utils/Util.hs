@@ -638,7 +638,7 @@ splitAtList (_:xs) (y:ys) = (y:ys', ys'')
 dropTail :: Int -> [a] -> [a]
 -- Specification: dropTail n = reverse . drop n . reverse
 -- Better implemention due to Joachim Breitner
--- http://www.joachim-breitner.de/blog/archives/600-On-taking-the-last-n-elements-of-a-list.html
+-- https://www.joachim-breitner.de/blog/600-On_taking_the_last_n_elements_of_a_list
 dropTail n xs
   = go (drop n xs) xs
   where
