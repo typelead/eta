@@ -16,7 +16,7 @@ been created, files can be added to it using the `addByteStringToJar` and
 When adding multiple files to a Jar, be sure to use the
 `addMultiByteStringsToJar` function, as it writes all of the file changes in
 one action, while mapping over a list of files with `addByteStringToJar` would
-perform the file write actions all seperately.
+perform the file write actions all separately.
 Here is a quick example of how to create a Jar and add a file into it.
 @
 -- Create the empty jar
