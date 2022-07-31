@@ -2098,7 +2098,7 @@ The selector we want for fld looks like this:
                 T1 (x::b) -> x
 
 The scrutinee of the case has type :R7T (Maybe b), which can be
-gotten by appying the eq_spec to the univ_tvs of the data con.
+gotten by applying the eq_spec to the univ_tvs of the data con.
 
 ************************************************************************
 *                                                                      *

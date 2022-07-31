@@ -1406,7 +1406,7 @@ dataConInstPat fss uniqs con inst_tys
       -- Make the instantiating substitution for universals
     univ_subst = zipOpenTvSubst univ_tvs inst_tys
 
-      -- Make existential type variables, applyingn and extending the substitution
+      -- Make existential type variables, applying and extending the substitution
     (full_subst, ex_bndrs) = mapAccumL mk_ex_var univ_subst
                                        (zip3 ex_tvs ex_fss ex_uniqs)
 
