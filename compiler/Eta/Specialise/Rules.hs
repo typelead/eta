@@ -125,7 +125,7 @@ Note [Overall plumbing for rules]
      (b) from the ModGuts,
      (c) from the CoreMonad, and
      (d) from its mutable variable
-  [Of coures this means that we won't see new EPS rules that come in
+  [Of course this means that we won't see new EPS rules that come in
   during a single simplifier iteration, but that probably does not
   matter.]
 
