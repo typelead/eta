@@ -587,7 +587,7 @@ mkFoldrExpr :: MonadThings m
             -> Type             -- ^ Fold result type
             -> CoreExpr         -- ^ "Cons" function expression for the fold
             -> CoreExpr         -- ^ "Nil" expression for the fold
-            -> CoreExpr         -- ^ List expression being folded acress
+            -> CoreExpr         -- ^ List expression being folded across
             -> m CoreExpr
 mkFoldrExpr elt_ty result_ty c n list = do
     foldr_id <- lookupId foldrName
