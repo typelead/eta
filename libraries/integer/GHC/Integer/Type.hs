@@ -732,7 +732,7 @@ recipModInteger j@(S# _) m@(J# _) = recipModInteger (toBig j) m
 recipModInteger j@(J# _) m@(S# _) = recipModInteger j (toBig m)
 recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 
--- | Probalistic Miller-Rabin primality test.
+-- | Probabilistic Miller-Rabin primality test.
 --
 -- \"@'testPrimeInteger' /n/ /k/@\" determines whether @/n/@ is prime
 -- and returns one of the following results:
