@@ -17,7 +17,7 @@ When adding multiple files to a Jar, be sure to use the
 `addMultiByteStringsToJar` function, as it writes all of the file changes in
 one action, while mapping over a list of files with `addByteStringToJar` would
 perform the file write actions all seperately.
-Here is a quick exampe of how to create a Jar and add a file into it.
+Here is a quick example of how to create a Jar and add a file into it.
 @
 -- Create the empty jar
 let jarLocation = "build/Hello.jar"

@@ -1483,7 +1483,7 @@ This doesn't always work.  One example I came across was this:
 
         oneof = choose (1::Int)
 
-It's a silly exapmle, but we get
+It's a silly example, but we get
         choose = /\a. g `cast` co
 where choose doesn't have any dict arguments.  Thus far I have not
 tried to fix this (wait till there's a real example).
