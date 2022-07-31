@@ -247,7 +247,7 @@ checkForeignRes nonIOResultOk checkSafe predResType ty
         -- handle safe language typecheck fail
         _ | checkSafe && safeLanguageOn dflags ->
             addErrTc $ illegalForeignTyErr result safeHsErr
-        -- sucess! non-IO return is fine
+        -- success! non-IO return is fine
         _ -> return ()
   where safeHsErr = str $ "Safe Haskell is on, all FFI imports must be in the"
                        ++ " IO monad"
