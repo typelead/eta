@@ -1038,7 +1038,7 @@ data HsSigCtxt
   = TopSigCtxt    NameSet    -- At top level, binding these names
                              -- See Note [Signatures for top level things]
                              -- Bool <=> ok to give sig for
-                             --          class method or record selctor
+                             --          class method or record selector
   | LocalBindCtxt NameSet    -- In a local binding, binding these names
   | ClsDeclCtxt   Name       -- Class decl for this class
   | InstDeclCtxt  Name       -- Instance decl for this class
