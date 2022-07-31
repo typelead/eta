@@ -518,7 +518,7 @@ Note [Do not unpack class dictionaries]
 If we have
    f :: Ord a => [a] -> Int -> a
    {-# INLINABLE f #-}
-and we worker/wrapper f, we'll get a worker with an INLINALBE pragma
+and we worker/wrapper f, we'll get a worker with an INLINABLE pragma
 (see Note [Worker-wrapper for INLINABLE functions] in WorkWrap), which
 can still be specialised by the type-class specialiser, something like
    fw :: Ord a => [a] -> Int# -> a
