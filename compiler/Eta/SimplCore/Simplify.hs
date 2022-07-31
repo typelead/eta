@@ -2188,7 +2188,7 @@ the unfolding (a,b), and *that* mentions b.  If f has a RULE
     RULE f (p, I# q) = ...
 we want that rule to match, so we must extend the in-scope env with a
 suitable unfolding for 'y'.  It's *essential* for rule matching; but
-it's also good for case-elimintation -- suppose that 'f' was inlined
+it's also good for case-elimination -- suppose that 'f' was inlined
 and did multi-level case analysis, then we'd solve it in one
 simplifier sweep instead of two.
 
