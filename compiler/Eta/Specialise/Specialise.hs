@@ -289,7 +289,7 @@ only it knows how to build the dictionaries d1 and d2!  For example
 Here, the specialised version of g is an application of g's rhs to the
 Ord dictionary for (Tree Int), which only the type checker can conjure
 up.  There might not even *be* one, if (Tree Int) is not an instance of
-Ord!  (All the other specialision has suitable dictionaries to hand
+Ord!  (All the other specialisation has suitable dictionaries to hand
 from actual calls.)
 
 Problem.  The type checker doesn't have to hand a convenient <f_rhs>, because
@@ -1562,7 +1562,7 @@ have the big, un-optimised of f (albeit specialised) captured in an
 INLINABLE pragma for f_spec, we won't get that optimisation.
 
 So we simply drop INLINABLE pragmas when specialising. It's not really
-a complete solution; ignoring specalisation for now, INLINABLE functions
+a complete solution; ignoring specialisation for now, INLINABLE functions
 don't get properly strictness analysed, for example. But it works well
 for examples involving specialisation, which is the dominant use of
 INLINABLE.  See Trac #4874.
