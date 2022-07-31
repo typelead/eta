@@ -1246,7 +1246,7 @@ We
  3. combine the termination results, but
  4. take CPR info from the first argument.
 
-3 and 4 are implementd in bothDmdResult.
+3 and 4 are implemented in bothDmdResult.
 -}
 
 -- Equality needed for fixpoints in DmdAnal
