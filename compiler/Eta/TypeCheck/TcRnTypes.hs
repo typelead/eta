@@ -1869,7 +1869,7 @@ ctEvFlavour (CtDerived {}) = Derived
 Note [SubGoalDepth]
 ~~~~~~~~~~~~~~~~~~~
 The 'SubGoalCounter' takes care of stopping the constraint solver from looping.
-Because of the different use-cases of regular constaints and type function
+Because of the different use-cases of regular constraints and type function
 applications, there are two independent counters. Therefore, this datatype is
 abstract. See Note [WorkList]
 

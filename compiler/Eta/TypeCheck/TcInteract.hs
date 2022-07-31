@@ -1377,7 +1377,7 @@ Solution:
 
 Note [SUPERCLASS-LOOP 2]
 ~~~~~~~~~~~~~~~~~~~~~~~~
-We need to be careful when adding "the constaint we are trying to prove".
+We need to be careful when adding "the constraint we are trying to prove".
 Suppose we are *given* d1:Ord a, and want to deduce (d2:C [a]) where
 
         class Ord a => C a where
