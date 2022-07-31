@@ -410,7 +410,7 @@ mkBigCoreTupTy = mkChunkified mkBoxedTupleTy
 ************************************************************************
 -}
 
--- | Builds a selector which scrutises the given
+-- | Builds a selector which scrutinises the given
 -- expression and extracts the one name from the list given.
 -- If you want the no-shadowing rule to apply, the caller
 -- is responsible for making sure that none of these names

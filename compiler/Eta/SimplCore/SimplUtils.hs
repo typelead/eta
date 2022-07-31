@@ -1824,7 +1824,7 @@ mkCase tries these things
        }
 
     which merges two cases in one case when -- the default alternative of
-    the outer case scrutises the same variable as the outer case. This
+    the outer case scrutinises the same variable as the outer case. This
     transformation is called Case Merging.  It avoids that the same
     variable is scrutinised multiple times.
 
