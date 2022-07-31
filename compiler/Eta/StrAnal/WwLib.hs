@@ -418,7 +418,7 @@ we end up unpacking massive tuples passed to the bottoming function. Example:
         main = print (f fst (1, error "no"))
 
 Does 'main' print "error 1" or "error no"?  We don't really want 'f'
-to unbox its second argument.  This actually happened in GHC's onwn
+to unbox its second argument.  This actually happened in GHC's own
 source code, in Packages.applyPackageFlag, which ended up un-boxing
 the enormous DynFlags tuple, and being strict in the
 as-yet-un-filled-in pkgState files.
