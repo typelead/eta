@@ -292,7 +292,7 @@ Is this type ambiguous:  (Foo e ~ Maybe e) => Foo e
  [W] fmv2 ~ Maybe ee
 
 Now maybe we should get [D] e ~ ee, and then we'd solve it entirely.
-But if in a smilar situation we got [D] Int ~ Bool we'd be back
+But if in a similar situation we got [D] Int ~ Bool we'd be back
 to complaining about wanted/wanted interactions.  Maybe this arises
 also for fundeps?
 
