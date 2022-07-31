@@ -457,7 +457,7 @@ Here is a more subtle example, from HList-0.4.0.0 (Trac #10564)
 Is the instance OK? Does {l,r,xs} determine v?  Well:
 
   * From the instance constraint HMemberM (Label k l) (LabelsOf xs) b,
-    plus the fundep "| el l -> r" in class HMameberM,
+    plus the fundep "| el l -> r" in class HMemberM,
     we get {l,k,xs} -> b
 
   * Note the 'k'!! We must call closeOverKinds on the seed set
