@@ -1544,7 +1544,7 @@ But the demand fed into f might be less than <C(C(S)), C1(C1(S))>. There are a f
    - And finally termination information: If r says that f diverges for sure,
      then this holds when the demand guarantees that two arguments are going to
      be passed. If the demand is lower, we may just as well converge.
-     If we were tracking definite convegence, than that would still hold under
+     If we were tracking definite convergence, than that would still hold under
      a weaker demand than expected by the demand transformer.
  * Not enough demand from the usage side: The missing usage can be expanded
    using UCall Many, therefore this is subsumed by the third case:
