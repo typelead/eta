@@ -1067,7 +1067,7 @@ tidyTopName mod nc_var maybe_ref occ_env id
         -- If we want to externalise a currently-local name, check
         -- whether we have already assigned a unique for it.
         -- If so, use it; if not, extend the table.
-        -- All this is done by allcoateGlobalBinder.
+        -- All this is done by allocateGlobalBinder.
         -- This is needed when *re*-compiling a module in GHCi; we must
         -- use the same name for externally-visible things as we did before.
 
