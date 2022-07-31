@@ -1503,7 +1503,7 @@ checkValidTyCon tc
         ts1 = mkVarSet tvs1
         fty1 = dataConFieldType con1 label
 
-        checkOne (_, con2)    -- Do it bothways to ensure they are structurally identical
+        checkOne (_, con2)    -- Do it both ways to ensure they are structurally identical
             = do { checkFieldCompat label con1 con2 ts1 res1 res2 fty1 fty2
                  ; checkFieldCompat label con2 con1 ts2 res2 res1 fty2 fty1 }
             where
