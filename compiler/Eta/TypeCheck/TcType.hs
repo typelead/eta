@@ -844,7 +844,7 @@ mkTcEqPred :: TcType -> TcType -> Type
 --
 -- But for now we call mkTyConApp, not mkEqPred, because the invariants
 -- of the latter might not be satisfied during type checking.
--- Notably when we form an equalty   (a : OpenKind) ~ (Int : *)
+-- Notably when we form an equality   (a : OpenKind) ~ (Int : *)
 --
 -- But this is horribly delicate: what about type variables
 -- that turn out to be bound to Int#?
