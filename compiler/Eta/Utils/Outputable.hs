@@ -1084,7 +1084,7 @@ warnPprTrace True   file  line  msg x
     heading = hsep [text "WARNING: file", text file <> comma, text "line", int line]
 
 assertPprPanic :: String -> Int -> SDoc -> a
--- ^ Panic with an assertation failure, recording the given file and line number.
+-- ^ Panic with an assertion failure, recording the given file and line number.
 -- Should typically be accessed with the ASSERT family of macros
 assertPprPanic file line msg
   = pprPanic "ASSERT failed!" doc
