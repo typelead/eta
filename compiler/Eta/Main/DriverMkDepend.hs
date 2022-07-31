@@ -82,7 +82,7 @@ doMkDependHS srcs = do
     -- Print out the dependencies if wanted
     liftIO $ debugTraceMsg dflags 2 (text "Module dependencies" $$ ppr sorted)
 
-    -- Prcess them one by one, dumping results into makefile
+    -- Process them one by one, dumping results into makefile
     -- and complaining about cycles
     hsc_env <- getSession
     root <- liftIO getCurrentDirectory
