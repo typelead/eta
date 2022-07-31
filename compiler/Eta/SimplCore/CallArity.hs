@@ -105,7 +105,7 @@ where absent variables are bound to Nothing and otherwise to a lower bound to
 their arity.
 
 When we analyze an expression, we analyze it with a given context arity.
-Lambdas decrease and applications increase the incoming arity. Analysizing a
+Lambdas decrease and applications increase the incoming arity. Analyzing a
 variable will put that arity in the environment. In lets or cases all the
 results from the various subexpressions are lubed, which takes the point-wise
 minimum (considering Nothing an infinity).
