@@ -1155,7 +1155,7 @@ postInlineUnconditionally dflags env top_lvl bndr occ_info rhs unfolding
         --      case v of
         --         True  -> case x of ...
         --         False -> case x of ...
-        -- This is very important in practice; e.g. wheel-seive1 doubles
+        -- This is very important in practice; e.g. wheel-sieve1 doubles
         -- in allocation if you miss this out
       OneOcc in_lam _one_br int_cxt     -- OneOcc => no code-duplication issue
         ->     smallEnoughToInline dflags unfolding     -- Small enough to dup
