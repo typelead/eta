@@ -330,7 +330,7 @@ tcBindGroups :: TopLevelFlag -> TcSigFun -> PragFun
              -> TcM ([(RecFlag, LHsBinds TcId)], thing)
 -- Typecheck a whole lot of value bindings,
 -- one strongly-connected component at a time
--- Here a "strongly connected component" has the strightforward
+-- Here a "strongly connected component" has the straightforward
 -- meaning of a group of bindings that mention each other,
 -- ignoring type signatures (that part comes later)
 
