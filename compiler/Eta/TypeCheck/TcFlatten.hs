@@ -1265,7 +1265,7 @@ flattenTyVarOuter :: FlattenEnv -> TcTyVar
 flattenTyVarOuter fmode tv
   | not (isTcTyVar tv)             -- Happens when flatten under a (forall a. ty)
   = Left `liftM` flattenTyVarFinal fmode tv
-          -- So ty contains refernces to the non-TcTyVar a
+          -- So ty contains references to the non-TcTyVar a
 
   | otherwise
   = do { mb_ty <- isFilledMetaTyVar_maybe tv
