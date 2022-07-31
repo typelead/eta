@@ -592,7 +592,7 @@ addTickHsExpr (HsWrap w e) =
 addTickHsExpr e@(HsType _) = return e
 addTickHsExpr (HsUnboundVar {}) = panic "addTickHsExpr.HsUnboundVar"
 
--- Others dhould never happen in expression content.
+-- Others should never happen in expression content.
 addTickHsExpr e  = pprPanic "addTickHsExpr" (ppr e)
 
 addTickTupArg :: LHsTupArg Id -> TM (LHsTupArg Id)
