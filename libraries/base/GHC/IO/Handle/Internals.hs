@@ -676,7 +676,7 @@ mkDuplexHandle dev filepath mb_codec tr_newlines = do
        mkHandle dev filepath WriteHandle Nothing mb_codec
                         tr_newlines
                         (Just handleFinalizer)
-                        Nothing -- no othersie
+                        Nothing -- no otherside
 
   read_side@(FileHandle _ read_m) <-
       mkHandle dev filepath ReadHandle Nothing mb_codec
