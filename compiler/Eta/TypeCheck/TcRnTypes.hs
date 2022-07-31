@@ -2080,7 +2080,7 @@ data SkolemInfo
   | RuleSkol RuleName   -- The LHS of a RULE
 
   | InferSkol [(Name,TcType)]
-                        -- We have inferred a type for these (mutually-recursivive)
+                        -- We have inferred a type for these (mutually-recursive)
                         -- polymorphic Ids, and are now checking that their RHS
                         -- constraints are satisfied.
 
