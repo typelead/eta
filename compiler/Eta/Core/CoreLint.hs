@@ -115,7 +115,7 @@ That is, use a type let.   See Note [Type let] in CoreSyn.
 
 However, when linting <body> we need to remember that a=Int, else we might
 reject a correct program.  So we carry a type substitution (in this example
-[a -> Int]) and apply this substitution before comparing types.  The functin
+[a -> Int]) and apply this substitution before comparing types.  The function
         lintInTy :: Type -> LintM Type
 returns a substituted type; that's the only reason it returns anything.
 
