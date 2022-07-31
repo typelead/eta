@@ -1888,7 +1888,7 @@ checkValidRoles tc
     report_error doc
       = addErrTc $ vcat [ptext (sLit "Internal error in role inference:"),
                          doc,
-                         ptext (sLit "Please report this as a GHC bug: http://www.haskell.org/ghc/reportabug")]
+                         ptext (sLit "Please report this as a GHC bug: https://gitlab.haskell.org/ghc/ghc/wikis/report-a-bug")]
 
 {-
 ************************************************************************
