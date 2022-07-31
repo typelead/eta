@@ -200,7 +200,7 @@ never modified during substitution.  Rather:
    of Ids gis_del that must *not* be looked up in the gbl envt.
 
 All this is needed to support SimplEnv.substExpr, which starts off
-with a SimplIdSubst, which provides the ambient subsitution.
+with a SimplIdSubst, which provides the ambient substitution.
 -}
 
 -- | An environment for substituting for 'Id's

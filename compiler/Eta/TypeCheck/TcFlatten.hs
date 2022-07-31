@@ -1093,7 +1093,7 @@ guarantee that this recursive use will terminate.
                 a not in s, OR
                 the path from the top of s to a includes at least one non-newtype
 
-   then the extended substition T = S+(a -fw-> t)
+   then the extended substitution T = S+(a -fw-> t)
    is an inert generalised substitution.
 
 The idea is that
@@ -1124,12 +1124,12 @@ The idea is that
   have (a -fs-> a) in S, which contradicts (WF2).
 
 * The extended substitution satisfies (WF1) and (WF2)
-  - (K1) plus (L1) guarantee that the extended substiution satisfies (WF1).
+  - (K1) plus (L1) guarantee that the extended substitution satisfies (WF1).
   - (T3) guarantees (WF2).
 
 * (K2) is about inertness.  Intuitively, any infinite chain T^0(f,t),
   T^1(f,t), T^2(f,T).... must pass through the new work item infinitely
-  often, since the substution without the work item is inert; and must
+  often, since the substitution without the work item is inert; and must
   pass through at least one of the triples in S infinitely often.
 
   - (K2a): if not(fs>=fs) then there is no f that fs can rewrite (fs>=f),
@@ -1226,7 +1226,7 @@ roles. For example, if we have
 and we wish to compute S(W/R, T a b), the correct answer is T a Bool, NOT
 T Int Bool. The reason is that T's first parameter has a nominal role, and
 thus rewriting a to Int in T a b is wrong. Indeed, this non-congruence of
-subsitution means that the proof in Note [The inert equalities] may need
+substitution means that the proof in Note [The inert equalities] may need
 to be revisited, but we don't think that the end conclusion is wrong.
 -}
 

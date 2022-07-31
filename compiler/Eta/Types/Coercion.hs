@@ -1707,7 +1707,7 @@ ty_co_subst subst role ty
 Note [liftCoSubstTyVar]
 ~~~~~~~~~~~~~~~~~~~~~~~
 This function can fail (i.e., return Nothing) for two separate reasons:
- 1) The variable is not in the substutition
+ 1) The variable is not in the substitution
  2) The coercion found is of too low a role
 
 liftCoSubstTyVar is called from two places: in liftCoSubst (naturally), and
