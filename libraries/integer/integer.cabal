@@ -5,7 +5,7 @@ license:        BSD3
 license-file:   LICENSE
 category:       Numerical
 maintainer:     libraries@haskell.org
-bug-reports:    http://ghc.haskell.org/trac/ghc/newticket?component=libraries%20%28other%29&keywords=integer-gmp
+bug-reports:    https://gitlab.haskell.org/ghc/ghc/-/issues/new
 synopsis:       Integer library based on GMP
 description:
     This package provides the low-level implementation of the standard
