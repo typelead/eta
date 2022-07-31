@@ -143,7 +143,7 @@ iservCmd hsc_env@HscEnv{..} msg
 --
 -- If we receive an async exception, such as ^C, while communicating
 -- with the iserv process then we will be out-of-sync and not be able
--- to recoever.  Thus we use uninterruptibleMask_ during
+-- to recover.  Thus we use uninterruptibleMask_ during
 -- communication.  A ^C will be delivered to the iserv process (because
 -- signals get sent to the whole process group) which will interrupt
 -- the running computation and return an EvalException result.
