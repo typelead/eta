@@ -2111,7 +2111,7 @@ very simplep lifted semantics and then leave it up to the simplifier to
 optimise it --- knowing that the overheads will be removed in nearly
 all cases.
 
-In particular, the value will only be evaluted in the branches of the
+In particular, the value will only be evaluated in the branches of the
 program which use it, rather than being forced at the point where the
 value is bound. For example:
 
