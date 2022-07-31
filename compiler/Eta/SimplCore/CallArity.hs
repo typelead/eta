@@ -599,7 +599,7 @@ callArityBind boring_vars ae_body int b@(Rec binds)
             | Just (old_called_once, old_arity, _) <- mbLastRun
             , called_once == old_called_once
             , new_arity == old_arity
-            -- No change, no need to re-analize
+            -- No change, no need to reanalyze
             = (False, (i, mbLastRun, rhs))
 
             | otherwise
