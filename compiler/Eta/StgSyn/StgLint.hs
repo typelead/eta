@@ -210,7 +210,7 @@ lintStgExpr (StgCase scrut _ _ bndr _ alts_type alts) = runMaybeT $ do
 
 lintStgAlts :: [StgAlt]
             -> Type               -- Type of scrutinee
-            -> LintM (Maybe Type) -- Just ty => type is accurage
+            -> LintM (Maybe Type) -- Just ty => type is accurate
 
 lintStgAlts alts scrut_ty = do
     maybe_result_tys <- mapM (lintAlt scrut_ty) alts
