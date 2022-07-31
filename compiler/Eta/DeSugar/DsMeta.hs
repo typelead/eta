@@ -284,7 +284,7 @@ in repTyClD and repC.
 
 Note [Don't quantify implicit type variables in quotes]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you're not careful, it's suprisingly easy to take this quoted declaration:
+If you're not careful, it's surprisingly easy to take this quoted declaration:
 
   [d| idProxy :: forall proxy (b :: k). proxy b -> proxy b
       idProxy x = x
