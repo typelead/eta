@@ -1914,7 +1914,7 @@ setSafeHaskell s = updM f
               safeM <- combineSafeFlags sf s
               case s of
                 Sf_Safe -> return $ dfs { safeHaskell = safeM, safeInfer = False }
-                -- leave safe inferrence on in Trustworthy mode so we can warn
+                -- leave safe inference on in Trustworthy mode so we can warn
                 -- if it could have been inferred safe.
                 Sf_Trustworthy -> do
                   l <- getCurLoc
