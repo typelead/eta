@@ -716,7 +716,7 @@ and implicit parameter (see Note [Implicit parameters and ambiguity]).
 What about this, though?
    g :: C [a] => Int
 Is every call to 'g' ambiguous?  After all, we might have
-   intance C [a] where ...
+   instance C [a] where ...
 at the call site.  So maybe that type is ok!  Indeed even f's
 quintessentially ambiguous type might, just possibly be callable:
 with -XFlexibleInstances we could have
@@ -818,7 +818,7 @@ checkValidInstHead ctxt clas cls_args
                  (instTypeErr clas cls_args abstract_class_msg)
 
            -- Check language restrictions;
-           -- but not for SPECIALISE isntance pragmas
+           -- but not for SPECIALISE instance pragmas
        ; let ty_args = dropWhile isKind cls_args
        ; unless spec_inst_prag $
          do { checkTc (xopt LangExt.TypeSynonymInstances dflags ||

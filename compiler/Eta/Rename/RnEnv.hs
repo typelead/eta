@@ -1041,7 +1041,7 @@ data HsSigCtxt
                              --          class method or record selctor
   | LocalBindCtxt NameSet    -- In a local binding, binding these names
   | ClsDeclCtxt   Name       -- Class decl for this class
-  | InstDeclCtxt  Name       -- Intsance decl for this class
+  | InstDeclCtxt  Name       -- Instance decl for this class
   | HsBootCtxt    NameSet           -- Top level of a hs-boot file
   | RoleAnnotCtxt NameSet    -- A role annotation, with the names of all types
                              -- in the group
