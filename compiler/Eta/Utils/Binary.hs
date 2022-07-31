@@ -788,7 +788,7 @@ lazyGet bh = do
 
 data UserData =
    UserData {
-        -- for *deserialising* only:
+        -- for *deserializing* only:
         ud_get_name :: BinHandle -> IO Name,
         ud_get_fs   :: BinHandle -> IO FastString,
 

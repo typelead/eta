@@ -90,7 +90,7 @@ type IfaceTopBndr = Name
   -- [Symbol table representation of Names]
   --
   -- We don't serialise the namespace onto the disk though; rather we
-  -- drop it when serialising and add it back in when deserialising.
+  -- drop it when serialising and add it back in when deserializing.
 
 getIfaceTopBndr :: BinHandle -> IO IfaceTopBndr
 getIfaceTopBndr bh = get bh
