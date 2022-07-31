@@ -736,7 +736,7 @@ infixr 2 <||> -- same as (||)
 -- See: <http://en.wikipedia.org/wiki/Damerau-Levenshtein_distance>.
 -- Based on the algorithm presented in "A Bit-Vector Algorithm for Computing
 -- Levenshtein and Damerau Edit Distances" in PSC'02 (Heikki Hyyro).
--- See http://www.cs.uta.fi/~helmu/pubs/psc02.pdf and
+-- See https://web.archive.org/web/20120227082218/http://www.cs.uta.fi/~helmu/pubs/psc02.pdf and
 --     https://web.archive.org/web/20110130081927/http://www.cs.uta.fi/~helmu/pubs/PSCerr.html for an explanation
 restrictedDamerauLevenshteinDistance :: String -> String -> Int
 restrictedDamerauLevenshteinDistance str1 str2
