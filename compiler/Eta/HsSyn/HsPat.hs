@@ -535,7 +535,7 @@ conPatNeedsParens (RecCon {})      = True
 --
 -- Note that this is different from 'hsPatNeedsParens', which only says if
 -- a pattern needs to be parenthesized to parse in /any/ position, whereas
--- 'isCompountPat' says if a pattern needs to be parenthesized in an /argument/
+-- 'isCompoundPat' says if a pattern needs to be parenthesized in an /argument/
 -- position. In other words, @'hsPatNeedsParens' x@ implies
 -- @'isCompoundPat' x@, but not necessarily the other way around.
 isCompoundPat :: Pat a -> Bool
@@ -566,7 +566,7 @@ isCompoundPat (NPat (L _ p) _ _)   = isCompoundHsOverLit p
 --
 -- Note that this is different from 'conPatNeedsParens', which only says if
 -- a constructor pattern needs to be parenthesized to parse in /any/ position,
--- whereas 'isCompountConPat' says if a pattern needs to be parenthesized in an
+-- whereas 'isCompoundConPat' says if a pattern needs to be parenthesized in an
 -- /argument/ position. In other words, @'conPatNeedsParens' x@ implies
 -- @'isCompoundConPat' x@, but not necessarily the other way around.
 isCompoundConPat :: HsConDetails a b -> Bool
