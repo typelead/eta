@@ -29,7 +29,7 @@
 --  * \"The Essence of the Iterator Pattern\",
 --    by Jeremy Gibbons and Bruno Oliveira,
 --    in /Mathematically-Structured Functional Programming/, 2006, online at
---    <http://web.comlab.ox.ac.uk/oucl/work/jeremy.gibbons/publications/#iterator>.
+--    <https://www.cs.ox.ac.uk/people/publications/date/Jeremy.Gibbons.html#iterator>.
 --
 --  * \"An Investigation of the Laws of Traversals\",
 --    by Mauro Jaskelioff and Ondrej Rypacek,
