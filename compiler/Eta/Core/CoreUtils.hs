@@ -1137,7 +1137,7 @@ app_ok primop_ok fun args
 
 -----------------------------
 altsAreExhaustive :: [Alt b] -> Bool
--- True  <=> the case alternatives are definiely exhaustive
+-- True  <=> the case alternatives are definitely exhaustive
 -- False <=> they may or may not be
 altsAreExhaustive []
   = False    -- Should not happen
