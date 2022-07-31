@@ -193,7 +193,7 @@ data IdInfo
         unfoldingInfo   :: Unfolding,           -- ^ The 'Id's unfolding
         cafInfo         :: CafInfo,             -- ^ 'Id' CAF info
         oneShotInfo     :: OneShotInfo,         -- ^ Info about a lambda-bound variable, if the 'Id' is one
-        inlinePragInfo  :: InlinePragma,        -- ^ Any inline pragma atached to the 'Id'
+        inlinePragInfo  :: InlinePragma,        -- ^ Any inline pragma attached to the 'Id'
         occInfo         :: OccInfo,             -- ^ How the 'Id' occurs in the program
 
         strictnessInfo  :: StrictSig,      --  ^ A strictness signature
