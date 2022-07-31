@@ -60,7 +60,7 @@ source-repository-package
   commit: acbbe10b68f22f8f3f8ac21c82f12bb811a2fa7e
 ```
 
-If the package `eta-spark-core` with the exact same version as in the commit specified can be found in Hacakge or Etlas Index, the GitHub location will override the other search locations. This makes it easy to depend on forked versions of existing libraries when the released versions of those libraries don't contain the functionality required for your project.
+If the package `eta-spark-core` with the exact same version as in the commit specified can be found in Hackage or Etlas Index, the GitHub location will override the other search locations. This makes it easy to depend on forked versions of existing libraries when the released versions of those libraries don't contain the functionality required for your project.
 
 
 ## JVM Dependency
