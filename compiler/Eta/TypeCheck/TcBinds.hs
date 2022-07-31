@@ -1368,7 +1368,7 @@ it's all cool; each signature has distinct type variables from the renamer.)
 
 Note [Fail eagerly on bad signatures]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If a type signaure is wrong, fail immediately:
+If a type signature is wrong, fail immediately:
 
  * the type sigs may bind type variables, so proceeding without them
    can lead to a cascade of errors

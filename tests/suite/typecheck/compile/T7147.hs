@@ -8,7 +8,7 @@ class AddName i d | d->i where
 class Rec rec struct | rec->struct where
   mapRec :: (struct->struct) -> rec -> rec
 
--- We got a very bogus siguature for addNameRec in thc 7.6rc1
+-- We got a very bogus signature for addNameRec in thc 7.6rc1
 -- addNameRec :: forall rec struct.
 --                Recursive.Rec rec struct
 --                -> DefinedNames.AddName (GHC.Prim.Any *) struct

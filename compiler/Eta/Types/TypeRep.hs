@@ -701,7 +701,7 @@ So I'm trying out this rule: print explicit foralls if
   b) Any of the quantified type variables has a kind
      that mentions a kind variable
 
-This catches common situations, such as a type siguature
+This catches common situations, such as a type signature
      f :: m a
 which means
       f :: forall k. forall (m :: k->*) (a :: k). m a
