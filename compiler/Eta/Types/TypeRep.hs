@@ -509,7 +509,7 @@ works just by setting the initial context precedence very high.
 Note [Precedence in types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 We don't keep the fixity of type operators in the operator. So the pretty printer
-operates the following precedence structre:
+operates the following precedence structure:
    Type constructor application   binds more tightly than
    Operator applications           which bind more tightly than
    Function arrow

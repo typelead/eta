@@ -1811,7 +1811,7 @@ warnMissingSig flag msg id
 {-
 Note [The ImportMap]
 ~~~~~~~~~~~~~~~~~~~~
-The ImportMap is a short-lived intermediate data struture records, for
+The ImportMap is a short-lived intermediate data structure records, for
 each import declaration, what stuff brought into scope by that
 declaration is actually used in the module.
 
