@@ -525,7 +525,7 @@ HsPar (and ParPat in patterns, HsParTy in types) is used as follows
     necessary.  Eg (HsApp f (HsApp g x)) is fine, and prints 'f (g x)'
 
   * HsPars are pretty printed as '( .. )' regardless of whether
-    or not they are strictly necssary
+    or not they are strictly necessary
 
   * HsPars are respected when rearranging operator fixities.
     So   a * (b + c)  means what it says (where the parens are an HsPar)
