@@ -789,7 +789,7 @@ dataConUnivTyVars = dcUnivTyVars
 dataConExTyVars :: DataCon -> [TyVar]
 dataConExTyVars = dcExTyVars
 
--- | Both the universal and existentiatial type variables of the constructor
+-- | Both the universal and existential type variables of the constructor
 dataConAllTyVars :: DataCon -> [TyVar]
 dataConAllTyVars (MkData { dcUnivTyVars = univ_tvs, dcExTyVars = ex_tvs })
   = univ_tvs ++ ex_tvs
