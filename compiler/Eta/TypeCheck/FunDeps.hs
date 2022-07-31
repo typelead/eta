@@ -324,7 +324,7 @@ checkClsFD fd clas_tvs
                         --
                         -- But note (a) we get them from the dfun_id, so they are *in order*
                         --              because the kind variables may be mentioned in the
-                        --              type variabes' kinds
+                        --              type variables' kinds
                         --          (b) we must apply 'subst' to the kinds, in case we have
                         --              matched out a kind variable, but not a type variable
                         --              whose kind mentions that kind variable!

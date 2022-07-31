@@ -1459,7 +1459,7 @@ mkAmbigMsg ct
         | not (null ambig_tvs)
         = pp_ambig (ptext (sLit "type")) ambig_tvs
 
-        | otherwise  -- All ambiguous kind variabes; suggest -fprint-explicit-kinds
+        | otherwise  -- All ambiguous kind variables; suggest -fprint-explicit-kinds
         = vcat [ pp_ambig (ptext (sLit "kind")) ambig_kvs
                , sdocWithDynFlags suggest_explicit_kinds ]
 
