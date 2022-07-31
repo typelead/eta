@@ -574,7 +574,7 @@ addClsInstsErr herald ispecs
     addErr (hang herald 2 (pprInstances sorted))
  where
    sorted = sortWith getSrcLoc ispecs
-   -- The sortWith just arranges that instances are dislayed in order
+   -- The sortWith just arranges that instances are displayed in order
    -- of source location, which reduced wobbling in error messages,
    -- and is better for users
 

@@ -387,7 +387,7 @@ addFamInstsErr herald insts
    sorted    = sortWith getSpan insts
    fi1       = head sorted
    srcSpan   = coAxBranchSpan (coAxiomSingleBranch (famInstAxiom fi1))
-   -- The sortWith just arranges that instances are dislayed in order
+   -- The sortWith just arranges that instances are displayed in order
    -- of source location, which reduced wobbling in error messages,
    -- and is better for users
 
