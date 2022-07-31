@@ -904,7 +904,7 @@ Generates the initial uncovered set. Term and type constraints in scope
  set contains only a vector of variables with the constraints in scope.
 
  * pmcheck :: PatVec -> [PatVec] -> ValVec -> PmM Triple
- Checks redundancy, coverage and inaccessibility, using auxilary functions
+ Checks redundancy, coverage and inaccessibility, using auxiliary functions
 `pmcheckGuards` and `pmcheckHd`. Mainly handles the guard case which is
 common in all three checks (see paper) and calls `pmcheckGuards` when the
 whole clause is checked, or `pmcheckHd` when the pattern vector does not

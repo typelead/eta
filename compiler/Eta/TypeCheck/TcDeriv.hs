@@ -354,7 +354,7 @@ tcDeriving tycl_decls inst_decls deriv_decls
         ; early_specs <- makeDerivSpecs is_boot tycl_decls inst_decls deriv_decls
         ; traceTc "tcDeriving 1" (ppr early_specs)
 
-        -- for each type, determine the auxliary declarations that are common
+        -- for each type, determine the auxiliary declarations that are common
         -- to multiple derivations involving that type (e.g. Generic and
         -- Generic1 should use the same TcGenGenerics.MetaTyCons)
         ; (commonAuxs, auxDerivStuff) <- commonAuxiliaries $ map forgetTheta early_specs
