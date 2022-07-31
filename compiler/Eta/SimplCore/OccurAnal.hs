@@ -361,7 +361,7 @@ That's why we compute
 
     So we must *not* postInlineUnconditionally 'g', even though
     its RHS turns out to be trivial.  (I'm assuming that 'g' is
-    not choosen as a loop breaker.)  Why not?  Because then we
+    not chosen as a loop breaker.)  Why not?  Because then we
     drop the binding for 'g', which leaves it out of scope in the
     RULE!
 
