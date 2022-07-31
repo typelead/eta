@@ -2755,7 +2755,7 @@ But now we do *NOT* want to make a join point etc, giving
                 True  -> $j (I# (negate# x'))
                 False -> $j (I# x')
 In this case the $j will inline again, but suppose there was a big
-strict computation enclosing the orginal call to MkT.  Then, it won't
+strict computation enclosing the original call to MkT.  Then, it won't
 "see" the MkT any more, because it's big and won't get duplicated.
 And, what is worse, nothing was gained by the case-of-case transform.
 
