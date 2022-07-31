@@ -6,7 +6,7 @@
 
 ## Servant
 
-We will be using the [Servant](http://haskell-servant.readthedocs.io/en/stable/) web framework to demonstrate how to write web applications in Eta.
+We will be using the [Servant](https://docs.servant.dev/en/stable/) web framework to demonstrate how to write web applications in Eta.
 
 
 Servant uses the powerful strong typing features of Eta to provide a type-safe DSL that allows you to write web applications and services in a rock-solid way.
