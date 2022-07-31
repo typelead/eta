@@ -371,7 +371,7 @@ Note [Analysing top-level binds]
 We can eta-expand top-level-binds if they are not exported, as we see all calls
 to them. The plan is as follows: Treat the top-level binds as nested lets around
 a body representing “all external calls”, which returns a pessimistic
-CallArityRes (the co-call graph is the complete graph, all arityies 0).
+CallArityRes (the co-call graph is the complete graph, all arities 0).
 
 Note [Trimming arity]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
