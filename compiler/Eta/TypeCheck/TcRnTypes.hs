@@ -1687,7 +1687,7 @@ Note [Shadowing in a constraint]
 We assume NO SHADOWING in a constraint.  Specifically
  * The unification variables are all implicitly quantified at top
    level, and are all unique
- * The skolem varibles bound in ic_skols are all freah when the
+ * The skolem varibles bound in ic_skols are all fresh when the
    implication is created.
 So we can safely substitute. For example, if we have
    forall a.  a~Int => ...(forall b. ...a...)...
