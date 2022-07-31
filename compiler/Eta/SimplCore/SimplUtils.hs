@@ -1768,7 +1768,7 @@ Suppose we have (Trac #10538)
          A -> e2
          B -> e1
 
-When calling combineIdentialAlts, we'll have computed that the "impossible
+When calling combineIdenticalAlts, we'll have computed that the "impossible
 constructors" for the DEFAULT alt is {A,B}, since if x is A or B we'll
 take the other alternatives.  But suppose we combine B into the DEFAULT,
 to get
