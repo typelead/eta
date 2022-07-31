@@ -834,9 +834,9 @@ fuzzyMatch key vals = fuzzyLookup key [(v,v) | v <- vals]
 -- | Search for possible matches to the users input in the given list,
 -- returning a small number of ranked results
 fuzzyLookup :: String -> [(String,a)] -> [a]
-fuzzyLookup user_entered possibilites
+fuzzyLookup user_entered possibilities
   = map fst $ take mAX_RESULTS $ sortBy (comparing snd)
-    [ (poss_val, distance) | (poss_str, poss_val) <- possibilites
+    [ (poss_val, distance) | (poss_str, poss_val) <- possibilities
                        , let distance = restrictedDamerauLevenshteinDistance
                                             poss_str user_entered
                        , distance <= fuzzy_threshold ]
