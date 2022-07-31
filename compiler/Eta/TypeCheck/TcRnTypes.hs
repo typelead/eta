@@ -2115,7 +2115,7 @@ pprSkolInfo (PatSkol cl mc) = case cl of
     RealDataCon dc -> sep [ ptext (sLit "a pattern with constructor")
                           , nest 2 $ ppr dc <+> dcolon
                             <+> pprType (dataConUserType dc) <> comma
-                            -- pprType prints forall's regardless of -fprint-explict-foralls
+                            -- pprType prints forall's regardless of -fprint-explicit-foralls
                             -- which is what we want here, since we might be saying
                             -- type variable 't' is bound by ...
                           , ptext (sLit "in") <+> pprMatchContext mc ]

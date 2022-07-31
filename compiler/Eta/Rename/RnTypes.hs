@@ -331,7 +331,7 @@ rnHsTyKiForAll isType doc
              in_type_doc = ptext (sLit "In the type") <+> quotes (ppr ty)
        ; warnUnusedForAlls (in_type_doc $$ docOfHsDocContext doc)
                            forall_tyvars mentioned
-       ; traceRn "rnHsTyKiForAll:Exlicit" (vcat
+       ; traceRn "rnHsTyKiForAll:Explicit" (vcat
             [ppr forall_tyvars, ppr lctxt,ppr tau ])
        ; rnForAll doc Explicit extra kvs forall_tyvars lctxt tau }
 
