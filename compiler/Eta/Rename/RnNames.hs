@@ -1599,7 +1599,7 @@ isModuleExported implicit_prelude mod (GRE { gre_name = name, gre_prov = prov })
 
 -------------------------------
 check_occs :: IE RdrName -> ExportOccMap -> [Name] -> RnM ExportOccMap
-check_occs ie occs names  -- 'names' are the entities specifed by 'ie'
+check_occs ie occs names  -- 'names' are the entities specified by 'ie'
   = foldlM check occs names
   where
     check occs name
