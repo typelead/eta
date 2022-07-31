@@ -342,7 +342,7 @@ For a mutually recursive let, we begin by
  4. For each variable, we find out the incoming arity and whether it is called
     once, based on the the current analysis result. If this differs from the
     memoized results, we re-analyse the rhs and update the memoized table.
- 5. If nothing had to be reanalized, we are done.
+ 5. If nothing had to be reanalyzed, we are done.
     Otherwise, repeat from step 3.
 
 
