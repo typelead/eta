@@ -24,7 +24,7 @@
 --  * \"Applicative Programming with Effects\",
 --    by Conor McBride and Ross Paterson,
 --    /Journal of Functional Programming/ 18:1 (2008) 1-13, online at
---    <http://www.soi.city.ac.uk/~ross/papers/Applicative.html>.
+--    <https://staff.city.ac.uk/~ross/papers/Applicative.html>.
 --
 --  * \"The Essence of the Iterator Pattern\",
 --    by Jeremy Gibbons and Bruno Oliveira,

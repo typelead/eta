@@ -33,7 +33,7 @@
 -- mostly based on parsing work by Doaitse Swierstra.
 --
 -- For more details, see
--- <http://www.soi.city.ac.uk/~ross/papers/Applicative.html Applicative Programming with Effects>,
+-- <https://staff.city.ac.uk/~ross/papers/Applicative.html Applicative Programming with Effects>,
 -- by Conor McBride and Ross Paterson.
 
 module Control.Applicative (
