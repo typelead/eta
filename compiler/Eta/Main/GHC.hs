@@ -178,7 +178,7 @@ module Eta.Main.GHC (
         isRecordSelector,
         isPrimOpId, isFCallId, isClassOpId_maybe,
         isDataConWorkId, idDataCon,
-        isBottomingId, isDictonaryId,
+        isBottomingId, isDictionaryId,
         recordSelectorFieldLabel,
 
         -- ** Type constructors
@@ -1169,8 +1169,8 @@ modInfoModBreaks :: ModuleInfo -> ModBreaks
 modInfoModBreaks = minf_modBreaks
 #endif
 
-isDictonaryId :: Id -> Bool
-isDictonaryId id
+isDictionaryId :: Id -> Bool
+isDictionaryId id
   = case tcSplitSigmaTy (idType id) of { (_tvs, _theta, tau) -> isDictTy tau }
 
 -- | Looks up a global name: that is, any top-level name in any

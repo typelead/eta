@@ -743,7 +743,7 @@ data EvTerm
 -- | Instructions on how to make a 'Typeable' dictionary.
 data EvTypeable
   = EvTypeableTyCon TyCon [Kind]
-    -- ^ Dicitionary for concrete type constructors.
+    -- ^ Dictionary for concrete type constructors.
 
   | EvTypeableTyApp (EvTerm,Type) (EvTerm,Type)
     -- ^ Dictionary for type applications;  this is used when we have
@@ -937,7 +937,7 @@ Important Details:
    [G] d :: IP "stk" CallStack
 
   in scope. In the interaction phase, GHC would normally solve the use of ?stk
-  directly from the given, i.e. re-using the dicionary. But this is NOT what we
+  directly from the given, i.e. re-using the dictionary. But this is NOT what we
   want! We want to generate a *new* CallStack with ?loc's SrcLoc pushed onto
   the given CallStack. So we must take care in TcInteract.interactDict to
   prioritize solving wanted CallStacks.
