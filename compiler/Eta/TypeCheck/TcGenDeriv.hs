@@ -417,7 +417,7 @@ gen_Ord_binds loc tycon
       = nlHsCase (nlHsVar a_RDR) $
         map (mkOrdOpAlt op) tycon_data_cons
         -- i.e.  case a of { C1 x y -> case b of C1 x y -> ....compare x,y...
-        --                   C2 x   -> case b of C2 x -> ....comopare x.... }
+        --                   C2 x   -> case b of C2 x -> ....compare x.... }
 
       | null non_nullary_cons    -- All nullary, so go straight to comparing tags
       = mkTagCmp op
@@ -537,7 +537,7 @@ unliftedOrdOp tycon ty op a b
    b_expr = nlHsVar b
 
 unliftedCompare :: RdrName -> RdrName
-                -> LHsExpr RdrName -> LHsExpr RdrName   -- What to cmpare
+                -> LHsExpr RdrName -> LHsExpr RdrName   -- What to compare
                 -> LHsExpr RdrName -> LHsExpr RdrName -> LHsExpr RdrName  -- Three results
                 -> LHsExpr RdrName
 -- Return (if a < b then lt else if a == b then eq else gt)
