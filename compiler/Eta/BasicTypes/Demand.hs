@@ -1686,7 +1686,7 @@ a demand on the Id into a DmdType, which gives
         c) an indication of the result of applying
            the Id to its arguments
 
-However, in fact we store in the Id an extremely emascuated demand
+However, in fact we store in the Id an extremely emasculated demand
 transfomer, namely
 
                 a single DmdType
