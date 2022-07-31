@@ -1438,7 +1438,7 @@ point: all of these functions can have the CPR property.
 
     ------- f3 -----------
     -- h is strict in x, so x will be unboxed before it
-    -- is rerturned in the otherwise case.
+    -- is returned in the otherwise case.
 
     data T3 = MkT3 Int Int
 
