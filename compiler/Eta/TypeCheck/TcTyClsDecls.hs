@@ -2043,7 +2043,7 @@ For naughty selectors we make a dummy binding
    sel = ()
 for naughty selectors, so that the later type-check will add them to the
 environment, and they'll be exported.  The function is never called, because
-the tyepchecker spots the sel_naughty field.
+the typechecker spots the sel_naughty field.
 
 Note [GADT record selectors]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
