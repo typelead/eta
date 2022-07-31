@@ -710,7 +710,7 @@ unambiguous. See Note [Impedence matching] in TcBinds.
 
 This test is very conveniently implemented by calling
     tcSubType <type> <type>
-This neatly takes account of the functional dependecy stuff above,
+This neatly takes account of the functional dependency stuff above,
 and implicit parameter (see Note [Implicit parameters and ambiguity]).
 
 What about this, though?
