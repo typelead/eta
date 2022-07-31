@@ -83,7 +83,7 @@ core2core hsc_env guts
     hpt_rule_base  = mkRuleBase home_pkg_rules
     mod            = mg_module guts
     -- mod: get the module out of the current HscEnv so we can retrieve it from the monad.
-    -- This is very convienent for the users of the monad (e.g. plugins do not have to
+    -- This is very convenient for the users of the monad (e.g. plugins do not have to
     -- consume the ModGuts to find the module) but somewhat ugly because mg_module may
     -- _theoretically_ be changed during the Core pipeline (it's part of ModGuts), which
     -- would mean our cached value would go out of date.

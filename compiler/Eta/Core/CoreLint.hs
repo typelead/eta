@@ -133,7 +133,7 @@ find an occurrence of an Id, we fetch it from the in-scope set.
 ************************************************************************
 
 These functions are not CoreM monad stuff, but they probably ought to
-be, and it makes a conveneint place.  place for them.  They print out
+be, and it makes a convenient place.  place for them.  They print out
 stuff before and after core passes, and do Core Lint when necessary.
 -}
 
