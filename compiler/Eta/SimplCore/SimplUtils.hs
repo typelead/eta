@@ -822,7 +822,7 @@ Similarly, consider
 and suppose that there are auto-generated specialisations and a strictness
 wrapper for g.  The specialisations get activation AlwaysActive, and the
 strictness wrapper get activation (ActiveAfter 0).  So the strictness
-wrepper fails the test and won't be inlined into f's stable unfolding. That
+wrapper fails the test and won't be inlined into f's stable unfolding. That
 means f can inline, expose the specialised call to g, so the specialisation
 rules can fire.
 
@@ -830,7 +830,7 @@ A note about wrappers
 ~~~~~~~~~~~~~~~~~~~~~
 It's also important not to inline a worker back into a wrapper.
 A wrapper looks like
-        wraper = inline_me (\x -> ...worker... )
+        wrapper = inline_me (\x -> ...worker... )
 Normally, the inline_me prevents the worker getting inlined into
 the wrapper (initially, the worker's only call site!).  But,
 if the wrapper is sure to be called, the strictness analyser will
