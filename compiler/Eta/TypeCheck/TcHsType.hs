@@ -1213,7 +1213,7 @@ They never have explicit kinds (because this is source-code only)
 They are mutable (because they can get bound to a more specific type).
 
 Usually we kind-infer and expand type splices, and then
-tupecheck/desugar the type.  That doesn't work well for scoped type
+typecheck/desugar the type.  That doesn't work well for scoped type
 variables, because they scope left-right in patterns.  (e.g. in the
 example above, the 'a' in (y::a) is bound by the 'a' in (x::a).
 
