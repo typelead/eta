@@ -787,7 +787,7 @@ pprTupleApp p pp tc tys
     tupleParens (tupleTyConSort tc) (sep (punctuate comma (map (pp TopPrec) tys)))
 
 pprTcApp_help :: TyPrec -> (TyPrec -> a -> SDoc) -> TyCon -> [a] -> DynFlags -> SDoc
--- This one has accss to the DynFlags
+-- This one has access to the DynFlags
 pprTcApp_help p pp tc tys dflags
   | not (isSymOcc (nameOccName (tyConName tc)))
   = pprPrefixApp p (ppr tc) (map (pp TyConPrec) tys_wo_kinds)
