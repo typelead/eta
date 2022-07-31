@@ -2,7 +2,7 @@
 {-# OPTIONS_HADDOCK hide #-}
 
 -- Commentary of Integer library is located on the wiki:
--- http://ghc.haskell.org/trac/ghc/wiki/Commentary/Libraries/Integer
+-- https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/integer
 --
 -- It gives an in-depth description of implementation details and
 -- decisions.
