@@ -448,7 +448,7 @@ addBinTickLHsExpr boxLabel (L pos e0)
 
 
 -- -----------------------------------------------------------------------------
--- Decoarate an HsExpr with ticks
+-- Decorate an HsExpr with ticks
 
 addTickHsExpr :: HsExpr Id -> TM (HsExpr Id)
 addTickHsExpr e@(HsVar id) = do freeVar id; return e
