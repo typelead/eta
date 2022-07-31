@@ -622,7 +622,7 @@ chooseExternalIds hsc_env mod omit_prags expose_all binds implicit_binds imp_id_
   -- deterministic, tidy, renaming for all external Ids in this
   -- module.
   --
-  -- It is sorted, so that it has adeterministic order (i.e. it's the
+  -- It is sorted, so that it has a deterministic order (i.e. it's the
   -- same list every time this module is compiled), in contrast to the
   -- bindings, which are ordered non-deterministically.
   init_work_list = zip init_ext_ids init_ext_ids
