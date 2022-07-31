@@ -67,7 +67,7 @@ Note [Basic Simplifier Plan]
       - canonicalization
       - inert reactions
       - spontaneous reactions
-      - top-level intreactions
+      - top-level interactions
    Each stage returns a StopOrContinue and may have sideffected
    the inerts or worklist.
 
