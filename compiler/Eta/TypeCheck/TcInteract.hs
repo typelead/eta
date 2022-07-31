@@ -2164,7 +2164,7 @@ Other notes:
 -}
 
 -- | Assumes that we've checked that this is the 'Typeable' class,
--- and it was applied to the correc arugment.
+-- and it was applied to the correc argument.
 matchTypeableClass :: Class -> Kind -> Type -> CtLoc -> TcS LookupInstResult
 matchTypeableClass clas _k t loc
 

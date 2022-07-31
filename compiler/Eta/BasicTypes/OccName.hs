@@ -851,7 +851,7 @@ tidyOccName env occ@(OccName occ_sp fs)
     find !k !n
       = case lookupUFM env new_fs of
           Just {} -> find (k+1 :: Int) (n+k)
-                       -- By using n+k, the n arguemt to find goes
+                       -- By using n+k, the n argument to find goes
                        --    1, add 1, add 2, add 3, etc which
                        -- moves at quadratic speed through a dense patch
 

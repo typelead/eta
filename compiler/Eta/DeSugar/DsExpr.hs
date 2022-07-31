@@ -493,7 +493,7 @@ For record construction we do this (assuming T has three arguments)
           e
           (recConErr t1 "M.lhs/230/op3")
 \end{verbatim}
-@recConErr@ then converts its arugment string into a proper message
+@recConErr@ then converts its argument string into a proper message
 before printing it as
 \begin{verbatim}
         M.lhs, line 230: missing field op1 was evaluated
@@ -576,7 +576,7 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
         -- It's important to generate the match with matchWrapper,
         -- and the right hand sides with applications of the wrapper Id
         -- so that everything works when we are doing fancy unboxing on the
-        -- constructor aguments.
+        -- constructor arguments.
         ; alts <- mapM (mk_alt upd_fld_env) cons_to_upd
         ; ([discrim_var], matching_code)
                 <- matchWrapper RecUpd Nothing
