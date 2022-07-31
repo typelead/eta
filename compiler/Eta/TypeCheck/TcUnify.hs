@@ -1205,7 +1205,7 @@ happy to have types of kind Constraint on either end of an arrow.
 Note [Kind variables can be untouchable]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We must use the careful function lookupTcTyVar to see if a kind
-variable is filled or unifiable.  It checks for touchablity, and kind
+variable is filled or unifiable.  It checks for touchability, and kind
 variables can certainly be untouchable --- for example the variable
 might be bound outside an enclosing existential pattern match that
 binds an inner kind variable, which we don't want to escape outside.
