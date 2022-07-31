@@ -61,7 +61,7 @@ type MiniFixityEnv = FastStringEnv (Located Fixity)
         --
         -- It is keyed by the *FastString*, not the *OccName*, because
         -- the single fixity decl       infix 3 T
-        -- affects both the data constructor T and the type constrctor T
+        -- affects both the data constructor T and the type constructor T
         --
         -- We keep the location so that if we find
         -- a duplicate, we can report it sensibly

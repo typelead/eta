@@ -504,7 +504,7 @@ mkDataConRep dflags fam_envs wrap_name mb_bangs data_con
                  -- The Cpr info can be important inside INLINE rhss, where the
                  -- wrapper constructor isn't inlined.
                  -- And the argument strictness can be important too; we
-                 -- may not inline a contructor when it is partially applied.
+                 -- may not inline a constructor when it is partially applied.
                  -- For example:
                  --      data W = C !Int !Int !Int
                  --      ...(let w = C x in ...(w p q)...)...
@@ -836,7 +836,7 @@ because Int is non-recursive.
 
 Note [Unpack equality predicates]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If we have a GADT with a contructor C :: (a~[b]) => b -> T a
+If we have a GADT with a constructor C :: (a~[b]) => b -> T a
 we definitely want that equality predicate *unboxed* so that it
 takes no space at all.  This is easily done: just give it
 an UNPACK pragma. The rest of the unpack/repack code does the

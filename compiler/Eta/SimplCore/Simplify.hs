@@ -2605,7 +2605,7 @@ Rather than do this we simply agree to re-simplify the original (small) thing la
 
 Note [Funky mkPiTypes]
 ~~~~~~~~~~~~~~~~~~~~~~
-Notice the funky mkPiTypes.  If the contructor has existentials
+Notice the funky mkPiTypes.  If the constructor has existentials
 it's possible that the join point will be abstracted over
 type variables as well as term variables.
  Example:  Suppose we have

@@ -524,7 +524,7 @@ Terminology:
 
 Note [Data con representation]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The dcRepType field contains the type of the representation of a contructor
+The dcRepType field contains the type of the representation of a constructor
 This may differ from the type of the constructor *Id* (built
 by MkId.mkDataConId) for two reasons:
         a) the constructor Id may be overloaded, but the dictionary isn't stored
@@ -741,7 +741,7 @@ eqSpecPreds spec = [ mkEqPred (mkTyVarTy tv) ty | (tv,ty) <- spec ]
 {-
 Note [Unpack equality predicates]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If we have a GADT with a contructor C :: (a~[b]) => b -> T a
+If we have a GADT with a constructor C :: (a~[b]) => b -> T a
 we definitely want that equality predicate *unboxed* so that it
 takes no space at all.  This is easily done: just give it
 an UNPACK pragma. The rest of the unpack/repack code does the
