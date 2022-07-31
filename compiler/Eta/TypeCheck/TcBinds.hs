@@ -810,7 +810,7 @@ However we don't do the ambiguity check (checkValidType omits it for
 InfSigCtxt) because the impedence-matching stage, which follows
 immediately, will do it and we don't want two error messages.
 Moreover, because of the impedence matching stage, the ambiguity-check
-suggestion of -XAllowAmbiguiousTypes will not work.
+suggestion of -XAllowAmbiguousTypes will not work.
 
 
 Note [Impedence matching]

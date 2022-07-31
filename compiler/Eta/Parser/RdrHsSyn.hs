@@ -1476,7 +1476,7 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
                 | otherwise     = entity
         -- TODO: Z-encode the result?
 
--- the string "foo" is ambigous: either a header or a C identifier.  The
+-- the string "foo" is ambiguous: either a header or a C identifier.  The
 -- C identifier case comes first in the alternatives below, so we pick
 -- that one.
 parseCImport :: Located CCallConv -> Located Safety -> FastString -> String
