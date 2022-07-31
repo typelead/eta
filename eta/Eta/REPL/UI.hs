@@ -1193,7 +1193,7 @@ runStmt stmt step = do
     run_stmt stmt' =
         do -- In the new IO library, read handles buffer data even if the Handle
            -- is set to NoBuffering.  This causes problems for GHCi where there
-           -- are really two stdin Handles.  So we flush any bufferred data in
+           -- are really two stdin Handles.  So we flush any buffered data in
            -- GHCi's stdin Handle here (only relevant if stdin is attached to
            -- a file, otherwise the read buffer can't be flushed).
            _ <- liftIO $ tryIO $ hFlushAll stdin

@@ -306,7 +306,7 @@ hFlush handle = wantWritableHandle "hFlush" handle flushWriteBuffer
 
 -- | The action 'hFlushAll' @hdl@ flushes all buffered data in @hdl@,
 -- including any buffered read data.  Buffered read data is flushed
--- by seeking the file position back to the point before the bufferred
+-- by seeking the file position back to the point before the buffered
 -- data was read, and hence only works if @hdl@ is seekable (see
 -- 'hIsSeekable').
 --
