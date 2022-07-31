@@ -924,7 +924,7 @@ exprIsCheap' good_app other_expr        -- Applications and variables
     go (Var _) [] = True
          -- Just a type application of a variable
          -- (f t1 t2 t3) counts as WHNF
-         -- This case is probably handeld by the good_app case
+         -- This case is probably handled by the good_app case
          -- below, which should have a case for n=0, but putting
          -- it here too is belt and braces; and it's such a common
          -- case that checking for null directly seems like a
