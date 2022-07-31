@@ -146,7 +146,7 @@ public class Exception {
 
                      Note that unmasking is not done for asynchronous exceptions.
                      This may be due to the fact that raiseAsync &
-                     maybePeformBlockedExceptions only run after unmasking has
+                     maybePerformBlockedExceptions only run after unmasking has
                      been set. Verify. -RM */
             if (!async && (exceptionsBlocked & TSO_BLOCKEX) == 0) {
                 unmask = true;
