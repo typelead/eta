@@ -1838,7 +1838,7 @@ gen_Traversable_binds loc tycon
                  , ft_tup     = \t gs -> do                       -- traverse f = \x -> case x of (a1,a2,..) ->
                                     gg <- sequence gs             --                   (,,) <$> g1 a1 <*> g2 a2 <*> ..
                                     mkSimpleLam $ mkSimpleTupleCase match_for_con t gg
-                 , ft_ty_app  = \_ g -> nlHsApp traverse_Expr <$> g  -- traverse f = travese g
+                 , ft_ty_app  = \_ g -> nlHsApp traverse_Expr <$> g  -- traverse f = traverse g
                  , ft_forall  = \_ g -> g
                  , ft_co_var  = panic "contravariant"
                  , ft_fun     = panic "function"
