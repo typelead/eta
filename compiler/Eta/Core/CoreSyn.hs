@@ -774,7 +774,7 @@ has two major consequences
 
  * A module that contains orphans is called an "orphan module".  If
    the module being compiled depends (transitively) on an orphan
-   module M, then M.hi is read in regardless of whether M is oherwise
+   module M, then M.hi is read in regardless of whether M is otherwise
    needed. This is to ensure that we don't miss any instance decls in
    M.  But it's painful, because it means we need to keep track of all
    the orphan modules below us.
