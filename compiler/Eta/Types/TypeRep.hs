@@ -380,7 +380,7 @@ as ATyCon.  You can tell the difference, and get to the class, with
 The Class and its associated TyCon have the same Name.
 -}
 
--- | A typecheckable-thing, essentially anything that has a name
+-- | A typechecked-thing, essentially anything that has a name
 data TyThing
   = AnId     Id
   | AConLike ConLike
