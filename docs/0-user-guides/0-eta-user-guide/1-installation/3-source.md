@@ -6,7 +6,7 @@ You must have the following installed on your system:
 
 - [Stack](https://docs.haskellstack.org/en/stable/README)
     - Make sure the path that is obtained from running `stack path --local-bin` is present on the `PATH`.
-- [JDK 7 or above](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+- [JDK 7 or above](https://www.oracle.com/java/technologies/javase-downloads.html)
     - Make sure `javac` and `java` are on the PATH.
 - Check the OS-specific sections for additional requirements
 

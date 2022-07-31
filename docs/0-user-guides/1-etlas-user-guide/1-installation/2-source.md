@@ -4,7 +4,7 @@
 
 You must have the following installed on your system:
 
-- [JDK 7 or above](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+- [JDK 7 or above](https://www.oracle.com/java/technologies/javase-downloads.html)
 - [Git 1.8 or above](https://git-scm.com/book/en/v1/Getting-Started-Installing-Git)
 - [Stack](https://docs.haskellstack.org/en/stable/README/)
 
