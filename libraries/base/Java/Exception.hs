@@ -4,7 +4,7 @@
              BangPatterns #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Java.Execption
+-- Module      :  Java.Exception
 -- Copyright   :  (c) Jyothsna Srinivas 2017
 --
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
@@ -13,7 +13,7 @@
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- Bindings for Java Execption utilities
+-- Bindings for Java Exception utilities
 --
 -----------------------------------------------------------------------------
 
