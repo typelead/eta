@@ -12,7 +12,7 @@ module Eta.Rename.RnTypes (
         rnHsSigType, rnLHsInstType, rnConDeclFields,
         newTyVarNameRn,
 
-        -- Precence related stuff
+        -- Presence related stuff
         mkOpAppRn, mkNegAppRn, mkOpFormRn, mkConOpPatRn,
         checkPrecMatch, checkSectionPrec,
 
