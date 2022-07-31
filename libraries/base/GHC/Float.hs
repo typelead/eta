@@ -1287,7 +1287,7 @@ clamp bd k = max (-bd) (min bd k)
 Note [Casting from integral to floating point types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To implement something like `reinterpret_cast` from C++ to go from a
-floating-point type to an integral type one might niavely think that the
+floating-point type to an integral type one might naively think that the
 following should work:
 
       cast :: Float -> Word32
