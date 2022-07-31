@@ -789,7 +789,7 @@ top level binders specially in two ways
       it seem like qualified import.
 
     * We only shadow *External* names (which come from the main module)
-      Do not shadow *Inernal* names because in the bracket
+      Do not shadow *Internal* names because in the bracket
           [d| class C a where f :: a
               f = 4 |]
       rnSrcDecls will first call extendGlobalRdrEnvRn with C[f] from the
