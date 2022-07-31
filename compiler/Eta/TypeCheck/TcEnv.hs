@@ -418,7 +418,7 @@ getScopedTyVarBinds
 {-
 Note [Initialising the type environment for GHCi]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tcExtendGhciIdEnv extends the local type environemnt with GHCi
+tcExtendGhciIdEnv extends the local type environment with GHCi
 identifiers (from ic_tythings), bound earlier in the interaction.
 They may have free type variables (RuntimeUnk things), and if we don't
 register these free TyVars as global TyVars then the typechecker will
