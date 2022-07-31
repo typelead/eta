@@ -16,7 +16,7 @@ import Eta.Types.Type hiding      ( substTy, extendTvSubst, substTyVar )
 import Eta.SimplCore.SimplEnv
 import Eta.SimplCore.SimplUtils
 import Eta.Types.FamInstEnv       ( FamInstEnv )
-import Eta.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporalily commented out. See #8326
+import Eta.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporarily commented out. See #8326
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.MkId             ( seqId, voidPrimId )
 import Eta.Core.MkCore           ( mkImpossibleExpr, castBottomExpr )
@@ -27,7 +27,7 @@ import Eta.Types.OptCoercion      ( optCoercion )
 import Eta.Types.FamInstEnv       ( topNormaliseType_maybe )
 import Eta.BasicTypes.DataCon          ( DataCon, dataConWorkId, dataConRepStrictness
                         , isMarkedStrict ) --, dataConTyCon, dataConTag, fIRST_TAG )
---import Eta.Types.TyCon            ( isEnumerationTyCon ) -- temporalily commented out. See #8326
+--import Eta.Types.TyCon            ( isEnumerationTyCon ) -- temporarily commented out. See #8326
 import Eta.SimplCore.CoreMonad        ( Tick(..), SimplifierMode(..) )
 import Eta.Core.CoreSyn
 import Eta.BasicTypes.Demand           ( StrictSig(..), dmdTypeDepth, isStrictDmd )
@@ -35,13 +35,13 @@ import Eta.Core.PprCore          ( pprCoreExpr )
 import Eta.Core.CoreUnfold
 import Eta.Core.CoreUtils
 import Eta.Core.CoreArity
---import Eta.Prelude.PrimOp           ( tagToEnumKey ) -- temporalily commented out. See #8326
+--import Eta.Prelude.PrimOp           ( tagToEnumKey ) -- temporarily commented out. See #8326
 import Eta.Specialise.Rules            ( mkRuleInfo, lookupRule, getRules )
-import Eta.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporalily commented out. See #8326
+import Eta.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporarily commented out. See #8326
 import Eta.BasicTypes.BasicTypes       ( TopLevelFlag(..), isTopLevel, RecFlag(..) )
 import Eta.Utils.MonadUtils       ( foldlM, mapAccumLM, liftIO )
 import Eta.Utils.Maybes           ( orElse )
---import Eta.BasicTypes.Unique           ( hasKey ) -- temporalily commented out. See #8326
+--import Eta.BasicTypes.Unique           ( hasKey ) -- temporarily commented out. See #8326
 import Control.Monad
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
