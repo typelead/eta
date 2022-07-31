@@ -427,7 +427,7 @@ data TcGblEnv
         tcg_imports :: ImportAvails,
           -- ^ Information about what was imported from where, including
           -- things bound in this module. Also store Safe Haskell info
-          -- here about transative trusted package requirements.
+          -- here about transitive trusted package requirements.
 
         tcg_dus :: DefUses,   -- ^ What is defined in this module and what is used.
         tcg_used_rdrnames :: TcRef (Set RdrName),
