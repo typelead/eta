@@ -709,7 +709,7 @@ the final phase, but it's tidier to do it here.
 
 Note [Transferring IdInfo]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-We want to propagage any useful IdInfo on x_local to x_exported.
+We want to propagate any useful IdInfo on x_local to x_exported.
 
 STRICTNESS: if we have done strictness analysis, we want the strictness info on
 x_local to transfer to x_exported.  Hence the copyIdInfo call.
