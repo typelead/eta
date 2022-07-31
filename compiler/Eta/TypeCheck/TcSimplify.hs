@@ -781,7 +781,7 @@ solveWantedsTcMWithEvBinds :: EvBindsVar
 -- Returns a *zonked* result
 -- We zonk when we finish primarily to un-flatten out any
 -- flatten-skolems etc introduced by canonicalisation of
--- types involving type funuctions.  Happily the result
+-- types involving type functions.  Happily the result
 -- is typically much smaller than the input, indeed it is
 -- often empty.
 solveWantedsTcMWithEvBinds ev_binds_var wc tcs_action
