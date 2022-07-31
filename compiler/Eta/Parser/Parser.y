@@ -2782,7 +2782,7 @@ fbind   :: { LHsRecField RdrName (LHsExpr RdrName) }
         : qvar '=' texp {% ams  (sLL $1 $> $ HsRecField $1 $3             False)
                                 [mj AnnEqual $2] }
                         -- RHS is a 'texp', allowing view patterns (Trac #6038)
-                        -- and, incidentaly, sections.  Eg
+                        -- and, incidentally, sections.  Eg
                         -- f (R { x = show -> s }) = ...
 
         | qvar          { sLL $1 $> $ HsRecField $1 placeHolderPunRhs True }
