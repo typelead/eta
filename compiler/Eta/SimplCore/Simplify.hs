@@ -1181,7 +1181,7 @@ simplCast env body co0 cont0
                 -- Example of use: Trac #995
          = do { let arg' = substExpr arg_se arg
                            -- It's important that this is lazy, because this argument
-                           -- may be disarded if turns out to be the argument of
+                           -- may be discarded if turns out to be the argument of
                            -- (\_ -> e)     This can make a huge difference;
                            -- see Trac #10527
               ; cont' <- addCoerce co2 cont
