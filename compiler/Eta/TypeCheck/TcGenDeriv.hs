@@ -929,7 +929,7 @@ Note that we use
    expectP (Ident "T1")
 rather than
    Ident "T1" <- lexP
-The latter desugares to inline code for matching the Ident and the
+The latter desugars to inline code for matching the Ident and the
 string, and this can be very voluminous. The former is much more
 compact.  Cf Trac #7258, although that also concerned non-linearity in
 the occurrence analyser, a separate issue.
