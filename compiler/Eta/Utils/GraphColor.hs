@@ -27,7 +27,7 @@ import Data.List
 
 -- | Try to color a graph with this set of colors.
 --      Uses Chaitin's algorithm to color the graph.
---      The graph is scanned for nodes which are deamed 'trivially colorable'. These nodes
+--      The graph is scanned for nodes which are deemed 'trivially colorable'. These nodes
 --      are pushed onto a stack and removed from the graph.
 --      Once this process is complete the graph can be colored by removing nodes from
 --      the stack (ie in reverse order) and assigning them colors different to their neighbors.
