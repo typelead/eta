@@ -946,7 +946,7 @@ For example, it's tempting to look at trivial binding like
 and inline it unconditionally.  But suppose x is used many times,
 but this is the unique occurrence of y.  Then inlining x would change
 y's occurrence info, which breaks the invariant.  It matters: y
-might have a BIG rhs, which will now be dup'd at every occurrenc of x.
+might have a BIG rhs, which will now be dup'd at every occurrence of x.
 
 
 Even RHSs labelled InlineMe aren't caught here, because there might be
@@ -1105,7 +1105,7 @@ only have *forward* references. Hence, it's safe to discard the binding
 
 NOTE: This isn't our last opportunity to inline.  We're at the binding
 site right now, and we'll get another opportunity when we get to the
-ocurrence(s)
+occurrence(s)
 
 Note that we do this unconditional inlining only for trival RHSs.
 Don't inline even WHNFs inside lambdas; doing so may simply increase
