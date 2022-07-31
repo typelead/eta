@@ -159,7 +159,7 @@ flagsStaticNames = [
 -- the existing flags do nothing other than control debugging and some low-level
 -- optimizer phases, so for the most part this is OK.
 --
--- See GHC issue #8276: http://ghc.haskell.org/trac/ghc/ticket/8276#comment:37
+-- See GHC issue #8276: https://gitlab.haskell.org/ghc/ghc/-/issues/8276#comment:37
 discardStaticFlags :: [String] -> [String]
 discardStaticFlags = filter (\x -> x `notElem` flags)
   where flags = [ "-fno-state-hack"
