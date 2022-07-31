@@ -784,7 +784,7 @@ has two major consequences
    mentions on the LHS.  For example
       data T = T1 | T2
       instance Eq T where ....
-   The instance (Eq T) is incorprated as part of T's fingerprint.
+   The instance (Eq T) is incorporated as part of T's fingerprint.
 
    In contrast, orphans are all fingerprinted together in the
    mi_orph_hash field of the ModIface.
