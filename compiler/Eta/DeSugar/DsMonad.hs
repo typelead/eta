@@ -426,7 +426,7 @@ dsLookupGlobalId name
   = tyThingId <$> dsLookupGlobal name
 
 -- |Get a name from "Data.Array.Parallel" for the desugarer, from the 'ds_parr_bi' component of the
--- global desugerar environment.
+-- global desugarer environment.
 --
 dsDPHBuiltin :: (PArrBuiltin -> a) -> DsM a
 dsDPHBuiltin sel = (sel . ds_parr_bi) <$> getGblEnv
