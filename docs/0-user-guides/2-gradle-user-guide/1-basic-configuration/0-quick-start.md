@@ -10,7 +10,7 @@ The script will install Gradle and Gradle will install Eta and Etlas.
 
 You must have the following installed on your system:
 
-- [JDK 8 or above](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+- [JDK 8 or above](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)
 - [Git](https://git-scm.com/book/en/v1/Getting-Started-Installing-Git)
 
 ## Installation
