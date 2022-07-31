@@ -395,7 +395,7 @@ mkDataConWorkId wkr_name data_con
         -- even if the data constructor is declared strict
         --      e.g.    data T = MkT !(Int,Int)
         -- Why?  Because the *wrapper* is strict (and its unfolding has case
-        -- expresssions that do the evals) but the *worker* itself is not.
+        -- expressions that do the evals) but the *worker* itself is not.
         -- If we pretend it is strict then when we see
         --      case x of y -> $wMkT y
         -- the simplifier thinks that y is "sure to be evaluated" (because
