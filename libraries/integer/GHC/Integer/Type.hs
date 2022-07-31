@@ -13,7 +13,7 @@
 -- @mpz_*()@ functions using @long@ types, which is smaller than
 -- @mp_limb_t@ on IL32P64. The @mpn_*()@ functions are often safe to
 -- use, as they use @mb_limb_t@ instead of @long@.
--- (look out for @#if SIZEOF_HSWORD == SIZEOF_LONG@ occurences)
+-- (look out for @#if SIZEOF_HSWORD == SIZEOF_LONG@ occurrences)
 --
 
 #define INT_MINBOUND (-2147483648#)
