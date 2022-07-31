@@ -692,7 +692,7 @@ unifyTypeList (ty1:tys@(ty2:_)) = do { _ <- unifyType ty1 ty2
 ************************************************************************
 
 uType is the heart of the unifier.  Each arg occurs twice, because
-we want to report errors in terms of synomyms if possible.  The first of
+we want to report errors in terms of synonyms if possible.  The first of
 the pair is used in error messages only; it is always the same as the
 second, except that if the first is a synonym then the second may be a
 de-synonym'd version.  This way we get better error messages.

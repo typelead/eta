@@ -221,7 +221,7 @@ seIdSubst:
   binding site.
 
 * The in-scope "set" usually maps x->x; we use it simply for its domain.
-  But sometimes we have two in-scope Ids that are synomyms, and should
+  But sometimes we have two in-scope Ids that are synonyms, and should
   map to the same target:  x->x, y->x.  Notably:
         case y of x { ... }
   That's why the "set" is actually a VarEnv Var
