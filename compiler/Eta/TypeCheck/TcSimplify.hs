@@ -682,7 +682,7 @@ Deciding which equalities to quantify over is tricky:
 
 The difficulty is that it's hard to tell what is insoluble!
 So we see whether the simplificaiotn step yielded any type errors,
-and if so refrain from quantifying over *any* equalites.
+and if so refrain from quantifying over *any* equalities.
 -}
 
 simplifyRule :: RuleName
