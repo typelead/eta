@@ -269,7 +269,7 @@ the unfolding in question was a DFun unfolding.
 
 But more generally, the simplifier is designed on the
 basis that it is looking at occurrence-analysed expressions, so better
-ensure that they acutally are.
+ensure that they actually are.
 
 Note [Calculate unfolding guidance on the non-occ-anal'd expression]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
