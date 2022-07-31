@@ -1041,7 +1041,7 @@ recompileRequired _ = True
 -- is equivalent to the current source file the user asked us to compile.
 -- If the same, we can avoid recompilation. We return a tuple where the
 -- first element is a bool saying if we should recompile the object file
--- and the second is maybe the interface file, where Nothng means to
+-- and the second is maybe the interface file, where Nothing means to
 -- rebuild the interface file not use the existing one.
 checkOldIface
   :: HscEnv

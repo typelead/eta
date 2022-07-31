@@ -162,7 +162,7 @@ data ReportErrCtxt
                                        -- ic_skols and givens are tidied, rest are not
           , cec_tidy  :: TidyEnv
           , cec_binds :: Maybe EvBindsVar
-                         -- Nothinng <=> Report all errors, including holes; no bindings
+                         -- Nothing <=> Report all errors, including holes; no bindings
                          -- Just ev  <=> make some errors (depending on cec_defer)
                          --              into warnings, and emit evidence bindings
                          --              into 'ev' for unsolved constraints
