@@ -88,7 +88,7 @@ simplExpr (Let (NonRec ...) ..) ==> simplNonRecBind
 simplExpr (Let (Rec ...)    ..) ==> simplify binders; simplRecBind
 
         ------------------------------
-simplRecBind    [binders already simplfied]
+simplRecBind    [binders already simplified]
   - use simplRecOrTopPair on each pair in turn
 
 simplRecOrTopPair [binder already simplified]
