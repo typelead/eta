@@ -1195,7 +1195,7 @@ specCalls mb_mod env rules_for_me calls_for_me fn rhs
                 herald = case mb_mod of
                            Nothing        -- Specialising local fn
                                -> ptext (sLit "SPEC")
-                           Just this_mod  -- Specialising imoprted fn
+                           Just this_mod  -- Specialising imported fn
                                -> ptext (sLit "SPEC/") <> ppr this_mod
 
                 rule_name = mkFastString $ showSDocForUser dflags neverQualify $
