@@ -1193,7 +1193,7 @@ applyRoles tc cos
   = zipWith applyRole (tyConRolesX Representational tc) cos
 
 -- the Role parameter is the Role of the TyConAppCo
--- defined here because this is intimiately concerned with the implementation
+-- defined here because this is intimately concerned with the implementation
 -- of TyConAppCo
 tyConRolesX :: Role -> TyCon -> [Role]
 tyConRolesX Representational tc = tyConRoles tc ++ repeat Nominal
