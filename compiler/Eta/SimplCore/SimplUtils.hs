@@ -1004,7 +1004,7 @@ for exactly this reason; and we don't want PreInlineUnconditionally
 to second-guess it.  A live example is Trac #3736.
     c.f. Note [Stable unfoldings and postInlineUnconditionally]
 
-Note [Top-level botomming Ids]
+Note [Top-level bottoming Ids]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Don't inline top-level Ids that are bottoming, even if they are used just
 once, because FloatOut has gone to some trouble to extract them out.

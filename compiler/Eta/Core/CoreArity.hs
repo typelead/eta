@@ -387,7 +387,7 @@ Extrude the g2
   f' = \p. \s. ((error "...") |> g1) s
   f = f' |> (String -> g2)
 
-Discard args for bottomming function
+Discard args for bottoming function
 
   f' = \p. \s. ((error "...") |> g1 |> g3
   g3 :: (S -> (S,T)) ~ (S,T)
@@ -749,7 +749,7 @@ arityType env (Case scrut _ _ alts)
   | otherwise
   = case alts_type of
      ABot n  | n>0       -> ATop []    -- Don't eta expand
-             | otherwise -> ABot 0     -- if RHS is bottomming
+             | otherwise -> ABot 0     -- if RHS is bottoming
                                        -- See Note [Dealing with bottom (2)]
 
      ATop as | not (ae_ped_bot env)    -- See Note [Dealing with bottom (3)]
