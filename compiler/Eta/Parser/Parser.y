@@ -172,7 +172,7 @@ would think the two should never occur in the same context.
 -----------------------------------------------------------------------------
 Conflicts: 38 shift/reduce (1.25)
 
-10 for abiguity in 'if x then y else z + 1'             [State 178]
+10 for ambiguity in 'if x then y else z + 1'             [State 178]
         (shift parses as 'if x then y else (z + 1)', as per longest-parse rule)
         10 because op might be: : - ! * . `x` VARSYM CONSYM QVARSYM QCONSYM
 
