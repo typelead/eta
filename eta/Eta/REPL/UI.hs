@@ -1551,7 +1551,7 @@ editFile str =
 --      (e.g., because the programmeer mistyped the name of a module)?
 -- XXX: Can we figure out the location of an error to pass to the editor?
 -- XXX: if we could figure out the list of errors that occurred during the
--- last load/reaload, then we could start the editor focused on the first
+-- last load/reload, then we could start the editor focused on the first
 -- of those.
 chooseEditFile :: GHCi String
 chooseEditFile =
