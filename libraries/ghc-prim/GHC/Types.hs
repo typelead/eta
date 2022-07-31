@@ -54,7 +54,7 @@ data Bool = False | True
 
 {- | The character type 'Char' is an enumeration whose values represent
 Unicode (or equivalently ISO\/IEC 10646) characters (see
-<http://www.unicode.org/> for details).  This set extends the ISO 8859-1
+<https://www.unicode.org/> for details).  This set extends the ISO 8859-1
 (Latin-1) character set (the first 256 characters), which is itself an extension
 of the ASCII character set (the first 128 characters).  A character literal in
 Haskell has type 'Char'.
@@ -174,7 +174,7 @@ data (~) a b = Eq# ((~#) a b)
 --      @type role Set nominal@
 --
 --      For more details about this feature, please refer to
---      <http://www.cis.upenn.edu/~eir/papers/2014/coercible/coercible.pdf Safe Coercions>
+--      <https://web.archive.org/web/20170426120538/http://cs.brynmawr.edu/~rae/papers/2014/coercible/coercible.pdf Safe Coercions>
 --      by Joachim Breitner, Richard A. Eisenberg, Simon Peyton Jones and Stephanie Weirich.
 --
 --      @since 4.7.0.0

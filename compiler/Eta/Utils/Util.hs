@@ -638,7 +638,7 @@ splitAtList (_:xs) (y:ys) = (y:ys', ys'')
 dropTail :: Int -> [a] -> [a]
 -- Specification: dropTail n = reverse . drop n . reverse
 -- Better implemention due to Joachim Breitner
--- http://www.joachim-breitner.de/blog/archives/600-On-taking-the-last-n-elements-of-a-list.html
+-- https://www.joachim-breitner.de/blog/600-On_taking_the_last_n_elements_of_a_list
 dropTail n xs
   = go (drop n xs) xs
   where
@@ -733,11 +733,11 @@ infixr 2 <||> -- same as (||)
 -}
 
 -- | Find the "restricted" Damerau-Levenshtein edit distance between two strings.
--- See: <http://en.wikipedia.org/wiki/Damerau-Levenshtein_distance>.
+-- See: <https://en.wikipedia.org/wiki/Damerau-Levenshtein_distance>.
 -- Based on the algorithm presented in "A Bit-Vector Algorithm for Computing
 -- Levenshtein and Damerau Edit Distances" in PSC'02 (Heikki Hyyro).
--- See http://www.cs.uta.fi/~helmu/pubs/psc02.pdf and
---     http://www.cs.uta.fi/~helmu/pubs/PSCerr.html for an explanation
+-- See https://web.archive.org/web/20120227082218/http://www.cs.uta.fi/~helmu/pubs/psc02.pdf and
+--     https://web.archive.org/web/20110130081927/http://www.cs.uta.fi/~helmu/pubs/PSCerr.html for an explanation
 restrictedDamerauLevenshteinDistance :: String -> String -> Int
 restrictedDamerauLevenshteinDistance str1 str2
   = restrictedDamerauLevenshteinDistanceWithLengths m n str1 str2

@@ -528,7 +528,7 @@ figureLlvmVersion dflags = do
              (pin, pout, perr, _) <- runInteractiveProcess pgm args'
                                              Nothing Nothing
              {- > llc -version
-                  Low Level Virtual Machine (http://llvm.org/):
+                  Low Level Virtual Machine (https://llvm.org/):
                     llvm version 2.8 (Ubuntu 2.8-0Ubuntu1)
                     ...
              -}
@@ -850,7 +850,7 @@ runSomething dflags phase_name pgm args =
 -- response files for passing them in. See:
 --
 --     https://gcc.gnu.org/wiki/Response_Files
---     https://ghc.haskell.org/trac/ghc/ticket/10777
+--     https://gitlab.haskell.org/ghc/ghc/-/issues/10777
 runSomethingResponseFile
   :: DynFlags -> (String->String) -> String -> String -> [Option]
   -> Maybe [(String,String)] -> IO ()

@@ -56,7 +56,7 @@ tcAnnotation (L loc ann@(HsAnnotation _ provenance expr)) = do
       runAnnotation target expr
     where
       safeHsErr = vcat [ ptext (sLit "Annotations are not compatible with Safe Haskell.")
-                  , ptext (sLit "See https://ghc.haskell.org/trac/ghc/ticket/10826") ]
+                  , ptext (sLit "See https://gitlab.haskell.org/ghc/ghc/-/issues/10826") ]
 
 annProvenanceToTarget :: Module -> AnnProvenance Name -> AnnTarget Name
 annProvenanceToTarget _   (ValueAnnProvenance (L _ name)) = NamedTarget name

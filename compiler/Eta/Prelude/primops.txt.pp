@@ -5,7 +5,7 @@
 -- Primitive Operations and Types
 --
 -- For more information on PrimOps, see
---   http://ghc.haskell.org/trac/ghc/wiki/Commentary/PrimOps
+--   https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/prim-ops
 --
 -----------------------------------------------------------------------
 
@@ -18,7 +18,7 @@
 -- Information on how PrimOps are implemented and the steps necessary to
 -- add a new one can be found in the Commentary:
 --
---  http://ghc.haskell.org/trac/ghc/wiki/Commentary/PrimOps
+--  https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/prim-ops
 
 -- This file is divided into named sections, each containing or more
 -- primop entries. Section headers have the format:
@@ -2935,7 +2935,7 @@ section "Prefetch"
   The "Intel 64 and IA-32 Architectures Optimization Reference Manual" is
   especially a helpful read, even if your software is meant for other CPU
   architectures or vendor hardware. The manual can be found at
-  http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html .
+  https://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html .
 
   The {\tt prefetch*} family of operations has the order of operations
   determined by passing around the {\tt State#} token.

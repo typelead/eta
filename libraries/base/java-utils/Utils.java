@@ -378,7 +378,7 @@ public class Utils {
         errno.set(errnoCode);
     }
 
-    // Taken from: http://stackoverflow.com/questions/14524751/cast-object-to-generic-type-for-returning
+    // Taken from: https://stackoverflow.com/questions/14524751/cast-object-to-generic-type-for-returning
     public static <T> T convertInstanceOfObject(Object o, Class<T> clazz) {
         try {
             return clazz.cast(o);

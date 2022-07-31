@@ -2,7 +2,7 @@
 {-# LANGUAGE ExistentialQuantification, RankNTypes #-}
 
 -- An interesting interaction of universals and existentials, prompted by
--- http://www.haskell.org/pipermail/haskell-cafe/2004-October/007160.html
+-- https://mail.haskell.org/pipermail/haskell-cafe/2004-October/007160.html
 --
 -- Note the non-nested pattern-match in runProg; tcfail126 checks the
 -- nested pattern match

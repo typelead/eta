@@ -254,7 +254,7 @@ isHexDigit c            =  isDigit c ||
 -- * 'OtherPunctuation'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Punctuation\".
 --
@@ -298,7 +298,7 @@ isPunctuation c = case generalCategory c of
 -- * 'OtherSymbol'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Symbol\".
 --

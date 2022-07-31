@@ -2,7 +2,7 @@
 {-# OPTIONS_HADDOCK hide #-}
 
 -- Commentary of Integer library is located on the wiki:
--- http://ghc.haskell.org/trac/ghc/wiki/Commentary/Libraries/Integer
+-- https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/integer
 --
 -- It gives an in-depth description of implementation details and
 -- decisions.
@@ -745,7 +745,7 @@ recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 --
 -- The @/k/@ argument controls how many test rounds are performed for
 -- determining a /probable prime/. For more details, see
--- <http://gmplib.org/manual/Number-Theoretic-Functions.html#index-mpz_005fprobab_005fprime_005fp-360 GMP documentation for `mpz_probab_prime_p()`>.
+-- <https://gmplib.org/manual/Number-Theoretic-Functions.html#index-mpz_005fprobab_005fprime_005fp-360 GMP documentation for `mpz_probab_prime_p()`>.
 --
 -- /Since: 0.5.1.0/
 -- TODO: Second argument is certainty, not # of rounds

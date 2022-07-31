@@ -929,12 +929,12 @@ sortBy cmp = foldr (insertBy cmp) []
 GHC's mergesort replaced by a better implementation, 24/12/2009.
 This code originally contributed to the nhc12 compiler by Thomas Nordin
 in 2002.  Rumoured to have been based on code by Lennart Augustsson, e.g.
-    http://www.mail-archive.com/haskell@haskell.org/msg01822.html
+    https://www.mail-archive.com/haskell@haskell.org/msg01822.html
 and possibly to bear similarities to a 1982 paper by Richard O'Keefe:
 "A smooth applicative merge sort".
 
 Benchmarks show it to be often 2x the speed of the previous implementation.
-Fixes ticket http://ghc.haskell.org/trac/ghc/ticket/2143
+Fixes ticket https://gitlab.haskell.org/ghc/ghc/-/issues/2143
 -}
 
 sort = sortBy compare

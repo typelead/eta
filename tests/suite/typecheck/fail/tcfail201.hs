@@ -3,7 +3,7 @@
 
 -- Claus reported by email that
 -- GHCi, version 6.9.20080217 loops on this program
--- http://www.haskell.org/pipermail/cvs-ghc/2008-June/043173.html
+-- https://mail.haskell.org/pipermail/cvs-ghc/2008-June/043173.html
 -- So I'm adding it to the test suite so that we'll see it if it happens again
 
 module Foo where

@@ -2,7 +2,7 @@
 --
 --   cabal --project-file=cabal.ghc.project new-build
 --
--- See also http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
+-- See also https://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
 
 with-compiler: ghc-7.10.3
 packages:

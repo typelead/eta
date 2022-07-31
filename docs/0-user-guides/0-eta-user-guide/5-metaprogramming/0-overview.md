@@ -6,7 +6,7 @@ Metaprogramming provides a way to manipulate code as you would data. Eta provide
 
 ## Example
 
-In the example below, `makeLenses` is a template function from the [lens](http://hackage.haskell.org/package/lens) package that is evaluated at compile-time and generates some code. The function takes a single parameter: a type.
+In the example below, `makeLenses` is a template function from the [lens](https://hackage.haskell.org/package/lens) package that is evaluated at compile-time and generates some code. The function takes a single parameter: a type.
 
 ```eta
 import Control.Lens

@@ -25,7 +25,7 @@
 -- @since 4.6.0.0
 --
 -- If you're using @GHC.Generics@, you should consider using the
--- <http://hackage.haskell.org/package/generic-deriving> package, which
+-- <https://hackage.haskell.org/package/generic-deriving> package, which
 -- contains many useful generic functions.
 
 module GHC.Generics  (

@@ -130,7 +130,7 @@ import Control.Concurrent.QSemN
 
 The concurrency extension for Haskell is described in the paper
 /Concurrent Haskell/
-<http://www.haskell.org/ghc/docs/papers/concurrent-haskell.ps.gz>.
+<https://downloads.haskell.org/~ghc/papers/concurrent-haskell.ps.gz>.
 
 Concurrency is \"lightweight\", which means that both thread creation
 and context switching overheads are extremely low.  Scheduling of

@@ -497,7 +497,7 @@ withCleanupSession ghc = ghc `gfinally` cleanup
 -- reside.  More precisely, this should be the output of @ghc --print-libdir@
 -- of the version of GHC the module using this API is compiled with.  For
 -- portability, you should use the @ghc-paths@ package, available at
--- <http://hackage.haskell.org/package/ghc-paths>.
+-- <https://hackage.haskell.org/package/ghc-paths>.
 
 initGhcMonad :: GhcMonad m => Maybe FilePath -> m ()
 initGhcMonad mb_top_dir

@@ -492,7 +492,7 @@ These functions implement the carefully-written rules in the user
 manual section on "overlapping instances". At risk of duplication,
 here are the rules.  If the rules change, change this text and the
 user manual simultaneously.  The link may be this:
-http://www.haskell.org/ghc/docs/latest/html/users_guide/type-class-extensions.html#instance-overlap
+https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/type-class-extensions.html#instance-overlap
 
 The willingness to be overlapped or incoherent is a property of the
 instance declaration itself, controlled as follows:

@@ -8,7 +8,7 @@ You'll create a simple Eta application using [SbtEta plugin](https://github.com/
 
 You must have the following installed on your system:
 
-- [JDK 8 or above](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+- [JDK 8 or above](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)
 
 ## Create a project
 

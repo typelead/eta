@@ -361,7 +361,7 @@ Note [Roles]
 ~~~~~~~~~~~~
 Roles are a solution to the GeneralizedNewtypeDeriving problem, articulated
 in Trac #1496. The full story is in docs/core-spec/core-spec.pdf. Also, see
-http://ghc.haskell.org/trac/ghc/wiki/RolesImplementation
+https://gitlab.haskell.org/ghc/ghc/-/wikis/roles-implementation
 
 Here is one way to phrase the problem:
 
@@ -383,7 +383,7 @@ Yikes!
 
 The solution is _roles_, as articulated in "Generative Type Abstraction and
 Type-level Computation" (POPL 2010), available at
-http://www.seas.upenn.edu/~sweirich/papers/popl163af-weirich.pdf
+https://www.seas.upenn.edu/~sweirich/papers/popl163af-weirich.pdf
 
 The specification for roles has evolved somewhat since that paper. For the
 current full details, see the documentation in docs/core-spec. Here are some
