@@ -413,7 +413,7 @@ lookupConstructorFields :: Name -> RnM [Name]
 --      data type decls
 --
 --    * For constructors from imported modules, use the *type* environment
---      since imported modles are already compiled, the info is conveniently
+--      since imported models are already compiled, the info is conveniently
 --      right there
 
 lookupConstructorFields con_name
