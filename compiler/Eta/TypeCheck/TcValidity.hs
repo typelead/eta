@@ -1327,7 +1327,7 @@ sizeTypes xs = sum (map sizeType tys)
 --
 -- We are considering whether class constraints terminate.
 -- Equality constraints and constraints for the implicit
--- parameter class always termiante so it is safe to say "size 0".
+-- parameter class always terminate so it is safe to say "size 0".
 -- (Implicit parameter constraints always terminate because
 -- there are no instances for them---they are only solved by
 -- "local instances" in expressions).
