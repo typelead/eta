@@ -6,7 +6,7 @@
 *               based on "The Design of a Pretty-printing Library"              *
 *               in Advanced Functional Programming,                             *
 *               Johan Jeuring and Erik Meijer (eds), LNCS 925                   *
-*               http://www.cs.chalmers.se/~rjmh/Papers/pretty.ps                *
+*               https://web.archive.org/web/20070203205021/http://www.cs.chalmers.se/~rjmh/Papers/pretty.ps                *
 *                                                                               *
 *               Heavily modified by Simon Peyton Jones, Dec 96                  *
 *                                                                               *
