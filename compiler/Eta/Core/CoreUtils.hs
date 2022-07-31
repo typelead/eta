@@ -613,7 +613,7 @@ that cannot match.  For example:
 
 Suppose that for some silly reason, x isn't substituted in the case
 expression.  (Perhaps there's a NOINLINE on it, or profiling SCC stuff
-gets in the way; cf Trac #3118.)  Then the full-lazines pass might produce
+gets in the way; cf Trac #3118.)  Then the full-laziness pass might produce
 this
 
      x = Red
