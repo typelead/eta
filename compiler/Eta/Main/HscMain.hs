@@ -22,7 +22,7 @@
 -- Warning messages are dealt with consistently throughout this API:
 -- during compilation warnings are collected, and before any function
 -- in @HscMain@ returns, the warnings are either printed, or turned
--- into a real compialtion error if the @-Werror@ flag is enabled.
+-- into a real compilation error if the @-Werror@ flag is enabled.
 --
 -- (c) The GRASP/AQUA Project, Glasgow University, 1993-2000
 --
