@@ -995,7 +995,7 @@ mkEtaWW orig_n orig_expr in_scope orig_ty
                          -- but its type isn't a function.
        = WARN( True, (ppr orig_n <+> ppr orig_ty) $$ ppr orig_expr )
          (getTvInScope subst, reverse eis)
-        -- This *can* legitmately happen:
+        -- This *can* legitimately happen:
         -- e.g.  coerce Int (\x. x) Essentially the programmer is
         -- playing fast and loose with types (Happy does this a lot).
         -- So we simply decline to eta-expand.  Otherwise we'd end up
