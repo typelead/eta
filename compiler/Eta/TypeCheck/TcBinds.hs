@@ -280,7 +280,7 @@ Consider this (Trac #9161)
 Here, the type signature for b mentions A.  But A is a pattern
 synonym, which is typechecked (for very good reasons; a view pattern
 in the RHS may mention a value binding) as part of a group of
-bindings.  It is entirely resonable to reject this, but to do so
+bindings.  It is entirely reasonable to reject this, but to do so
 we need A to be in the kind environment when kind-checking the signature for B.
 
 Hence the tcExtendKindEnv2 patsyn_placeholder_kinds, which adds a binding
