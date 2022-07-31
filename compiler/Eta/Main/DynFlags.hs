@@ -3874,7 +3874,7 @@ setDumpFlag' dump_flag
                                              Opt_D_dump_hi_diffs]
 
 forceRecompile :: DynP ()
--- Whenver we -ddump, force recompilation (by switching off the
+-- Whenever we -ddump, force recompilation (by switching off the
 -- recompilation checker), else you don't see the dump! However,
 -- don't switch it off in --make mode, else *everything* gets
 -- recompiled which probably isn't what you want
