@@ -362,7 +362,7 @@ addTmCsDs tm_cs
   = updLclEnv (\env -> env { dsl_tm_cs = unionBags tm_cs (dsl_tm_cs env) })
 
 -- | Check that we have not done more iterations
--- than we are supposed to and inrease the counter
+-- than we are supposed to and increase the counter
 -- | Increase the counter for elapsed pattern match check iterations.
 -- If the current counter is already over the limit, fail
 incrCheckPmIterDs :: DsM ()
