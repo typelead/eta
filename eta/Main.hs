@@ -797,7 +797,7 @@ options may be necessary in order to find the .hi files.
 
 This is used by Cabal for generating the InstalledPackageId for a
 package.  The InstalledPackageId must change when the visible ABI of
-the package chagnes, so during registration Cabal calls ghc --abi-hash
+the package changes, so during registration Cabal calls ghc --abi-hash
 to get a hash of the package's ABI.
 -}
 
