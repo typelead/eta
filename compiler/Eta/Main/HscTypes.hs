@@ -2999,7 +2999,7 @@ numToTrustInfo 1 = setSafeMode Sf_Unsafe
 numToTrustInfo 2 = setSafeMode Sf_Trustworthy
 numToTrustInfo 3 = setSafeMode Sf_Safe
 numToTrustInfo 4 = setSafeMode Sf_Safe -- retained for backwards compat, used
-                                       -- to be Sf_SafeInfered but we no longer
+                                       -- to be Sf_SafeInferred but we no longer
                                        -- differentiate.
 numToTrustInfo n = error $ "numToTrustInfo: bad input number! (" ++ show n ++ ")"
 
