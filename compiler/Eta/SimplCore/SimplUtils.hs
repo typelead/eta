@@ -866,7 +866,7 @@ getUnfoldingInRuleMatch env
      | otherwise           = isActive (sm_phase mode) (idInlineActivation id)
 
 active_unfolding_minimal :: Id -> Bool
--- Compuslory unfoldings only
+-- Compulsory unfoldings only
 -- Ignore SimplGently, because we want to inline regardless;
 -- the Id has no top-level binding at all
 --

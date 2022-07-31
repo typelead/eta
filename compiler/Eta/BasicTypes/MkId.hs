@@ -1415,7 +1415,7 @@ and Note [Left folds via right fold]) it was determined that it would be useful
 if library authors could explicitly tell the compiler that a certain lambda is
 called at most once. The oneShot function allows that.
 
-Like most magic functions it has a compulsary unfolding, so there is no need
+Like most magic functions it has a compulsory unfolding, so there is no need
 for a real definition somewhere. We have one in GHC.Magic for the convenience
 of putting the documentation there.
 
