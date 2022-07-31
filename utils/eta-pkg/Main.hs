@@ -899,7 +899,7 @@ mungePackageDBPaths top_dir db@PackageDB { packages = pkgs } =
 mungePackagePaths :: FilePath -> FilePath
                   -> InstalledPackageInfo -> InstalledPackageInfo
 -- Perform path/URL variable substitution as per the Cabal ${pkgroot} spec
--- (http://www.haskell.org/pipermail/libraries/2009-May/011772.html)
+-- (https://mail.haskell.org/pipermail/libraries/2009-May/011772.html)
 -- Paths/URLs can be relative to ${pkgroot} or ${pkgrooturl}.
 -- The "pkgroot" is the directory containing the package database.
 --

@@ -641,7 +641,7 @@ mungeDynLibFields pkg =
 -- TODO: This code is duplicated in utils/ghc-pkg/Main.hs
 mungePackagePaths :: FilePath -> FilePath -> PackageConfig -> PackageConfig
 -- Perform path/URL variable substitution as per the Cabal ${pkgroot} spec
--- (http://www.haskell.org/pipermail/libraries/2009-May/011772.html)
+-- (https://mail.haskell.org/pipermail/libraries/2009-May/011772.html)
 -- Paths/URLs can be relative to ${pkgroot} or ${pkgrooturl}.
 -- The "pkgroot" is the directory containing the package database.
 --

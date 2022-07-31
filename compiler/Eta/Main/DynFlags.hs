@@ -1732,7 +1732,7 @@ languageExtensions Nothing
     : delete LangExt.DatatypeContexts  -- The Haskell' committee decided to
                                    -- remove datatype contexts from the
                                    -- language:
-   -- http://www.haskell.org/pipermail/haskell-prime/2011-January/003335.html
+   -- https://mail.haskell.org/pipermail/haskell-prime/2011-January/003335.html
       (languageExtensions (Just Haskell2010))
 
    -- NB: MonoPatBinds is no longer the default
