@@ -61,7 +61,7 @@ Will generate:
         fd1 = FDEq { fd_pos = 1, fd_ty_left = alpha, fd_ty_right = Bool } and
         fd2 = FDEq { fd_pos = 2, fd_ty_left = alpha, fd_ty_right = beta }
 
-We record the paremeter position so that can immediately rewrite a constraint
+We record the parameter position so that can immediately rewrite a constraint
 using the produced FDEqs and remove it from our worklist.
 
 
