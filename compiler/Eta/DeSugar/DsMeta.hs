@@ -1463,7 +1463,7 @@ repFields (HsRecFields { rec_flds = flds })
 -- shadow each other. Consider:  [| do { x <- f 1; x <- f x; g x } |]
 -- First gensym new names for every variable in any of the patterns.
 -- both static (x'1 and x'2), and dynamic ((gensym "x") and (gensym "y"))
--- if variables didn't shaddow, the static gensym wouldn't be necessary
+-- if variables didn't shadow, the static gensym wouldn't be necessary
 -- and we could reuse the original names (x and x).
 --
 -- do { x'1 <- gensym "x"
