@@ -301,7 +301,7 @@ Then we get a data type for each instance, and an axiom:
    axiom ax8 a :: T Bool [a] ~ TBoolList a
 
 These two axioms for T, one with one pattern, one with two.  The reason
-for this eta-reduction is decribed in TcInstDcls
+for this eta-reduction is described in TcInstDcls
    Note [Eta reduction for data family axioms]
 -}
 
