@@ -736,7 +736,7 @@ cleanEvalProdDmd n = JD { sd = HeadStr, ud = UProd (replicate n useTop) }
 {-
 ************************************************************************
 *                                                                      *
-           Demand: combining stricness and usage
+           Demand: combining strictness and usage
 *                                                                      *
 ************************************************************************
 -}
@@ -1581,7 +1581,7 @@ Note [Default demand on free variables]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If the variable is not mentioned in the environment of a demand type,
 its demand is taken to be a result demand of the type.
-    For the stricness component,
+    For the strictness component,
      if the result demand is a Diverges, then we use HyperStr
                                          else we use Lazy
     For the usage component, we use Absent.

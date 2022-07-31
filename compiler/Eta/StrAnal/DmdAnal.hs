@@ -514,7 +514,7 @@ dmdFix :: TopLevelFlag
        -> AnalEnv                            -- Does not include bindings for this binding
        -> CleanDemand
        -> [(Id,CoreExpr)]
-       -> (AnalEnv, DmdEnv, [(Id,CoreExpr)]) -- Binders annotated with stricness info
+       -> (AnalEnv, DmdEnv, [(Id,CoreExpr)]) -- Binders annotated with strictness info
 
 dmdFix top_lvl env let_dmd orig_pairs
   = loop 1 initial_pairs
