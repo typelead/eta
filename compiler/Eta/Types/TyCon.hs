@@ -1034,7 +1034,7 @@ So we compromise, and move their Kind calculation to the call site.
 -}
 
 -- | Given the name of the function type constructor and it's kind, create the
--- corresponding 'TyCon'. It is reccomended to use 'TypeRep.funTyCon' if you want
+-- corresponding 'TyCon'. It is recommended to use 'TypeRep.funTyCon' if you want
 -- this functionality
 mkFunTyCon :: Name -> Kind -> TyCon
 mkFunTyCon name kind
