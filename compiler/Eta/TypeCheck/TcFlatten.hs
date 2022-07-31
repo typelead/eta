@@ -944,7 +944,7 @@ flatten_exact_fam_app_fully fmode tc tys
                                         , cc_fsk    = fsk }
                    ; emitFlatWork ct
 
-                   -- Now that flattening has finished, attempty to unify the
+                   -- Now that flattening has finished, attempt to unify the
                    -- type variables of a generic JWT when reducing Extends'.
                    -- That way, the next time they attempt to solve it, it will
                    -- succeed.
