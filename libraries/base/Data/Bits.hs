@@ -332,7 +332,7 @@ class Bits b => FiniteBits b where
     -- @
     --
     -- The related
-    -- <http://en.wikipedia.org/wiki/Find_first_set find-first-set operation>
+    -- <https://en.wikipedia.org/wiki/Find_first_set find-first-set operation>
     -- can be expressed in terms of 'countTrailingZeros' as follows
     --
     -- @

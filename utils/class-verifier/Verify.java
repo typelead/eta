@@ -11,7 +11,7 @@ import java.net.MalformedURLException;
 import java.io.IOException;
 
 // Adapted from
-// http://stackoverflow.com/questions/11016092/how-to-load-classes-at-runtime-from-a-folder-or-jar
+// https://stackoverflow.com/questions/11016092/how-to-load-classes-at-runtime-from-a-folder-or-jar
 
 public class Verify {
     public static void main(String[] args) throws IOException,

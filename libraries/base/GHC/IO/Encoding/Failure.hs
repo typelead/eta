@@ -100,7 +100,7 @@ codingFailureModeSuffix RoundtripFailure           = "//ROUNDTRIP"
 -- unknown bytes.
 --
 -- This is the defined Unicode replacement character:
--- <http://www.fileformat.info/info/unicode/char/0fffd/index.htm>
+-- <https://www.fileformat.info/info/unicode/char/0fffd/index.htm>
 unrepresentableChar :: Char
 unrepresentableChar = '\xFFFD'
 

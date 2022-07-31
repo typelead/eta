@@ -120,7 +120,7 @@ digitToInt c
 -- * 'OtherLetter'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Letter\".
 --
@@ -169,7 +169,7 @@ isLetter c = case generalCategory c of
 -- * 'EnclosingMark'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Mark\".
 --
@@ -211,7 +211,7 @@ isMark c = case generalCategory c of
 -- * 'OtherNumber'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Number\".
 --
@@ -253,7 +253,7 @@ isNumber c = case generalCategory c of
 -- * 'ParagraphSeparator'
 --
 -- These classes are defined in the
--- <http://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
+-- <https://www.unicode.org/reports/tr44/tr44-14.html#GC_Values_Table Unicode Character Database>,
 -- part of the Unicode standard. The same document defines what is
 -- and is not a \"Separator\".
 --

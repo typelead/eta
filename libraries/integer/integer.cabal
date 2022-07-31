@@ -10,7 +10,7 @@ synopsis:       Integer library based on GMP
 description:
     This package provides the low-level implementation of the standard
     'Integer' type based on the
-    <http://gmplib.org/ GNU Multiple Precision Arithmetic Library (GMP)>.
+    <https://gmplib.org/ GNU Multiple Precision Arithmetic Library (GMP)>.
     .
     This package provides access to the internal representation of
     'Integer' as well as primitive operations with no proper error

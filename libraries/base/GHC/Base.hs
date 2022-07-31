@@ -399,7 +399,7 @@ instance Semigroup a => Semigroup (Maybe a) where
     stimes = stimesMaybe
 
 -- | Lift a semigroup into 'Maybe' forming a 'Monoid' according to
--- <http://en.wikipedia.org/wiki/Monoid>: \"Any semigroup @S@ may be
+-- <https://en.wikipedia.org/wiki/Monoid>: \"Any semigroup @S@ may be
 -- turned into a monoid simply by adjoining an element @e@ not in @S@
 -- and defining @e*e = e@ and @e*s = s = s*e@ for all @s ∈ S@.\"
 --

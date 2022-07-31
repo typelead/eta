@@ -521,7 +521,7 @@ data ArgTyAlg a = ArgTyAlg
   }
 
 -- | @argTyFold@ implements a generalised and safer variant of the @arg@
--- function from Figure 3 in <http://dreixel.net/research/pdf/gdmh.pdf>. @arg@
+-- function from Figure 3 in <https://dreixel.net/research/pdf/gdmh.pdf>. @arg@
 -- is conceptually equivalent to:
 --
 -- > arg t = case t of

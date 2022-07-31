@@ -528,7 +528,7 @@ figureLlvmVersion dflags = do
              (pin, pout, perr, _) <- runInteractiveProcess pgm args'
                                              Nothing Nothing
              {- > llc -version
-                  Low Level Virtual Machine (http://llvm.org/):
+                  Low Level Virtual Machine (https://llvm.org/):
                     llvm version 2.8 (Ubuntu 2.8-0Ubuntu1)
                     ...
              -}

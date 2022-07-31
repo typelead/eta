@@ -2935,7 +2935,7 @@ section "Prefetch"
   The "Intel 64 and IA-32 Architectures Optimization Reference Manual" is
   especially a helpful read, even if your software is meant for other CPU
   architectures or vendor hardware. The manual can be found at
-  http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html .
+  https://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html .
 
   The {\tt prefetch*} family of operations has the order of operations
   determined by passing around the {\tt State#} token.

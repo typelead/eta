@@ -506,7 +506,7 @@ the debugging output to make distinction of different threads easier
 (otherwise you only have the thread state object\'s address in the heap).
 
 Other applications like the graphical Concurrent Haskell Debugger
-(<http://www.informatik.uni-kiel.de/~fhu/chd/>) may choose to overload
+(<https://www.informatik.uni-kiel.de/~fhu/chd/>) may choose to overload
 'labelThread' for their purposes as well.
 -}
 

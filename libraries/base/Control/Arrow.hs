@@ -22,7 +22,7 @@
 --    Firenze, Italy, pp229-240.
 --
 -- These papers and more information on arrows can be found at
--- <http://www.haskell.org/arrows/>.
+-- <https://www.haskell.org/arrows/>.
 
 module Control.Arrow (
     -- * Arrows

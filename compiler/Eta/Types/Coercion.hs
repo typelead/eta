@@ -383,7 +383,7 @@ Yikes!
 
 The solution is _roles_, as articulated in "Generative Type Abstraction and
 Type-level Computation" (POPL 2010), available at
-http://www.seas.upenn.edu/~sweirich/papers/popl163af-weirich.pdf
+https://www.seas.upenn.edu/~sweirich/papers/popl163af-weirich.pdf
 
 The specification for roles has evolved somewhat since that paper. For the
 current full details, see the documentation in docs/core-spec. Here are some

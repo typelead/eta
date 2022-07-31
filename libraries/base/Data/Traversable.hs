@@ -34,7 +34,7 @@
 --  * \"An Investigation of the Laws of Traversals\",
 --    by Mauro Jaskelioff and Ondrej Rypacek,
 --    in /Mathematically-Structured Functional Programming/, 2012, online at
---    <http://arxiv.org/pdf/1202.2919>.
+--    <https://arxiv.org/pdf/1202.2919>.
 --
 -----------------------------------------------------------------------------
 

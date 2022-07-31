@@ -54,7 +54,7 @@ data Bool = False | True
 
 {- | The character type 'Char' is an enumeration whose values represent
 Unicode (or equivalently ISO\/IEC 10646) characters (see
-<http://www.unicode.org/> for details).  This set extends the ISO 8859-1
+<https://www.unicode.org/> for details).  This set extends the ISO 8859-1
 (Latin-1) character set (the first 256 characters), which is itself an extension
 of the ASCII character set (the first 128 characters).  A character literal in
 Haskell has type 'Char'.

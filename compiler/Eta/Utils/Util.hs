@@ -733,7 +733,7 @@ infixr 2 <||> -- same as (||)
 -}
 
 -- | Find the "restricted" Damerau-Levenshtein edit distance between two strings.
--- See: <http://en.wikipedia.org/wiki/Damerau-Levenshtein_distance>.
+-- See: <https://en.wikipedia.org/wiki/Damerau-Levenshtein_distance>.
 -- Based on the algorithm presented in "A Bit-Vector Algorithm for Computing
 -- Levenshtein and Damerau Edit Distances" in PSC'02 (Heikki Hyyro).
 -- See https://web.archive.org/web/20120227082218/http://www.cs.uta.fi/~helmu/pubs/psc02.pdf and

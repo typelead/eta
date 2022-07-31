@@ -1474,7 +1474,7 @@ toString_RDR   = varQual_RDR  jAVA_UTILS (fsLit "toString#")
 *                                                                      *
                         Functor instances
 
- see http://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
+ see https://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
 
 *                                                                      *
 ************************************************************************
@@ -1723,7 +1723,7 @@ mkSimpleTupleCase match_for_con sort insides x = do
 *                                                                      *
                         Foldable instances
 
- see http://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
+ see https://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
 
 *                                                                      *
 ************************************************************************
@@ -1798,7 +1798,7 @@ gen_Foldable_binds loc tycon
 *                                                                      *
                         Traversable instances
 
- see http://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
+ see https://www.mail-archive.com/haskell-prime@haskell.org/msg02116.html
 *                                                                      *
 ************************************************************************
 
