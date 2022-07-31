@@ -1007,7 +1007,7 @@ allowed this to be transformed into
 
   (\(x,y) -> \z -> C) <$> A <*> B
 
-then it could be lazier than the standard desuraging using >>=.  See #13875
+then it could be lazier than the standard desugaring using >>=.  See #13875
 for more examples.
 
 Thus, whenever we have a strict pattern match, we treat it as a
