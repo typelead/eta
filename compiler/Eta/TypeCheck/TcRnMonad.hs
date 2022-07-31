@@ -877,7 +877,7 @@ tryTc m
 -----------------------
 tryTcErrs :: TcRn a -> TcRn (Messages, Maybe a)
 -- Run the thing, returning
---      Just r,  if m succceeds with no error messages
+--      Just r,  if m succeeds with no error messages
 --      Nothing, if m fails, or if it succeeds but has error messages
 -- Either way, the messages are returned; even in the Just case
 -- there might be warnings
