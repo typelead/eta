@@ -1146,7 +1146,7 @@ specCalls mb_mod env rules_for_me calls_for_me fn rhs
       = ASSERT( call_ts `lengthIs` n_tyvars  && call_ds `lengthIs` n_dicts )
 
         -- Suppose f's defn is  f = /\ a b c -> \ d1 d2 -> rhs
-        -- Supppose the call is for f [Just t1, Nothing, Just t3] [dx1, dx2]
+        -- Supposed the call is for f [Just t1, Nothing, Just t3] [dx1, dx2]
 
         -- Construct the new binding
         --      f1 = SUBST[a->t1,c->t3, d1->d1', d2->d2'] (/\ b -> rhs)
