@@ -509,7 +509,7 @@ bug.  The fix here is simply to decline to do w/w if that happens.
 
 ************************************************************************
 *                                                                      *
-         Type scrutiny that is specfic to demand analysis
+         Type scrutiny that is specific to demand analysis
 *                                                                      *
 ************************************************************************
 
