@@ -417,7 +417,7 @@ completeNonRecX top_lvl env is_strict old_bndr new_bndr new_rhs
         -- Here x isn't mentioned in the RHS, so we don't want to
         -- create the (dead) let-binding  let x = (a,b) in ...
         --
-        -- Similarly, single occurrences can be inlined vigourously
+        -- Similarly, single occurrences can be inlined vigorously
         -- e.g.  case (f x, g y) of (a,b) -> ....
         -- If a,b occur once we can avoid constructing the let binding for them.
 
