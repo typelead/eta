@@ -8,7 +8,7 @@ Utility functions on @Core@ syntax
 
 {-# LANGUAGE CPP #-}
 
--- | Commonly useful utilites for manipulating the Core language
+-- | Commonly useful utilities for manipulating the Core language
 module Eta.Core.CoreUtils (
         -- * Constructing expressions
         mkCast,
