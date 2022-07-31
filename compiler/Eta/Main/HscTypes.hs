@@ -1340,7 +1340,7 @@ data ForeignStubs
       --  2) C stubs to use when calling
       --     "foreign exported" functions
       --
-      --  3) Map of class strings to method defintions:
+      --  3) Map of class strings to method definitions:
       --     "place.Garage extends place.Home" --> [defs...]
 
 foreignExportsList :: ExportMethods -> [(Text, ([MethodDef], [FieldDef]))]
