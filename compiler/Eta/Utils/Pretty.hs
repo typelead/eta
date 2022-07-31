@@ -579,7 +579,7 @@ above p@(Beside _ _ _) g  q  = aboveNest (reduceDoc p) g (_ILIT(0)) (reduceDoc q
 above p g q                  = aboveNest p             g (_ILIT(0)) (reduceDoc q)
 
 aboveNest :: RDoc -> Bool -> FastInt -> RDoc -> RDoc
--- Specfication: aboveNest p g k q = p $g$ (nest k q)
+-- Specification: aboveNest p g k q = p $g$ (nest k q)
 
 aboveNest NoDoc               _ _ _ = NoDoc
 aboveNest (p1 `Union` p2)     g k q = aboveNest p1 g k q `union_`
