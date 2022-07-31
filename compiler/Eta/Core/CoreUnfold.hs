@@ -397,7 +397,7 @@ are very cheap, because exposing them to a caller is so valuable.
 
 [25/5/11] All sizes are now multiplied by 10, except for primops
 (which have sizes like 1 or 4.  This makes primops look fantastically
-cheap, and seems to be almost unversally beneficial.  Done partly as a
+cheap, and seems to be almost universally beneficial.  Done partly as a
 result of #4978.
 
 Note [Do not inline top-level bottoming functions]
