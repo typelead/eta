@@ -288,7 +288,7 @@ opt_univ env prov role oty1 oty2
   , Just (l2, r2) <- splitAppTy_maybe oty2
   , typeKind l1 `eqType` typeKind l2   -- kind(r1) == kind(r2) by consequence
   = let role' = if role == Phantom then Phantom else Nominal in
-       -- role' is to comform to mkAppCo's precondition
+       -- role' is to conform to mkAppCo's precondition
     mkAppCo (opt_univ env prov role l1 l2) (opt_univ env prov role' r1 r2)
 
   | Just (tv1, ty1) <- splitForAllTy_maybe oty1
