@@ -48,4 +48,4 @@ Note that we were able to define `applyOne` solely by composing existing functio
 
 ## Next Section
 
-We will explore even futher methods of re-use by exploring higher-order functions.
+We will explore even further methods of re-use by exploring higher-order functions.
