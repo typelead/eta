@@ -1072,7 +1072,7 @@ mkExpectedActualMsg ty1 ty2 (TypeEqOrigin { uo_actual = act, uo_expected = exp }
     msg = vcat [ text "Expected type:" <+> ppr exp
                , text "  Actual type:" <+> ppr act ]
 
-mkExpectedActualMsg _ _ _ = panic "mkExprectedAcutalMsg"
+mkExpectedActualMsg _ _ _ = panic "mkExprectedActualMsg"
 
 sameOccExtra :: TcType -> TcType -> SDoc
 -- See Note [Disambiguating (X ~ X) errors]
