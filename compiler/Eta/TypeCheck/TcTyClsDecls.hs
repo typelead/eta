@@ -2062,7 +2062,7 @@ Details: the "real" types of T1,T2 are:
    T1 :: forall r a.   (r~[a]) => a -> T r
    T2 :: forall r a b. (r~[a]) => a -> b -> T r
 
-So the selector loooks like this:
+So the selector looks like this:
    f :: forall a. T [a] -> Maybe a
    f (a:*) (t:T [a])
      = case t of
