@@ -147,7 +147,7 @@ The interesting cases of the analysis:
    any useful co-call information.
    Return (fv e)²
  * Case alternatives alt₁,alt₂,...:
-   Only one can be execuded, so
+   Only one can be executed, so
    Return (alt₁ ∪ alt₂ ∪...)
  * App e₁ e₂ (and analogously Case scrut alts), with non-trivial e₂:
    We get the results from both sides, with the argument evaluated at most once.
