@@ -405,7 +405,7 @@ Here's another example:
 Since T has no data constructors, the case alternatives are of course
 empty.  However note that 'x' is not bound to a visibly-bottom value;
 it's the *type* that tells us it's going to diverge.  Its a bit of a
-degnerate situation but we do NOT want to replace
+degenerate situation but we do NOT want to replace
    case x of Bool {}   -->   error Bool "Inaccessible case"
 because x might raise an exception, and *that*'s what we want to see!
 (Trac #6067 is an example.) To preserve semantics we'd have to say
