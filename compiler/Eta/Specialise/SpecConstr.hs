@@ -1090,7 +1090,7 @@ instance Outputable ArgOcc where
 evalScrutOcc :: ArgOcc
 evalScrutOcc = ScrutOcc emptyUFM
 
--- Experimentally, this vesion of combineOcc makes ScrutOcc "win", so
+-- Experimentally, this version of combineOcc makes ScrutOcc "win", so
 -- that if the thing is scrutinised anywhere then we get to see that
 -- in the overall result, even if it's also used in a boxed way
 -- This might be too aggressive; see Note [Reboxing] Alternative 3

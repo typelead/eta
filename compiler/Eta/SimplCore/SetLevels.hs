@@ -342,7 +342,7 @@ lvlExpr env expr@(_, AnnLam {})
     (bndrs, body)        = collectAnnBndrs expr
     (env1, bndrs1)       = substBndrsSL NonRecursive env bndrs
     (new_env, new_bndrs) = lvlLamBndrs env1 (le_ctxt_lvl env) bndrs1
-        -- At one time we called a special verion of collectBinders,
+        -- At one time we called a special version of collectBinders,
         -- which ignored coercions, because we don't want to split
         -- a lambda like this (\x -> coerce t (\s -> ...))
         -- This used to happen quite a bit in state-transformer programs,

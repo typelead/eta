@@ -23,7 +23,7 @@ class Subst_A a t t' where
 
 data SubstD_A a t t' = SubstD_A {substD_A:: forall m. (Monad m) => a -> t -> t' -> m t'}
 
--- Allow override dictionary verion with implementation of type class Subst
+-- Allow override dictionary version with implementation of type class Subst
 instance Subst_A a t t' => Sat (SubstD_A a t t') where
     dict = SubstD_A {substD_A = subst_A}
 
@@ -39,7 +39,7 @@ class Subst_B a t t' where
 
 data SubstD_B a t t' = SubstD_B {substD_B :: a -> t -> t' -> t'}
 
--- allow override dictionary verion with implementation of type class Subst
+-- allow override dictionary version with implementation of type class Subst
 instance Subst_B a t t' => Sat (SubstD_B a t t') where
     dict = SubstD_B {substD_B = subst_B}
 

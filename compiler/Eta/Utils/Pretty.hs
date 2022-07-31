@@ -335,7 +335,7 @@ Laws for oneLiner
 \end{verbatim}
 
 
-You might think that the following verion of <m1> would
+You might think that the following version of <m1> would
 be neater:
 \begin{verbatim}
 <3 NO>  (text s <> x) $$ y = text s <> ((empty <> x)) $$

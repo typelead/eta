@@ -852,7 +852,7 @@ specCase env scrut' case_bndr [(con, args, rhs)]
                        | sc_arg' <- sc_args' ]
 
              -- Extend the substitution for RHS to map the *original* binders
-             -- to their floated verions.
+             -- to their floated versions.
              mb_sc_flts :: [Maybe DictId]
              mb_sc_flts = map (lookupVarEnv clone_env) args'
              clone_env  = zipVarEnv sc_args' sc_args_flt
