@@ -149,7 +149,7 @@ public class MPSCReferenceQueue<E> {
     }
 
     /* WARNING: This function is unsafe! It may consume elements that were already
-                consumed if read() calls are made simulatenously to this call. */
+                consumed if read() calls are made simultaneously to this call. */
     public int forEach(Consumer<E> consumer) {
         int processed = headBuffer.forEach(consumer);
         for (RingBuffer<E> buffer: buffers) {
@@ -242,7 +242,7 @@ public class MPSCReferenceQueue<E> {
         }
 
         /* WARNING: This function is unsafe! It may consume elements that were already
-           consumed if read() calls are made simulatenously to this call. */
+           consumed if read() calls are made simultaneously to this call. */
         public int forEach(Consumer<E> consumer) {
             int processed = 0;
             final int len = available.length();
