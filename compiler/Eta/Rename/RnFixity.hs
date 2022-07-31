@@ -172,7 +172,7 @@ lookupTyFixityRn :: Located Name -> RnM Fixity
 lookupTyFixityRn (L _ n) = lookupFixityRn n
 
 -- | Look up the fixity of a (possibly ambiguous) occurrence of a record field
--- selector.  We use 'lookupFixityRn'' so that we can specifiy the 'OccName' as
+-- selector.  We use 'lookupFixityRn'' so that we can specify the 'OccName' as
 -- the field label, which might be different to the 'OccName' of the selector
 -- 'Name' if @DuplicateRecordFields@ is in use (Trac #1173). If there are
 -- multiple possible selectors with different fixities, generate an error.
