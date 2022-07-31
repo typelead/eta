@@ -805,7 +805,7 @@ Notice the orientation (xi_w ~ xi_i) NOT (xi_i ~ xi_w):
     new_work :: xi_w ~ xi_i
     cw := ci ; sym new_work
 Why?  Consider the simplest case when xi1 is a type variable.  If
-we generate xi1~xi2, porcessing that constraint will kick out 'ci'.
+we generate xi1~xi2, processing that constraint will kick out 'ci'.
 If we generate xi2~xi1, there is less chance of that happening.
 Of course it can and should still happen if xi1=a, xi1=Int, say.
 But we want to avoid it happening needlessly.
