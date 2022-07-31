@@ -569,7 +569,7 @@ a user-written type or function name
    T:C          Tycon for dictionary for class C
    D:C          Data constructor for dictionary for class C
    NTCo:T       Coercion connecting newtype T with its representation type
-   TFCo:R       Coercion connecting a data family to its respresentation type R
+   TFCo:R       Coercion connecting a data family to its representation type R
 
 In encoded form these appear as Zdfxxx etc
 

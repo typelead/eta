@@ -637,7 +637,7 @@ tc_mkRepTy gk_ tycon metaDts =
                       Gen0_        -> mkRec0 t
                       Gen1_ argVar -> argPar argVar t
           where
-            -- Builds argument represention for Rep1 (more complicated due to
+            -- Builds argument representation for Rep1 (more complicated due to
             -- the presence of composition).
             argPar argVar = argTyFold argVar $ ArgTyAlg
               {ata_rec0 = mkRec0, ata_par1 = mkPar1,
