@@ -931,7 +931,7 @@ When there are no type families, it's quite easy:
     instance Eq [a] => Eq (S a)         -- by coercion sym (Eq (:CoS a)) : Eq [a] ~ Eq (S a)
     instance Monad [] => Monad S        -- by coercion sym (Monad :CoS)  : Monad [] ~ Monad S
 
-When type familes are involved it's trickier:
+When type families are involved it's trickier:
 
     data family T a b
     newtype instance T Int a = MkT [a] deriving( Eq, Monad )
@@ -1658,7 +1658,7 @@ e.g.    newtype S1 = S1 [T1 ()]
         newtype T1 a = T1 (StateT S1 IO a ) deriving( Monad )
 Remember, too, that type families are currently (conservatively) given
 a recursive flag, so this also allows newtype deriving to work
-for type famillies.
+for type families.
 
 We used to exclude recursive types, because we had a rather simple
 minded way of generating the instance decl:
