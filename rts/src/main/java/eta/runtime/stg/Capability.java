@@ -88,7 +88,7 @@ public final class Capability implements LocalHeap {
             && workerCapabilitiesSize() == 0;
     }
 
-    /* This object is used to sychronize among all the idle worker capabilities. */
+    /* This object is used to synchronize among all the idle worker capabilities. */
     private static Object blockedLock = new Object();
 
     /* The current number of worker capabilities waiting for work */
