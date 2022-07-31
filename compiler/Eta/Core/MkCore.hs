@@ -100,7 +100,7 @@ infixl 4 `mkCoreApp`, `mkCoreApps`
 sortQuantVars :: [Var] -> [Var]
 -- Sort the variables (KindVars, TypeVars, and Ids)
 -- into order: Kind, then Type, then Id
--- It is a deterministic sort, meaining it doesn't look at the values of
+-- It is a deterministic sort, meaning it doesn't look at the values of
 -- Uniques. For explanation why it's important See Note [Unique Determinism]
 -- in Unique.
 sortQuantVars = sortBy (comparing category)
