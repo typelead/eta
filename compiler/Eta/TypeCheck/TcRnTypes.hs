@@ -1230,7 +1230,7 @@ data HoleSort = ExprHole  -- ^ A hole in an expression (TypedHoles)
 Note [Kind orientation for CTyEqCan]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Given an equality (t:* ~ s:Open), we can't solve it by updating t:=s,
-ragardless of how touchable 't' is, because the kinds don't work.
+regardless of how touchable 't' is, because the kinds don't work.
 
 Instead we absolutely must re-orient it. Reason: if that gets into the
 inert set we'll start replacing t's by s's, and that might make a
