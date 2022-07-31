@@ -1128,9 +1128,9 @@ The idea is that
   - (T3) guarantees (WF2).
 
 * (K2) is about inertness.  Intuitively, any infinite chain T^0(f,t),
-  T^1(f,t), T^2(f,T).... must pass through the new work item infnitely
+  T^1(f,t), T^2(f,T).... must pass through the new work item infinitely
   often, since the substution without the work item is inert; and must
-  pass through at least one of the triples in S infnitely often.
+  pass through at least one of the triples in S infinitely often.
 
   - (K2a): if not(fs>=fs) then there is no f that fs can rewrite (fs>=f),
     and hence this triple never plays a role in application S(f,a).

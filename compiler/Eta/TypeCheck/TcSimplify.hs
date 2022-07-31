@@ -988,7 +988,7 @@ of progress.  Trac #8474 is a classic example:
        ?yn:betan => [W] ?x:Int
     because we'll just get the same [D] again
 
-  * If we *do* re-solve, we'll get an ininite loop. It is cut off by
+  * If we *do* re-solve, we'll get an infinite loop. It is cut off by
     the fixed bound of 10, but solving the next takes 10*10*...*10 (ie
     exponentially many) iterations!
 
