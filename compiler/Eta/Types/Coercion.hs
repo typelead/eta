@@ -225,7 +225,7 @@ Note [Refl invariant]
 Coercions have the following invariant
      Refl is always lifted as far as possible.
 
-You might think that a consequencs is:
+You might think that a consequences is:
      Every identity coercions has Refl at the root
 
 But that's not quite true because of coercion variables.  Consider
