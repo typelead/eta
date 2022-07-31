@@ -520,7 +520,7 @@ lvlMFE strict_ctxt env ann_expr@(fvs, _)
 {-
 Note [Unlifted MFEs]
 ~~~~~~~~~~~~~~~~~~~~
-We don't float unlifted MFEs, which potentially loses big opportunites.
+We don't float unlifted MFEs, which potentially loses big opportunities.
 For example:
         \x -> f (h y)
 where h :: Int -> Int# is expensive. We'd like to float the (h y) outside

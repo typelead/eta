@@ -255,7 +255,7 @@ For Wanteds:
        Generally speaking we want to be able to add superclasses of
        wanteds for two reasons:
 
-       (1) Oportunities for improvement. Example:
+       (1) Opportunities for improvement. Example:
                   class (a ~ b) => C a b
            Wanted constraint is: C alpha beta
            We'd like to simply have C alpha alpha. Similar
