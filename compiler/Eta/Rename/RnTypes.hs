@@ -286,7 +286,7 @@ rnHsTyKiForAll :: Bool -> HsDocContext -> HsType RdrName
                -> RnM (HsType Name, FreeVars)
 rnHsTyKiForAll isType doc (HsForAllTy Implicit extra _ lctxt@(L _ ctxt) ty)
   = ASSERT( isType ) do
-        -- Implicit quantifiction in source code (no kinds on tyvars)
+        -- Implicit quantification in source code (no kinds on tyvars)
         -- Given the signature  C => T  we universally quantify
         -- over FV(T) \ {in-scope-tyvars}
     rdr_env <- getLocalRdrEnv
