@@ -722,8 +722,8 @@ runGHCiInput f = do
 nextInputLine :: Bool -> Bool -> InputT GHCi (Maybe String)
 nextInputLine show_prompt is_tty
   | is_tty = do
-    prmpt <- if show_prompt then lift mkPrompt else return ""
-    r <- getInputLine prmpt
+    prompt <- if show_prompt then lift mkPrompt else return ""
+    r <- getInputLine prompt
     incrementLineNo
     return r
   | otherwise = do
